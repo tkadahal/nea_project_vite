@@ -1,6 +1,6 @@
 <aside
-    class="js-sidebar bg-sidebar text-sidebar-foreground border-r border-gray-200 dark:border-gray-700 sidebar-transition overflow-hidden hidden md:block md:w-64"
-    data-open="true">
+    class="js-sidebar bg-sidebar text-sidebar-foreground border-r border-gray-200 dark:border-gray-700 sidebar-transition overflow-hidden md:w-64 shadow-sm shadow-gray-300"
+    data-open="false">
     <!-- Sidebar Content -->
     <div class="h-full flex flex-col">
         <!-- Sidebar Menu -->
@@ -88,7 +88,6 @@
                                         </div>
                                     </a>
                                 @endcan
-
                             </div>
                         </li>
                     @endcan
@@ -98,27 +97,51 @@
                     {{ trans('global.menu.title') }}
                 </li>
                 <!-- Pages - Level 1 -->
-                <x-layouts.sidebar-link href="{{ route('admin.directorate.index') }}" icon="fas-cog" :active="request()->routeIs('admin.directorate*')">
-                    Directorate
-                </x-layouts.sidebar-link>
-                <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-cog" :active="request()->routeIs('admin.department*')">
-                    Department
-                </x-layouts.sidebar-link>
-                <x-layouts.sidebar-link href="{{ route('admin.project.index') }}" icon="fas-cog" :active="request()->routeIs('admin.project*')">
-                    Projects
-                </x-layouts.sidebar-link>
-                <x-layouts.sidebar-link href="{{ route('admin.contract.index') }}" icon="fas-cog" :active="request()->routeIs('admin.contract*')">
-                    Contracts
-                </x-layouts.sidebar-link>
-                <x-layouts.sidebar-link href="{{ route('admin.task.index') }}" icon="fas-cog" :active="request()->routeIs('admin.task*')">
-                    Tasks
-                </x-layouts.sidebar-link>
-                <x-layouts.sidebar-link href="{{ route('admin.status.index') }}" icon="fas-cog" :active="request()->routeIs('admin.status*')">
-                    Status
-                </x-layouts.sidebar-link>
-                <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-cog" :active="request()->routeIs('admin.priority*')">
-                    Priority
-                </x-layouts.sidebar-link>
+                @can('directorate_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.directorate.index') }}" icon="fas-building"
+                        :active="request()->routeIs('admin.directorate*')">
+                        Directorate
+                    </x-layouts.sidebar-link>
+                @endcan
+
+                @can('department_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-bars" :active="request()->routeIs('admin.department*')">
+                        Department
+                    </x-layouts.sidebar-link>
+                @endcan
+
+                @can('project_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.project.index') }}" icon="fas-clipboard"
+                        :active="request()->routeIs('admin.project*')">
+                        Projects
+                    </x-layouts.sidebar-link>
+                @endcan
+
+                @can('contract_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.contract.index') }}" icon="fas-list" :active="request()->routeIs('admin.contract*')">
+                        Contracts
+                    </x-layouts.sidebar-link>
+                @endcan
+
+                @can('task_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.task.index') }}" icon="fas-pen-to-square"
+                        :active="request()->routeIs('admin.task*')">
+                        Tasks
+                    </x-layouts.sidebar-link>
+                @endcan
+
+                @can('status_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.status.index') }}" icon="fas-cog" :active="request()->routeIs('admin.status*')">
+                        Status
+                    </x-layouts.sidebar-link>
+                @endcan
+
+                @can('priority_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-fire" :active="request()->routeIs('admin.priority*')">
+                        Priority
+                    </x-layouts.sidebar-link>
+                @endcan
+
                 <li class="js-collapsible-menu">
                     <button
                         class="js-toggle-submenu flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">

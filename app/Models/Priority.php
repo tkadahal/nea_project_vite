@@ -15,8 +15,11 @@ class Priority extends Model
     use SoftDeletes;
 
     const PRIORITY_URGENT = 1;
+
     const PRIORITY_HIGH = 2;
+
     const PRIORITY_MEDIUM = 3;
+
     const PRIORITY_LOW = 4;
 
     protected $dates = [

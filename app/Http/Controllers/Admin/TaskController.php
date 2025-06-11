@@ -6,21 +6,25 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Task\StoreTaskRequest;
-use App\Models\Task;
-use App\Models\Status;
-use App\Models\Priority;
 use App\Models\Directorate;
+use App\Models\Priority;
 use App\Models\Project;
+use App\Models\Status;
+use App\Models\Task;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
+use App\Notifications\TaskCreated;
+use App\Notifications\TaskDeleted;
+use App\Notifications\TaskUpdated;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class TaskController extends Controller
 {
@@ -29,8 +33,8 @@ class TaskController extends Controller
         abort_if(Gate::denies('task_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $activeView = session('task_view_preference', 'board');
+        $user = Auth::user();
 
-        // Cache statuses and priorities (for 1 day)
         $statuses = Cache::remember('task_statuses', 86400, function () {
             return Status::all();
         });
@@ -39,7 +43,6 @@ class TaskController extends Controller
             return Priority::all();
         });
 
-        // Status colors from DB: id => hex color
         $statusColors = $statuses->pluck('color', 'id')->toArray();
 
         $priorityColors = [
@@ -53,7 +56,7 @@ class TaskController extends Controller
             'activeView' => $activeView,
             'statuses' => $statuses,
             'priorities' => $priorities,
-            'projectsForFilter' => Project::all(),
+            'projectsForFilter' => Cache::remember('projects_for_filter', 86400, fn () => Project::all()),
             'statusColors' => $statusColors,
             'priorityColors' => $priorityColors,
             'routePrefix' => 'admin.task',
@@ -61,22 +64,50 @@ class TaskController extends Controller
             'actions' => ['view', 'edit', 'delete'],
         ];
 
-        // Common eager loads
         $withRelations = ['status', 'priority', 'projects', 'users'];
+        $taskQuery = Task::with($withRelations)->latest();
+
+        try {
+            $roleIds = $user->roles->pluck('id')->toArray();
+            Log::info('Task filtering for user', ['user_id' => $user->id, 'role_ids' => $roleIds]);
+
+            if (! in_array(1, $roleIds)) { // Not Superadmin
+                $taskQuery->whereHas('users', function ($query) use ($user) {
+                    $query->where('users.id', $user->id);
+                });
+
+                if (in_array(3, $roleIds)) { // Directorate User
+                    $directorateIds = $user->directorates ? $user->directorates->pluck('id') : collect();
+                    if ($directorateIds->isEmpty()) {
+                        Log::warning('No directorates assigned to user', ['user_id' => $user->id]);
+                    }
+                    $taskQuery->whereHas('projects', function ($query) use ($directorateIds) {
+                        $query->whereIn('directorate_id', $directorateIds);
+                    });
+                }
+            }
+            // Superadmin (role_id = 1) sees all tasks
+        } catch (\Exception $e) {
+            Log::error('Error in task filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            $data['error'] = 'Unable to load tasks due to an error.';
+        }
 
         if ($activeView === 'board') {
-            $tasks = Task::with($withRelations)->latest()->get();
+            $tasks = $taskQuery->get();
+            Log::info('Tasks fetched for board view', ['count' => $tasks->count()]);
             $data['tasks'] = $tasks->groupBy('status_id')->map(function ($group) {
                 return $group->values();
             });
         }
 
         if ($activeView === 'list') {
-            $data['tasksFlat'] = Task::with($withRelations)->latest()->get()->values();
+            $data['tasksFlat'] = $taskQuery->get()->values();
+            Log::info('Tasks fetched for list view', ['count' => $data['tasksFlat']->count()]);
         }
 
         if ($activeView === 'calendar') {
-            $tasks = Task::with($withRelations)->latest()->get();
+            $tasks = $taskQuery->get();
+            Log::info('Tasks fetched for calendar view', ['count' => $tasks->count()]);
             $data['calendarData'] = $tasks->map(function ($task) use ($statusColors) {
                 $startDate = $task->start_date ? Carbon::parse($task->start_date) : ($task->due_date ? Carbon::parse($task->due_date) : null);
                 $endDate = $task->due_date ? Carbon::parse($task->due_date) : null;
@@ -91,15 +122,16 @@ class TaskController extends Controller
                     'extendedProps' => [
                         'status' => $task->status->title ?? 'N/A',
                         'priority' => $task->priority->title ?? 'N/A',
-                        'projects' => $task->projects->pluck('name')->all(),
+                        'projects' => $task->projects->pluck('title')->all(),
                         'users' => $task->users->pluck('name')->all(),
                     ],
                 ];
-            })->filter(fn($event) => $event['start'] !== null)->values()->all();
+            })->filter(fn ($event) => $event['start'] !== null)->values()->all();
         }
 
         if ($activeView === 'table') {
-            $tasks = Task::with($withRelations)->latest()->get();
+            $tasks = $taskQuery->get();
+            Log::info('Tasks fetched for table view', ['count' => $tasks->count()]);
             $data['tableHeaders'] = [
                 trans('global.task.fields.id'),
                 trans('global.task.fields.title'),
@@ -113,10 +145,10 @@ class TaskController extends Controller
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
-                    'status' => $task->status->title,
-                    'priority' => $task->priority->title,
+                    'status' => $task->status->title ?? 'N/A',
+                    'priority' => $task->priority->title ?? 'N/A',
                     'due_date' => $task->due_date ? $task->due_date->format('Y-m-d') : 'N/A',
-                    'projects' => $task->projects->pluck('name')->join(', '),
+                    'projects' => $task->projects->pluck('title')->join(', '),
                     'users' => $task->users->pluck('name')->join(', '),
                 ];
             })->all();
@@ -145,49 +177,73 @@ class TaskController extends Controller
         $validated = $request->validated();
 
         $task = Task::create($validated);
+        $task->projects()->sync($validated['projects'] ?? []);
+        $task->users()->sync($validated['users'] ?? []);
 
-        $task->projects()->sync($validated['projects']);
-        $task->users()->sync($validated['users']);
+        foreach ($task->users as $user) {
+            $user->notify(new TaskCreated($task));
+        }
 
-        return redirect()->route(route: 'admin.task.index')
+        return redirect()->route('admin.task.index')
             ->with('message', 'Task created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Task $task)
+    public function show(Task $task): View
     {
-        //
+        $task->load(['status', 'priority', 'projects', 'users']);
+
+        return view('admin.tasks.show', compact('task'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Task $task)
+    public function edit(Task $task): View
     {
-        //
+        abort_if(Gate::denies('task_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $task->load(['status', 'priority', 'projects', 'users']);
+        $statuses = Status::pluck('title', 'id');
+        $priorities = Priority::pluck('title', 'id');
+        $directorates = Directorate::pluck('title', 'id');
+        $projects = Project::pluck('title', 'id');
+        $users = User::pluck('name', 'id');
+
+        return view('admin.tasks.edit', compact('task', 'statuses', 'priorities', 'directorates', 'projects', 'users'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Task $task)
+    public function update(StoreTaskRequest $request, Task $task): RedirectResponse
     {
-        //
+        abort_if(Gate::denies('task_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $validated = $request->validated();
+
+        $task->update($validated);
+        $task->projects()->sync($validated['projects'] ?? []);
+        $task->users()->sync($validated['users'] ?? []);
+
+        // foreach ($task->users as $user) {
+        //     $user->notify(new TaskUpdated($task));
+        // }
+
+        return redirect()->route('admin.task.show', $task)
+            ->with('message', 'Task updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Task $task)
+    public function destroy(Task $task): RedirectResponse
     {
-        //
+        abort_if(Gate::denies('task_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        // foreach ($task->users as $user) {
+        //     $user->notify(new TaskDeleted($task));
+        // }
+
+        $task->delete();
+
+        return redirect()->route('admin.task.index')
+            ->with('message', 'Task deleted successfully.');
     }
 
     public function filter(Request $request): JsonResponse
     {
-        $query = Task::with(['status', 'priority', 'project']);
+        $query = Task::with(['status', 'priority', 'projects', 'users']);
 
         if ($request->has('filter_status')) {
             $query->whereIn('status_id', $request->input('filter_status'));
@@ -196,7 +252,7 @@ class TaskController extends Controller
             $query->whereIn('priority_id', $request->input('filter_priority'));
         }
         if ($request->has('filter_project')) {
-            $query->where('project_id', $request->input('filter_project'));
+            $query->whereHas('projects', fn ($q) => $q->whereIn('id', (array) $request->input('filter_project')));
         }
         if ($request->has('filter_start_date')) {
             $query->whereDate('start_date', '>=', $request->input('filter_start_date'));
@@ -226,13 +282,17 @@ class TaskController extends Controller
         $task->status_id = $request->input('status_id');
         $task->save();
 
+        // foreach ($task->users as $user) {
+        //     $user->notify(new TaskUpdated($task));
+        // }
+
         return response()->json(['message' => 'Task status updated successfully']);
     }
 
-    // TaskController.php
     public function setViewPreference(Request $request): JsonResponse
     {
         $request->session()->put('task_view_preference', $request->input('task_view_preference'));
+
         return response()->json(['success' => true]);
     }
 
@@ -253,7 +313,7 @@ class TaskController extends Controller
             return response()->json($projects);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to fetch projects: ' . $e->getMessage(),
+                'message' => 'Failed to fetch projects: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -262,17 +322,17 @@ class TaskController extends Controller
     {
         try {
             $projectIds = $request->query('project_ids', []);
-            if (!is_array($projectIds)) {
+            if (! is_array($projectIds)) {
                 $projectIds = [$projectIds];
             }
-            $projectIds = array_filter($projectIds); // Remove empty values
+            $projectIds = array_filter($projectIds);
 
             if (empty($projectIds)) {
                 Log::info('No project IDs provided, returning empty array');
+
                 return response()->json([]);
             }
 
-            // Assuming a many-to-many relationship between User and Project (e.g., project_user pivot table)
             $users = User::whereHas('projects', function ($query) use ($projectIds) {
                 $query->whereIn('projects.id', $projectIds);
             })
@@ -286,10 +346,12 @@ class TaskController extends Controller
                 })
                 ->toArray();
 
-            Log::info('Users fetched for project_ids: ' . implode(',', $projectIds), ['count' => count($users)]);
+            Log::info('Users fetched for project_ids: '.implode(',', $projectIds), ['count' => count($users)]);
+
             return response()->json($users);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch users: ' . $e->getMessage());
+            Log::error('Failed to fetch users: '.$e->getMessage());
+
             return response()->json([], 500);
         }
     }

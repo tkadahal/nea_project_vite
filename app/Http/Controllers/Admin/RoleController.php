@@ -10,8 +10,8 @@ use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class RoleController extends Controller

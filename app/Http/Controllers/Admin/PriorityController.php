@@ -9,7 +9,6 @@ use App\Http\Requests\Priority\StorePriorityRequest;
 use App\Http\Requests\Priority\UpdatePriorityRequest;
 use App\Models\Priority;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;

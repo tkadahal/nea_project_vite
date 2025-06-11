@@ -9,9 +9,9 @@ use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Models\Contract;
 use App\Models\Directorate;
+use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Status;
-use App\Models\Priority;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -53,6 +53,7 @@ class ContractController extends Controller
         $projects = collect();
         $statuses = Status::pluck('title', 'id');
         $priorities = Priority::pluck('title', 'id');
+
         return view('admin.contracts.create', compact('directorates', 'projects', 'statuses', 'priorities'));
     }
 
@@ -67,7 +68,14 @@ class ContractController extends Controller
 
     public function show(Contract $contract)
     {
-        //
+        $contract->load([
+            'directorate',
+            'project',
+            'status',
+            'priority',
+        ]);
+
+        return view('admin.contracts.show', compact('contract'));
     }
 
     public function edit(Contract $contract): View
@@ -121,7 +129,7 @@ class ContractController extends Controller
             return response()->json($projects);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to fetch projects: ' . $e->getMessage(),
+                'message' => 'Failed to fetch projects: '.$e->getMessage(),
             ], 500);
         }
     }

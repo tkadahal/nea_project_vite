@@ -7,9 +7,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use Illuminate\Support\Facades\Auth;
 
 class Task extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'title',
         'description',
@@ -44,6 +49,32 @@ class Task extends Model
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class, 'project_task');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'title',
+                'description',
+                'start_date',
+                'due_date',
+                'completion_date',
+                'status_id',
+                'priority_id',
+                'progress',
+            ])
+            ->logOnlyDirty()
+            ->useLogName('task')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return match ($eventName) {
+                    'created' => "Task created by {$user}",
+                    'updated' => "Task updated by {$user}",
+                    'deleted' => "Task deleted by {$user}",
+                    default => "Task {$eventName} by {$user}",
+                };
+            });
     }
 
     public function users(): BelongsToMany

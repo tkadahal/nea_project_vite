@@ -4,37 +4,51 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\Task;
-use App\Models\Status;
 use App\Models\Priority;
 use App\Models\Project;
+use App\Models\Status;
+use App\Models\Task;
 use Carbon\Carbon;
+use Livewire\Component;
 
 class TaskManager extends Component
 {
     public $activeView = 'board';
+
     public $search = '';
+
     public $tasks;
+
     public $tasksFlat;
+
     public $calendarData;
+
     public $tableHeaders;
+
     public $tableData;
+
     public $statuses;
+
     public $priorities;
+
     public $projectsForFilter;
+
     public $statusColors;
+
     public $priorityColors;
+
     public $routePrefix = 'admin.task';
+
     public $deleteConfirmationMessage = 'Are you sure you want to delete this task?';
+
     public $actions = ['view', 'edit', 'delete'];
 
     public function mount()
     {
         $this->activeView = session('task_view_preference', 'board');
-        $this->statuses = cache()->remember('statuses', now()->addHours(24), fn() => Status::all());
-        $this->priorities = cache()->remember('priorities', now()->addHours(24), fn() => Priority::all());
-        $this->projectsForFilter = cache()->remember('projects', now()->addHours(24), fn() => Project::all());
+        $this->statuses = cache()->remember('statuses', now()->addHours(24), fn () => Status::all());
+        $this->priorities = cache()->remember('priorities', now()->addHours(24), fn () => Priority::all());
+        $this->projectsForFilter = cache()->remember('projects', now()->addHours(24), fn () => Project::all());
         $this->statusColors = [
             1 => '#3498db',
             2 => '#f39c12',
@@ -74,7 +88,7 @@ class TaskManager extends Component
         $query = Task::with(['status', 'priority'])->latest();
 
         if ($this->search && $this->activeView === 'list') {
-            $query->where('title', 'like', '%' . $this->search . '%');
+            $query->where('title', 'like', '%'.$this->search.'%');
         }
 
         $tasks = $query->get();
@@ -102,7 +116,7 @@ class TaskManager extends Component
                         'priority' => $task->priority->title ?? 'N/A',
                     ],
                 ];
-            })->filter(fn($event) => $event['start'] !== null)->values()->all();
+            })->filter(fn ($event) => $event['start'] !== null)->values()->all();
         } elseif ($this->activeView === 'table') {
             $this->tableHeaders = [
                 trans('global.task.fields.id'),

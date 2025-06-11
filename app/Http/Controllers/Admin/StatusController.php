@@ -9,8 +9,8 @@ use App\Http\Requests\Status\StoreStatusRequest;
 use App\Http\Requests\Status\UpdateStatusRequest;
 use App\Models\Status;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class StatusController extends Controller

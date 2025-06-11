@@ -12,8 +12,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Role extends Model
 {
     const SUPERADMIN = 1;
+
     const ADMIN = 2;
+
     const DIRECTORATE_USER = 3;
+
     const PROJECT_USER = 4;
 
     use HasFactory;

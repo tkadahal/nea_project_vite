@@ -205,6 +205,36 @@ class PermissionsTableSeeder extends Seeder
                 'deleted_at' => null,
             ],
             [
+                'title' => 'contract_access',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'contract_create',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'contract_edit',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'contract_show',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'contract_delete',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
                 'title' => 'status_access',
                 'created_at' => '2022-01-24 18:00:13',
                 'updated_at' => '2022-01-24 18:00:13',

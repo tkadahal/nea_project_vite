@@ -27,7 +27,7 @@ class UpdateDepartmentRequest extends FormRequest
             ],
             'description' => [
                 'nullable',
-            ]
+            ],
         ];
     }
 }

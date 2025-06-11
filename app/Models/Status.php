@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Collection;
 
 class Status extends Model
@@ -15,7 +15,9 @@ class Status extends Model
     use SoftDeletes;
 
     const STATUS_TODO = 1;
+
     const STATUS_IN_PROGRESS = 2;
+
     const STATUS_COMPLETED = 3;
 
     protected static $cachedStatuses;

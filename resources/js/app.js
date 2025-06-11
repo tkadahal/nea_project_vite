@@ -2,13 +2,25 @@ import "./bootstrap";
 import $ from "jquery";
 import { Editor, EditorContent } from "@tiptap/vue-3";
 import StarterKit from "@tiptap/starter-kit";
+import toastr from "toastr";
 
 window.jQuery = window.$ = $;
+window.toastr = toastr;
 
 $(document).ready(function () {
     console.log("jQuery version:", $.fn.jquery);
 
-    // Initialize Tiptap editor
+    // Set Toastr options
+    toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: "toast-top-right",
+        timeOut: 5000,
+    };
+
+    console.log("Toastr initialized:", toastr);
+
+    // Initialize Tiptap editor (unchanged)
     $("[data-tiptap-editor]").each(function () {
         const $container = $(this);
         const $editorContent = $container.find('[ref="editorContent"]');
@@ -32,7 +44,7 @@ $(document).ready(function () {
         });
     });
 
-    // Profile dropdown
+    // Profile dropdown (unchanged)
     $(".js-profile-dropdown").each(function () {
         const $container = $(this);
         const $dropdown = $container.find(".js-dropdown-menu");
@@ -59,17 +71,17 @@ $(document).ready(function () {
         const $chevrons = $(".js-chevron");
 
         if (isOpen) {
-            $sidebar.removeClass("hidden md:w-16").addClass("w-full md:w-64");
+            $sidebar.removeClass("hidden").addClass("w-full md:w-64");
             $labels.removeClass("opacity-0").addClass("opacity-100");
             $chevrons.removeClass("opacity-0").addClass("opacity-100");
+            // Restore previously open submenus
             $(".js-submenu").filter(":visible").show();
         } else {
-            $sidebar
-                .removeClass("w-full md:w-64")
-                .addClass("hidden md:block md:w-16");
+            $sidebar.addClass("hidden").removeClass("w-full md:w-64");
             $labels.removeClass("opacity-100").addClass("opacity-0");
             $chevrons.removeClass("opacity-100").addClass("opacity-0");
-            $(".js-submenu").hide();
+            $(".js-submenu").addClass("hidden");
+            $(".js-chevron").removeClass("rotate-90");
         }
 
         $sidebar.attr("data-open", isOpen);
@@ -77,28 +89,22 @@ $(document).ready(function () {
         console.log("Sidebar state:", isOpen ? "open" : "closed");
     }
 
-    // Initialize sidebar based on screen size or saved state
+    // Initialize sidebar state
     const savedSidebarState = localStorage.getItem("sidebarState");
     if (savedSidebarState === "open") {
         updateSidebarState(true);
-    } else if (savedSidebarState === "closed") {
-        updateSidebarState(false);
     } else {
-        // No saved state: use screen size
-        if (window.innerWidth >= 768) {
-            updateSidebarState(true); // Expanded on md+
-        } else {
-            updateSidebarState(false); // Collapsed on small
-        }
+        updateSidebarState(false);
     }
 
-    // Toggle sidebar manually
+    // Toggle sidebar
     $(".js-toggle-sidebar").on("click", function (e) {
         e.preventDefault();
         const isOpen = $(".js-sidebar").attr("data-open") === "true";
         updateSidebarState(!isOpen);
     });
 
+    // Collapsible menu
     $(".js-collapsible-menu").each(function () {
         const $menu = $(this);
         const $toggle = $menu.find(".js-toggle-submenu");
@@ -108,32 +114,35 @@ $(document).ready(function () {
         $toggle.on("click", function (e) {
             e.preventDefault();
             const isSidebarOpen = $(".js-sidebar").attr("data-open") === "true";
-            if (isSidebarOpen) {
+            if (!isSidebarOpen) {
+                // Open sidebar and submenu
+                updateSidebarState(true);
+                $submenu.removeClass("hidden");
+                $chevron.addClass("rotate-90");
+                console.log("Sidebar expanded and submenu opened");
+            } else {
+                // Toggle submenu
                 $submenu.toggleClass("hidden");
                 $chevron.toggleClass("rotate-90");
                 console.log(
                     "Submenu toggled:",
                     $submenu.hasClass("hidden") ? "closed" : "open",
                 );
-            } else {
-                updateSidebarState(true);
-                $submenu.removeClass("hidden");
-                $chevron.addClass("rotate-90");
-                console.log("Sidebar expanded and submenu opened");
             }
         });
     });
 
-    // Resize listener (optional: to dynamically adjust if user resizes window)
+    // Handle window resize
     $(window).on("resize", function () {
-        const currentState = $(".js-sidebar").attr("data-open");
-        if (window.innerWidth < 768 && currentState === "true") {
+        const isOpen = $(".js-sidebar").attr("data-open") === "true";
+        if (window.innerWidth < 768 && isOpen) {
             updateSidebarState(false);
-        } else if (window.innerWidth >= 768 && currentState === "false") {
+        } else if (window.innerWidth >= 768 && !isOpen) {
             updateSidebarState(true);
         }
     });
 
+    // Dropdown and accordion logic (unchanged)
     const emailInput = $('input[name="email"]').val();
     console.log("Email input value on load:", emailInput);
 

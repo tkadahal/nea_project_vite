@@ -7,19 +7,23 @@ export default defineConfig({
         laravel({
             input: [
                 "resources/css/app.css",
-                "resources/css/fullcalendar.css", // Add FullCalendar CSS
+                "resources/css/toastr.css",
+                "resources/css/fullcalendar.css",
                 "resources/js/app.js",
-                "resources/js/taskCalendar.js", // Add FullCalendar JS
+                "resources/js/taskCalendar.js",
                 "resources/js/departmentLoader.js",
                 "resources/js/formDependencies.js",
-                // "resources/js/projectManagerLoader.js",
                 "resources/js/projectBudget.js",
                 "resources/js/projectLoader.js",
                 "resources/js/contract.js",
-                // "resources/js/userProject.js",
             ],
             refresh: true,
         }),
         tailwindcss(),
     ],
+    resolve: {
+        alias: {
+            toastr: "toastr/build/toastr.min.js",
+        },
+    },
 });

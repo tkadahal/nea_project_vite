@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Spatie\Activitylog\LogOptions;
 use App\Models\Builders\ModelBuilder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class Project extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'directorate_id',
@@ -73,6 +76,7 @@ class Project extends Model
     public function getTotalBudgetAttribute(): float
     {
         $latestBudget = $this->budgets()->latest('id')->first();
+
         return $latestBudget ? (float) $latestBudget->total_budget : 0.0;
     }
 
@@ -96,6 +100,30 @@ class Project extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'project_user');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'title',
+                'description',
+                'status_id',
+                'project_manager',
+                'start_date',
+                'end_date',
+            ])
+            ->logOnlyDirty()
+            ->useLogName('project')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return match ($eventName) {
+                    'created' => "Project created by {$user}",
+                    'updated' => "Project updated by {$user}",
+                    'deleted' => "Project deleted by {$user}",
+                    default => "Project {$eventName} by {$user}",
+                };
+            });
     }
 
     public function newEloquentBuilder($query): ModelBuilder

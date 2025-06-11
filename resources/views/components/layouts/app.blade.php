@@ -34,9 +34,27 @@
         }
         window.setAppearance(window.localStorage.getItem('appearance') || 'system')
     </script>
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    <style>
+        #addEventModal {
+            z-index: 1000;
+        }
+
+        #addEventModal:target,
+        #addEventModal:not(.hidden) {
+            overflow-y: hidden;
+        }
+
+        body:where(#addEventModal:target),
+        body:where(#addEventModal:not(.hidden)) {
+            overflow: hidden;
+        }
+
+        .modal-open {
+            overflow: hidden;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased" x-data="{
@@ -44,22 +62,13 @@
     toggleSidebar() { this.sidebarOpen = !this.sidebarOpen },
     formSubmitted: false,
 }">
-
-    <!-- Main Container -->
     <div class="min-h-screen flex flex-col">
-
         <x-layouts.app.header />
-
-        <!-- Main Content Area -->
         <div class="flex flex-1 overflow-hidden">
-
             <x-layouts.app.sidebar />
-
-            <!-- Main Content -->
             <main class="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 content-transition">
                 <div class="p-6">
-                    <!-- Success Message -->
-                    @session('status')
+                    @if (session('status'))
                         <div x-data="{ showStatusMessage: true }" x-show="showStatusMessage"
                             x-transition:enter="transition ease-out duration-300"
                             x-transition:enter-start="opacity-0 transform -translate-y-2"
@@ -96,15 +105,48 @@
                                 </div>
                             </div>
                         </div>
-                    @endsession
-
+                    @endif
                     {{ $slot }}
-                    @stack('scripts')
-                    @livewireScripts
                 </div>
             </main>
         </div>
     </div>
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            console.log("Session message: {{ session('message') ?? 'No message' }}");
+        </script>
+        <script>
+            function waitForJqueryAndToastr(callback) {
+                if (typeof window.jQuery !== 'undefined' && typeof window.toastr !== 'undefined') {
+                    callback();
+                } else {
+                    setTimeout(() => waitForJqueryAndToastr(callback), 100);
+                }
+            }
+
+            waitForJqueryAndToastr(() => {
+                @if (Session::has('message'))
+                    toastr.success("{{ session('message') }}");
+                    console.log("Toastr success triggered: {{ session('message') }}");
+                @endif
+                @if (Session::has('error'))
+                    toastr.error("{{ session('error') }}");
+                    console.log("Toastr error triggered: {{ session('error') }}");
+                @endif
+                @if (Session::has('info'))
+                    toastr.info("{{ session('info') }}");
+                    console.log("Toastr info triggered: {{ session('info') }}");
+                @endif
+                @if (Session::has('warning'))
+                    toastr.warning("{{ session('warning') }}");
+                    console.log("Toastr warning triggered: {{ session('warning') }}");
+                @endif
+            });
+        </script>
+    @endpush
+    @livewireScripts
+    @stack('scripts')
 </body>
 
 </html>

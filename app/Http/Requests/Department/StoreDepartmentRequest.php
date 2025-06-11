@@ -27,7 +27,7 @@ class StoreDepartmentRequest extends FormRequest
             ],
             'description' => [
                 'nullable',
-            ]
+            ],
         ];
     }
 }

@@ -6,20 +6,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectRequest;
-use App\Models\Project;
-use App\Models\Directorate;
-use App\Models\Role;
 use App\Models\Department;
-use App\Models\Status;
-use App\Models\Priority;
-use App\Models\User;
+use App\Models\Directorate;
 use App\Models\FiscalYear;
+use App\Models\Priority;
+use App\Models\Project;
+use App\Models\Role;
+use App\Models\Status;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProjectController extends Controller
@@ -28,7 +28,34 @@ class ProjectController extends Controller
     {
         abort_if(Gate::denies('project_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $projects = Project::with('directorate', 'priority', 'projectManager', 'status', 'budgets')->latest()->get();
+        $user = Auth::user();
+        $projectQuery = Project::with(['directorate', 'priority', 'projectManager', 'status', 'budgets'])->latest();
+
+        try {
+            $roleIds = $user->roles->pluck('id')->toArray();
+            Log::info('Project filtering for user', ['user_id' => $user->id, 'role_ids' => $roleIds]);
+
+            if (! in_array(1, $roleIds)) { // Not Superadmin
+                if (in_array(3, $roleIds)) { // Directorate User
+                    $directorateIds = $user->directorates ? $user->directorates->pluck('id') : collect();
+                    if ($directorateIds->isEmpty()) {
+                        Log::warning('No directorates assigned to user', ['user_id' => $user->id]);
+                    }
+                    $projectQuery->whereIn('directorate_id', $directorateIds);
+                } else { // Other users (e.g., Admin, Project User)
+                    $projectQuery->whereHas('users', function ($query) use ($user) {
+                        $query->where('users.id', $user->id);
+                    });
+                }
+            }
+            // Superadmin (role_id = 1) sees all projects
+        } catch (\Exception $e) {
+            Log::error('Error in project filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            $data['error'] = 'Unable to load projects due to an error.';
+        }
+
+        $projects = $projectQuery->get();
+        Log::info('Projects fetched', ['count' => $projects->count()]);
 
         $directorateColors = [
             1 => 'red',
@@ -61,21 +88,22 @@ class ProjectController extends Controller
             $priorityDisplayColor = isset($priorityColors[$priorityValue]) ? $priorityColors[$priorityValue] : '#6B7280';
 
             $fieldsForTable = [];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.start_date') . ': ' . ($project->start_date?->format('Y-m-d') ?? 'N/A'), 'color' => 'gray'];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.end_date') . ': ' . ($project->end_date?->format('Y-m-d') ?? 'N/A'), 'color' => 'gray'];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.budget') . ': ' . (is_numeric($project->budget) ? number_format((float)$project->budget, 2) : 'N/A'), 'color' => $budgetColor];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.priority_id') . ': ' . $priorityValue, 'color' => $priorityDisplayColor];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.progress') . ': ' . (is_numeric($project->progress) ? $project->progress . '%' : 'N/A'), 'color' => $progressColor];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.project_manager') . ': ' . ($project->projectManager->name ?? 'N/A'), 'color' => 'gray'];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.start_date').': '.($project->start_date?->format('Y-m-d') ?? 'N/A'), 'color' => 'gray'];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.end_date').': '.($project->end_date?->format('Y-m-d') ?? 'N/A'), 'color' => 'gray'];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.budget').': '.(is_numeric($project->budget) ? number_format((float) $project->budget, 2) : 'N/A'), 'color' => $budgetColor];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.priority_id').': '.$priorityValue, 'color' => $priorityDisplayColor];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.progress').': '.(is_numeric($project->progress) ? $project->progress.'%' : 'N/A'), 'color' => $progressColor];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.project_manager').': '.($project->projectManager->name ?? 'N/A'), 'color' => 'gray'];
 
             return [
                 'id' => $project->id,
                 'title' => $project->title,
                 'directorate' => [['title' => $directorateTitle, 'color' => $directorateDisplayColor]],
+                'fields' => $fieldsForTable,
             ];
         })->all();
 
-        $cardData = $projects->map(function ($project) use ($directorateColors, $priorityColors) {
+        $cardData = $projects->map(function ($project) use ($priorityColors) {
             $directorateTitle = $project->directorate?->title ?? 'N/A';
             $directorateId = $project->directorate?->id ?? null;
 
@@ -85,9 +113,9 @@ class ProjectController extends Controller
             $fields = [
                 ['label' => trans('global.project.fields.start_date'), 'key' => 'start_date', 'value' => $project->start_date?->format('Y-m-d') ?? 'N/A'],
                 ['label' => trans('global.project.fields.end_date'), 'key' => 'end_date', 'value' => $project->end_date?->format('Y-m-d') ?? 'N/A'],
-                ['label' => trans('global.project.fields.budget'), 'key' => 'budget', 'value' => is_numeric($project->total_budget) ? number_format((float)$project->total_budget, 2) : 'N/A'],
+                ['label' => trans('global.project.fields.budget'), 'key' => 'budget', 'value' => is_numeric($project->total_budget) ? number_format((float) $project->total_budget, 2) : 'N/A'],
                 ['label' => trans('global.project.fields.priority_id'), 'key' => 'priority', 'value' => $priorityValue, 'color' => $priorityColor],
-                ['label' => trans('global.project.fields.progress'), 'key' => 'progress', 'value' => is_numeric($project->progress) ? $project->progress . '%' : 'N/A'],
+                ['label' => trans('global.project.fields.progress'), 'key' => 'progress', 'value' => is_numeric($project->progress) ? $project->progress.'%' : 'N/A'],
                 ['label' => trans('global.project.fields.project_manager'), 'key' => 'project_manager', 'value' => $project->projectManager->name ?? 'N/A'],
             ];
 
@@ -100,7 +128,11 @@ class ProjectController extends Controller
             ];
         })->all();
 
-        $tableHeaders = [trans('global.project.fields.id'), trans('global.project.fields.title'), trans('global.project.fields.directorate_id')];
+        $tableHeaders = [
+            trans('global.project.fields.id'),
+            trans('global.project.fields.title'),
+            trans('global.project.fields.directorate_id'),
+        ];
 
         return view('admin.projects.index', [
             'data' => $cardData,
@@ -167,7 +199,16 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        //
+        $project->load([
+            'directorate',
+            'department',
+            'status',
+            'priority',
+            'projectManager', // Eager load projectManager
+            'budgets', // Eager load budgets to ensure getTotalBudget is accurate without extra queries
+        ]);
+
+        return view('admin.projects.show', compact('project'));
     }
 
     public function edit(Project $project): View
@@ -226,8 +267,9 @@ class ProjectController extends Controller
     {
         try {
             $directorate = Directorate::find($directorate_id);
-            if (!$directorate) {
-                Log::info('Directorate not found, returning empty array: ' . $directorate_id);
+            if (! $directorate) {
+                Log::info('Directorate not found, returning empty array: '.$directorate_id);
+
                 return response()->json([]);
             }
             $departments = $directorate->departments->map(function ($department) {
@@ -237,10 +279,12 @@ class ProjectController extends Controller
                 ];
             })->toArray();
 
-            Log::info('Departments fetched for directorate_id: ' . $directorate_id, ['count' => count($departments)]);
+            Log::info('Departments fetched for directorate_id: '.$directorate_id, ['count' => count($departments)]);
+
             return response()->json($departments);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch departments: ' . $e->getMessage());
+            Log::error('Failed to fetch departments: '.$e->getMessage());
+
             return response()->json(['message' => 'Failed to fetch departments.'], 500);
         }
     }
@@ -258,10 +302,12 @@ class ProjectController extends Controller
                     ];
                 })->toArray();
 
-            Log::info('Users fetched for directorate_id: ' . $directorate_id, ['count' => count($users)]);
+            Log::info('Users fetched for directorate_id: '.$directorate_id, ['count' => count($users)]);
+
             return response()->json($users);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch users: ' . $e->getMessage());
+            Log::error('Failed to fetch users: '.$e->getMessage());
+
             return response()->json(['message' => 'Failed to fetch users.'], 500);
         }
     }

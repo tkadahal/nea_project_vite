@@ -2,20 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\ContractController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DirectorateController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\PriorityController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\StatusController;
-use App\Http\Controllers\Admin\PriorityController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
 // use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Settings\PasswordController;
+use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,7 +26,7 @@ Route::get('/', function () {
 
 Route::view('test', 'full-page');
 
-Route::view('dashboard', 'dashboard')
+Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', \App\Http\Middleware\AuthGates::class])
     ->name('dashboard');
 
@@ -70,7 +72,12 @@ Route::group(
         Route::post('/admin/tasks/filter', [TaskController::class, 'filter'])->name('tasks.filter');
         Route::post('/admin/tasks/set-view', [TaskController::class, 'setViewPreference'])->name('task.set-view');
         Route::resource('task', TaskController::class);
+
+        Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+        Route::post('/calendar', [CalendarController::class, 'store'])->name('calendar.store');
+
+        Route::get('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('notifications.index');
     }
 );
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

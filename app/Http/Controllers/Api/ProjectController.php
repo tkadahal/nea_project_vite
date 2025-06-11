@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
-use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
@@ -27,7 +26,7 @@ class ProjectController extends Controller
             return response()->json($projects);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to fetch projects: ' . $e->getMessage(),
+                'message' => 'Failed to fetch projects: '.$e->getMessage(),
             ], 500);
         }
     }

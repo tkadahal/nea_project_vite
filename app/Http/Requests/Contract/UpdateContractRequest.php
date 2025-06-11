@@ -73,7 +73,7 @@ class UpdateContractRequest extends FormRequest
             'agreement_completion_date' => [
                 'nullable',
                 'date',
-                'after_or_equal:agreement_effective_date'
+                'after_or_equal:agreement_effective_date',
             ],
             'initial_contract_period' => [
                 'nullable',
