@@ -182,7 +182,6 @@
             </div>
         </div>
     </div>
-
     <!-- Task Sprint Overview Section -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 mb-6">
         <div class="flex justify-between items-center mb-4">
@@ -199,8 +198,55 @@
         </div>
     </div>
 
-    <!-- Include Calendar Events -->
-    @livewire('calendar')
+    <!-- Activity Logs and Calendar Section -->
+    <div class="grid grid-cols-12 gap-6 mb-6">
+        <!-- Activity Logs -->
+        <div
+            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 col-span-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Activity Logs</h2>
+                <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                @forelse ($activity_logs as $log)
+                    <div class="flex items-start space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mt-0.5" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <p class="font-medium text-gray-800 dark:text-gray-100">
+                                {{ $log->description }}
+                            </p>
+                            @if ($log->subject_type && $log->subject_id)
+                                <p class="text-xs">
+                                    {{ class_basename($log->subject_type) }} ID: {{ $log->subject_id }}
+                                </p>
+                            @endif
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $log->created_at }}
+                            </p>
+                        </div>
+                    </div>
+                @empty
+                    <p>No recent activities.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Calendar -->
+        <div
+            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 col-span-8">
+            @livewire('calendar')
+        </div>
+    </div>
 </x-layouts.app>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
