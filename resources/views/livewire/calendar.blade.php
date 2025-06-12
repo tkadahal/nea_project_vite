@@ -1,66 +1,79 @@
-<div>
-    <div class="mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Your Calendar</h2>
-    </div>
-
-    <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center">
-            <button wire:click="prevMonth"
-                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-            </button>
-            <button wire:click="goToToday"
-                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 mr-2 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-                Today
-            </button>
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mx-2" id="calendarMonthYear">
-                {{ \Carbon\Carbon::parse($currentMonth)->format('F Y') }}</h2>
-            <button wire:click="nextMonth"
-                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
-        </div>
-        <!-- Three-dot button with dropdown -->
+<div class="w-full">
+    <!-- Header with Three-Dot Menu -->
+    <div class="flex justify-between items-center mb-4 sm:mb-6">
+        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">Your Calendar</h2>
         <div class="relative">
             <button id="dropdownButton"
                 class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                 </svg>
             </button>
             <div id="dropdownMenu"
                 class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
                 <a href="{{ route('admin.calendar.store') }}"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    class="block px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                     Add Event
                 </a>
             </div>
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-6">
-        <!-- Calendar on the left -->
-        <div>
-            <div id="calendar" wire:ignore></div>
+
+    <!-- Navigation -->
+    <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center space-x-1 sm:space-x-2">
+            <button wire:click="prevMonth"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button wire:click="goToToday"
+                class="text-xs sm:text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                Today
+            </button>
+            <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mx-1 sm:mx-2"
+                id="calendarMonthYear">
+                {{ \Carbon\Carbon::parse($currentMonth)->format('F Y') }}
+            </h2>
+            <button wire:click="nextMonth"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
         </div>
-        <!-- Events list on the right -->
+    </div>
+
+    <!-- Calendar and Events -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        <!-- Calendar -->
+        <div class="overflow-hidden">
+            <div id="calendar" wire:ignore class="max-w-full"></div>
+        </div>
+        <!-- Events List -->
         <div>
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Events for
-                {{ \Carbon\Carbon::parse($activeDate)->format('F j, Y') }}</h2>
-            <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2 sm:mb-4">
+                Events for {{ \Carbon\Carbon::parse($activeDate)->format('F j, Y') }}
+            </h2>
+            <div class="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 @forelse ($filteredEvents as $event)
-                    <div>
-                        <span>⏰ {{ \Carbon\Carbon::parse($event['start'])->format('g:i A') }} -
-                            {{ $event['end'] ? \Carbon\Carbon::parse($event['end'])->format('g:i A') : 'No end time' }}</span>
-                        <div class="ml-2"><strong>{{ $event['title'] }}</strong></div>
-                        <div class="ml-2">{{ $event['description'] ?? 'No description' }}</div>
+                    <div class="truncate">
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {{ \Carbon\Carbon::parse($event['start'])->format('g:i A') }} -
+                            {{ $event['end'] ? \Carbon\Carbon::parse($event['end'])->format('g:i A') : 'No end time' }}
+                        </span>
+                        <div class="ml-5 truncate"><strong>{{ $event['title'] }}</strong></div>
+                        <div class="ml-5 truncate">{{ $event['description'] ?? 'No description' }}</div>
                     </div>
                 @empty
                     <p>No events for this date.</p>
@@ -72,6 +85,19 @@
     @push('styles')
         <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" rel="stylesheet">
         <style>
+            #calendar {
+                max-width: 100%;
+                font-size: 12px;
+                /* Default for mobile */
+            }
+
+            @media (min-width: 640px) {
+                #calendar {
+                    font-size: 14px;
+                    /* Larger for desktop */
+                }
+            }
+
             #calendar .fc-daygrid-day[data-date="{{ now()->toDateString() }}"] {
                 background-color: #ef4444 !important;
                 color: white !important;
@@ -81,6 +107,46 @@
 
             #calendar .fc-header-toolbar {
                 display: none;
+            }
+
+            #calendar .fc-daygrid-day {
+                padding: 2px;
+                /* Smaller padding on mobile */
+            }
+
+            @media (min-width: 640px) {
+                #calendar .fc-daygrid-day {
+                    padding: 4px;
+                    /* Larger padding on desktop */
+                }
+            }
+
+            #calendar .fc-daygrid-day-number {
+                font-size: 10px;
+                /* Smaller on mobile */
+                padding: 2px;
+            }
+
+            @media (min-width: 640px) {
+                #calendar .fc-daygrid-day-number {
+                    font-size: 12px;
+                    /* Larger on desktop */
+                    padding: 4px;
+                }
+            }
+
+            #calendar .fc-col-header-cell-cushion {
+                font-size: 10px;
+                /* Smaller day names on mobile */
+                padding: 1px;
+            }
+
+            @media (min-width: 640px) {
+                #calendar .fc-col-header-cell-cushion {
+                    font-size: 12px;
+                    /* Larger day names on desktop */
+                    padding: 2px;
+                }
             }
 
             #calendar .fc-button {
@@ -98,7 +164,7 @@
                 color: #1e40af !important;
             }
 
-            /* Force hand pointer on all clickable calendar elements */
+            /* Force hand pointer on clickable elements */
             #calendar .fc-daygrid-day,
             #calendar .fc-daygrid-day-frame,
             #calendar .fc-daygrid-day-top,

@@ -8,6 +8,14 @@
     margin: 0 auto;
 }
 
+#calendar {
+    width: 100%;
+    max-width: 100%;
+    /* Ensures calendar adapts to container width */
+    transition: width 0.3s ease;
+    /* Smooth transition for layout changes */
+}
+
 .fc .fc-button {
     border-radius: 0.5rem;
     padding: 0.5rem 0.75rem;
@@ -69,7 +77,7 @@
     /* text-gray-700 */
 }
 
-.fc-col-header-cell-cushion {
+.fc-col-height-cell-cushion {
     color: #374151;
     /* text-gray-700 */
 }
@@ -130,7 +138,7 @@
     /* text-gray-300 */
 }
 
-.dark .fc-col-header-cell-cushion {
+.dark .fc-col-height-cell-cushion {
     color: #d1d5db;
     /* text-gray-300 */
 }

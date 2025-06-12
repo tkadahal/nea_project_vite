@@ -10,8 +10,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </button>
-            <div class="ml-4">
-                <img src="{{ asset('storage/logos/nea-full.png') }}" alt="NEA Logo" class="h-10 w-auto" />
+            <div class="ml-4 flex items-center">
+                <!-- Mobile Logo (<640px) -->
+                <img src="{{ asset('storage/logos/nea-logo-white.png') }}" alt="NEA Mobile Logo"
+                    class="h-8 w-auto block sm:hidden" />
+                <!-- Desktop Logo (≥640px) -->
+                <img src="{{ asset('storage/logos/nea-full.png') }}" alt="NEA Desktop Logo"
+                    class="h-10 w-auto hidden sm:block" />
             </div>
 
             <!-- Add New Dropdown -->

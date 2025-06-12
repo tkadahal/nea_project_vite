@@ -3,8 +3,8 @@
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Your Calendar</h1>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-        <div id="calendar"></div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+        <div id="calendar" class="w-full max-w-full"></div>
     </div>
 
     <!-- Modal -->
@@ -56,18 +56,38 @@
                 var calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     events: @json($events),
+                    contentHeight: 'auto',
+                    aspectRatio: isSidebarVisible() ? 1.35 : 1.8, // Initial aspect ratio based on sidebar
+                    dayMaxEvents: true,
                     dateClick: function(info) {
                         document.getElementById('addEventModal').classList.remove('hidden');
                         document.getElementById('start_time').value = info.dateStr + 'T00:00';
-                        document.body.classList.add('modal-open'); // Disable scroll
+                        document.body.classList.add('modal-open');
                     }
                 });
                 calendar.render();
 
+                // Function to check if sidebar is visible (adjust class name as per your app)
+                function isSidebarVisible() {
+                    return !document.body.classList.contains('sidebar-hidden');
+                }
+
+                // Listen for sidebar toggle (example event, adjust to your toggle mechanism)
+                document.body.addEventListener('sidebarToggle', function() {
+                    calendar.setOption('aspectRatio', isSidebarVisible() ? 1.35 : 1.8);
+                    calendar.render(); // Re-render to apply changes
+                });
+
+                // Fallback: Listen for resize in case sidebar affects layout indirectly
+                window.addEventListener('resize', function() {
+                    calendar.setOption('aspectRatio', isSidebarVisible() ? 1.35 : 1.8);
+                    calendar.render();
+                });
+
                 document.getElementById('closeModal').addEventListener('click', function() {
                     document.getElementById('addEventModal').classList.add('hidden');
                     document.getElementById('addEventForm').reset();
-                    document.body.classList.remove('modal-open'); // Re-enable scroll
+                    document.body.classList.remove('modal-open');
                 });
             });
         </script>

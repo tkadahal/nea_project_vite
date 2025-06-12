@@ -69,6 +69,13 @@
     @enderror
 </div>
 
+<style>
+    .js-dropdown {
+        z-index: 1000;
+        /* Higher than default z-10 */
+    }
+</style>
+
 <script>
     (function waitForJQuery() {
         if (window.jQuery) {
