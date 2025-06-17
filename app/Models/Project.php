@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Spatie\Activitylog\LogOptions;
 use App\Models\Builders\ModelBuilder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,12 +12,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Project extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'directorate_id',
@@ -75,7 +75,9 @@ class Project extends Model
 
     public function getTotalBudgetAttribute(): float
     {
-        $latestBudget = $this->budgets()->latest('id')->first();
+        $latestBudget = $this->relationLoaded('budgets')
+            ? $this->budgets->sortByDesc('id')->first()
+            : $this->budgets()->latest('id')->first();
 
         return $latestBudget ? (float) $latestBudget->total_budget : 0.0;
     }
@@ -117,6 +119,7 @@ class Project extends Model
             ->useLogName('project')
             ->setDescriptionForEvent(function (string $eventName) {
                 $user = Auth::user()?->name ?? 'System';
+
                 return match ($eventName) {
                     'created' => "Project created by {$user}",
                     'updated' => "Project updated by {$user}",

@@ -2,38 +2,45 @@
     id="task-status-component">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-base sm:text-sm font-semibold text-gray-800 dark:text-white">Tasks</h2>
-        <div class="relative" wire:ignore>
-            <button
-                class="dropdown-toggle-task text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                </svg>
-            </button>
-            <div
-                class="dropdown-menu-task hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-[1000]">
-                <div class="p-3">
-                    @if (!empty($availableDirectorates))
-                        <div class="mb-3">
-                            <input type="text" id="task-directorate-search"
-                                class="w-full text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
-                                placeholder="Search directorates...">
-                        </div>
-                        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Filter by Directorate
-                        </h3>
-                        <button wire:click="$set('directorateFilter', null)"
-                            class="directorate-option-task block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
-                            data-filter="all" data-name="All Directorates">All Directorates</button>
-                        @foreach ($availableDirectorates as $id => $name)
-                            <button wire:click="$set('directorateFilter', {{ $id }})"
-                                class="directorate-option-task block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md {{ $loop->index >= 3 ? 'hidden' : '' }}"
-                                data-filter="{{ $id }}"
-                                data-name="{{ $name }}">{{ $name }}</button>
-                        @endforeach
-                        <div id="task-no-results" class="hidden px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No
-                            results found</div>
-                    @endif
+        <div class="flex items-center space-x-4">
+            <a class="px-1 py-1 sm:px-2 sm:py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
+                href="{{ route('admin.tasks.ganttChart') }}">CHART</a>
+
+            <div class="relative" wire:ignore>
+                <button
+                    class="dropdown-toggle-task text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                    </svg>
+                </button>
+                <div
+                    class="dropdown-menu-task hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-[1000]">
+                    <div class="p-3">
+                        @if (!empty($availableDirectorates))
+                            <div class="mb-3">
+                                <input type="text" id="task-directorate-search"
+                                    class="w-full text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
+                                    placeholder="Search directorates...">
+                            </div>
+                            <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Filter by
+                                Directorate
+                            </h3>
+                            <button wire:click="$set('directorateFilter', null)"
+                                class="directorate-option-task block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
+                                data-filter="all" data-name="All Directorates">All Directorates</button>
+                            @foreach ($availableDirectorates as $id => $name)
+                                <button wire:click="$set('directorateFilter', {{ $id }})"
+                                    class="directorate-option-task block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md {{ $loop->index >= 3 ? 'hidden' : '' }}"
+                                    data-filter="{{ $id }}"
+                                    data-name="{{ $name }}">{{ $name }}</button>
+                            @endforeach
+                            <div id="task-no-results" class="hidden px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                No
+                                results found</div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

@@ -7,6 +7,9 @@ import toastr from "toastr";
 window.jQuery = window.$ = $;
 window.toastr = toastr;
 
+import Gantt from "frappe-gantt";
+window.Gantt = Gantt;
+
 $(document).ready(function () {
     console.log("jQuery version:", $.fn.jquery);
 
@@ -87,6 +90,10 @@ $(document).ready(function () {
         $sidebar.attr("data-open", isOpen);
         localStorage.setItem("sidebarState", isOpen ? "open" : "closed");
         console.log("Sidebar state:", isOpen ? "open" : "closed");
+
+        // Dispatch sidebarToggle event
+        const event = new Event("sidebarToggle");
+        document.body.dispatchEvent(event);
     }
 
     // Initialize sidebar state

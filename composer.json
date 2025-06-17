@@ -13,8 +13,10 @@
         "blade-ui-kit/blade-icons": "^1.8",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.21",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
+        "outhebox/blade-flags": "^1.5",
         "owenvoke/blade-fontawesome": "^2.9",
         "spatie/laravel-activitylog": "^4.10"
     },

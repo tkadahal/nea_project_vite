@@ -9,7 +9,7 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class CalendarController extends Controller
+class EventController extends Controller
 {
     public function index()
     {
@@ -23,7 +23,12 @@ class CalendarController extends Controller
             ];
         });
 
-        return view('admin.calendars.index', compact('events'));
+        return view('admin.events.index', compact('events'));
+    }
+
+    public function create()
+    {
+        return view('admin.events.create');
     }
 
     public function store(Request $request)
@@ -37,6 +42,6 @@ class CalendarController extends Controller
             'is_reminder' => $request->is_reminder ?? false,
         ]);
 
-        return redirect()->back()->with('success', 'Event created successfully!');
+        return redirect()->route('admin.event.index')->with('success', 'Event created successfully!');
     }
 }

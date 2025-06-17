@@ -56,7 +56,7 @@ class TaskController extends Controller
             'activeView' => $activeView,
             'statuses' => $statuses,
             'priorities' => $priorities,
-            'projectsForFilter' => Cache::remember('projects_for_filter', 86400, fn () => Project::all()),
+            'projectsForFilter' => Cache::remember('projects_for_filter', 86400, fn() => Project::all()),
             'statusColors' => $statusColors,
             'priorityColors' => $priorityColors,
             'routePrefix' => 'admin.task',
@@ -126,7 +126,7 @@ class TaskController extends Controller
                         'users' => $task->users->pluck('name')->all(),
                     ],
                 ];
-            })->filter(fn ($event) => $event['start'] !== null)->values()->all();
+            })->filter(fn($event) => $event['start'] !== null)->values()->all();
         }
 
         if ($activeView === 'table') {
@@ -252,7 +252,7 @@ class TaskController extends Controller
             $query->whereIn('priority_id', $request->input('filter_priority'));
         }
         if ($request->has('filter_project')) {
-            $query->whereHas('projects', fn ($q) => $q->whereIn('id', (array) $request->input('filter_project')));
+            $query->whereHas('projects', fn($q) => $q->whereIn('id', (array) $request->input('filter_project')));
         }
         if ($request->has('filter_start_date')) {
             $query->whereDate('start_date', '>=', $request->input('filter_start_date'));
@@ -313,7 +313,7 @@ class TaskController extends Controller
             return response()->json($projects);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to fetch projects: '.$e->getMessage(),
+                'message' => 'Failed to fetch projects: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -346,13 +346,59 @@ class TaskController extends Controller
                 })
                 ->toArray();
 
-            Log::info('Users fetched for project_ids: '.implode(',', $projectIds), ['count' => count($users)]);
+            Log::info('Users fetched for project_ids: ' . implode(',', $projectIds), ['count' => count($users)]);
 
             return response()->json($users);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch users: '.$e->getMessage());
+            Log::error('Failed to fetch users: ' . $e->getMessage());
 
             return response()->json([], 500);
         }
+    }
+
+    public function getGanttChart(Request $request)
+    {
+        $query = Task::with(['projects.directorate', 'priority']);
+
+        if ($request->filled('directorate_id')) {
+            $query->whereHas('projects', function ($q) use ($request) {
+                $q->where('directorate_id', $request->directorate_id);
+            });
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority_id', $request->priority);
+        }
+
+        $tasks = $query->get()->map(function ($task) {
+            $directorateTitle = $task->projects->first()?->directorate?->title ?? 'N/A';
+            $directorateId = $task->projects->first()?->directorate?->id ?? null;
+
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'start' => $task->start_date->format('Y-m-d'),
+                'end' => $task->due_date->format('Y-m-d'),
+                'progress' => $task->progress ?? 0,
+                'directorate' => $directorateTitle,
+                'directorate_id' => $directorateId,
+                'priority' => $task->priority_id ?? null,
+                'priority_title' => $task->priority->title ?? 'N/A',
+                'resourceId' => $task->id % 3 + 1,
+            ];
+        })->all();
+
+        $availableDirectorates = Directorate::all()->pluck('title', 'id')->toArray();
+        $priorities = Priority::all()->pluck('title', 'id')->toArray();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'tasks' => $tasks,
+                'availableDirectorates' => $availableDirectorates,
+                'priorities' => $priorities,
+            ]);
+        }
+
+        return view('admin.analytics.tasks', compact('tasks', 'availableDirectorates', 'priorities'));
     }
 }

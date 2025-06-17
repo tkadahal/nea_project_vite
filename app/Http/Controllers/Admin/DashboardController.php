@@ -7,14 +7,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\Project;
-use App\Models\Status;
 use App\Models\Task;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Spatie\Activitylog\Models\Activity;
 
@@ -100,8 +97,8 @@ class DashboardController extends Controller
         return [
             ['title' => trans('global.user.title'), 'number' => User::where('directorate_id', $directorateId)->count(), 'url' => route('admin.user.index')],
             ['title' => trans('global.project.title'), 'number' => Project::where('directorate_id', $directorateId)->count(), 'url' => route('admin.project.index')],
-            ['title' => trans('global.contract.title'), 'number' => Contract::whereHas('project', fn($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.contract.index')],
-            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.task.index')],
+            ['title' => trans('global.contract.title'), 'number' => Contract::whereHas('project', fn ($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.contract.index')],
+            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn ($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.task.index')],
         ];
     }
 
@@ -113,9 +110,9 @@ class DashboardController extends Controller
         $distinctUserCount = $projectIds->isEmpty()
             ? 0
             : DB::table('project_user')
-            ->whereIn('project_id', $projectIds)
-            ->distinct('user_id')
-            ->count('user_id');
+                ->whereIn('project_id', $projectIds)
+                ->distinct('user_id')
+                ->count('user_id');
 
         if ($projectIds->isEmpty()) {
             return [
@@ -130,7 +127,7 @@ class DashboardController extends Controller
             ['title' => trans('global.user.title'), 'number' => $distinctUserCount, 'url' => route('admin.user.index')],
             ['title' => trans('global.project.title'), 'number' => $projectIds->count(), 'url' => route('admin.project.index')],
             ['title' => trans('global.contract.title'), 'number' => Contract::whereIn('project_id', $projectIds)->count(), 'url' => route('admin.contract.index')],
-            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn($q) => $q->whereIn('id', $projectIds))->count(), 'url' => route('admin.task.index')],
+            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn ($q) => $q->whereIn('id', $projectIds))->count(), 'url' => route('admin.task.index')],
         ];
     }
 

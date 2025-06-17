@@ -8,7 +8,7 @@ export default defineConfig({
             input: [
                 "resources/css/app.css",
                 "resources/css/toastr.css",
-                "resources/css/fullcalendar.css",
+                // "resources/css/fullcalendar.css",
                 "resources/js/app.js",
                 "resources/js/taskCalendar.js",
                 "resources/js/departmentLoader.js",
@@ -16,6 +16,7 @@ export default defineConfig({
                 "resources/js/projectBudget.js",
                 "resources/js/projectLoader.js",
                 "resources/js/contract.js",
+                "resources/js/fullcalendar.js",
             ],
             refresh: true,
         }),

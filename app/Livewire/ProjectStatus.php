@@ -16,7 +16,9 @@ use Livewire\Component;
 class ProjectStatus extends Component
 {
     public array $project_status = ['completed' => 0, 'in_progress' => 0, 'behind' => 0];
+
     public ?int $directorateFilter = null; // Default: no directorate filter
+
     public array $availableDirectorates = [];
 
     public function mount()
@@ -81,7 +83,7 @@ class ProjectStatus extends Component
         }
 
         $total = max(1, $query->count());
-        Log::debug('Total projects: ' . $total);
+        Log::debug('Total projects: '.$total);
 
         $statusCounts = $query->select('status_id', DB::raw('count(*) as count'))
             ->groupBy('status_id')

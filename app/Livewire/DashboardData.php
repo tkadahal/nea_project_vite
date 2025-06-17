@@ -14,11 +14,17 @@ use Livewire\Component;
 class DashboardData extends Component
 {
     public $directorateId;
+
     public $projectIds;
+
     public $projectStatusFilter = ['status' => '', 'dateRange' => ''];
+
     public $tasksFilter = ['status' => '', 'dateRange' => ''];
+
     public $sprintFilterRange = 'ALL';
+
     public $showProjectStatusFilter = false;
+
     public $showTasksFilter = false;
 
     protected $queryString = [
@@ -47,9 +53,9 @@ class DashboardData extends Component
         $query = Task::with(['status', 'users']);
 
         if ($this->directorateId) {
-            $query->whereHas('projects', fn($q) => $q->where('directorate_id', $this->directorateId));
+            $query->whereHas('projects', fn ($q) => $q->where('directorate_id', $this->directorateId));
         } elseif ($this->projectIds) {
-            $query->whereHas('projects', fn($q) => $q->whereIn('id', $this->projectIds));
+            $query->whereHas('projects', fn ($q) => $q->whereIn('id', $this->projectIds));
         }
 
         if ($this->tasksFilter['status']) {
@@ -88,7 +94,7 @@ class DashboardData extends Component
         }
 
         $total = max(1, $query->count());
-        Log::debug('Total projects: ' . $total);
+        Log::debug('Total projects: '.$total);
 
         $statusCounts = $query->select('status_id', DB::raw('count(*) as count'))
             ->groupBy('status_id')
@@ -133,9 +139,9 @@ class DashboardData extends Component
         );
 
         if ($this->directorateId) {
-            $query->whereHas('projects', fn($q) => $q->where('directorate_id', $this->directorateId));
+            $query->whereHas('projects', fn ($q) => $q->where('directorate_id', $this->directorateId));
         } elseif ($this->projectIds) {
-            $query->whereHas('projects', fn($q) => $q->whereIn('id', $this->projectIds));
+            $query->whereHas('projects', fn ($q) => $q->whereIn('id', $this->projectIds));
         }
 
         $query->where('created_at', '>=', $startDate)
@@ -143,6 +149,7 @@ class DashboardData extends Component
 
         $tasksByMonthAndStatus = $query->get()->reduce(function ($carry, $item) {
             $carry[$item->month_start][$item->status_id] = $item->count;
+
             return $carry;
         }, []);
 
@@ -171,7 +178,7 @@ class DashboardData extends Component
                 }
             }
 
-            $sprints['Sprint ' . ($i + 1)] = $sprintData;
+            $sprints['Sprint '.($i + 1)] = $sprintData;
         }
 
         return $sprints;
@@ -181,6 +188,7 @@ class DashboardData extends Component
     {
         $hours = rand(1, 100);
         $minutes = rand(0, 59);
+
         return "{$hours}h {$minutes}min";
     }
 }

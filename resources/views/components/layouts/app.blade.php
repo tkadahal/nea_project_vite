@@ -37,22 +37,12 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     <style>
-        #addEventModal {
-            z-index: 1000;
+        .modal {
+            display: none;
         }
 
-        #addEventModal:target,
-        #addEventModal:not(.hidden) {
-            overflow-y: hidden;
-        }
-
-        body:where(#addEventModal:target),
-        body:where(#addEventModal:not(.hidden)) {
-            overflow: hidden;
-        }
-
-        .modal-open {
-            overflow: hidden;
+        .modal[open] {
+            display: flex;
         }
     </style>
 </head>
@@ -66,7 +56,7 @@
         <x-layouts.app.header />
         <div class="flex flex-1 overflow-hidden">
             <x-layouts.app.sidebar />
-            <main class="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 content-transition">
+            <main class="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 content-transition">
                 <div class="p-6">
                     @if (session('status'))
                         <div x-data="{ showStatusMessage: true }" x-show="showStatusMessage"
@@ -106,7 +96,9 @@
                             </div>
                         </div>
                     @endif
-                    {{ $slot }}
+                    <div class="relative z-0">
+                        {{ $slot }}
+                    </div>
                 </div>
             </main>
         </div>

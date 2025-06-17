@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DirectorateController;
+use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PriorityController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\StatusController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
-// use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -66,6 +65,7 @@ Route::group(
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);
 
+        Route::get('/tasks/gantt-chart', [TaskController::class, 'getGanttChart'])->name('tasks.ganttChart');
         Route::get('/tasks/users-by-projects', [TaskController::class, 'getUsersByProjects'])->name('tasks.users_by_projects');
         Route::get('/tasks/projects/{directorate_id}', [TaskController::class, 'getProjects'])->name('tasks.projects');
         Route::post('/admin/task/updateStatus', [TaskController::class, 'updateStatus'])->name('task.updateStatus');
@@ -73,11 +73,10 @@ Route::group(
         Route::post('/admin/tasks/set-view', [TaskController::class, 'setViewPreference'])->name('task.set-view');
         Route::resource('task', TaskController::class);
 
-        Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
-        Route::post('/calendar', [CalendarController::class, 'store'])->name('calendar.store');
+        Route::resource('event', EventController::class);
 
         Route::get('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('notifications.index');
     }
 );
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

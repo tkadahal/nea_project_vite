@@ -34,6 +34,7 @@ class SprintData extends Component
 
         $tasksByMonthAndStatus = $query->get()->reduce(function ($carry, $item) {
             $carry[$item->month_start][$item->status_id] = $item->count;
+
             return $carry;
         }, []);
 
@@ -62,7 +63,7 @@ class SprintData extends Component
                 }
             }
 
-            $sprints['Sprint ' . ($i + 1)] = $sprintData;
+            $sprints['Sprint '.($i + 1)] = $sprintData;
         }
 
         return $sprints;

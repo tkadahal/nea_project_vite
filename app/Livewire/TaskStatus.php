@@ -14,7 +14,9 @@ use Livewire\Component;
 class TaskStatus extends Component
 {
     public Collection $tasks;
+
     public ?int $directorateFilter = null; // Default: no directorate filter
+
     public array $availableDirectorates = [];
 
     public function mount()
@@ -25,7 +27,7 @@ class TaskStatus extends Component
 
     public function updatedDirectorateFilter()
     {
-        Log::debug('Directorate filter updated to: ' . $this->directorateFilter);
+        Log::debug('Directorate filter updated to: '.$this->directorateFilter);
         $this->updateTasks();
     }
 
@@ -69,9 +71,9 @@ class TaskStatus extends Component
     {
         $query = Task::with(['status', 'users']);
         if ($directorateId) {
-            $query->whereHas('projects', fn($q) => $q->where('directorate_id', $directorateId));
+            $query->whereHas('projects', fn ($q) => $q->where('directorate_id', $directorateId));
         } elseif ($projectIds) {
-            $query->whereHas('projects', fn($q) => $q->whereIn('id', $projectIds));
+            $query->whereHas('projects', fn ($q) => $q->whereIn('id', $projectIds));
         }
 
         return $query->latest()->take(5)->get()->map(function ($task) {
@@ -89,6 +91,7 @@ class TaskStatus extends Component
     {
         $hours = rand(1, 100);
         $minutes = rand(0, 59);
+
         return "{$hours}h {$minutes}min";
     }
 

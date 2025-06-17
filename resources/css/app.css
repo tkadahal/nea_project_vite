@@ -5,7 +5,52 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/* Import Frappe Gantt CSS */
+@import './vendor/frappe-gantt.css';
 
+#gantt-container {
+    width: 100%;
+    overflow-x: auto;
+    min-height: 600px;
+}
+
+#gantt-target {
+    min-width: 1200px;
+    /* Minimum width to prevent shrinking */
+    width: auto !important;
+    /* Allow expansion */
+}
+
+/* Existing Gantt styles remain the same */
+.gantt .grid {
+    background-color: #1e293b;
+    border-bottom: 1px solid #334155;
+}
+
+.gantt .bar {
+    fill: #60a5fa;
+}
+
+.gantt .bar-progress {
+    fill: #34d399;
+}
+
+.dark .gantt .bar {
+    fill: #93c5fd;
+}
+
+.dark .gantt .bar-progress {
+    fill: #6ee7b7;
+}
+
+.gantt .lower-text {
+    fill: #e2e8f0;
+}
+
+.gantt .today-highlight {
+    fill: #9333ea;
+    opacity: 0.3;
+}
 
 @theme {
     --font-sans:
@@ -155,3 +200,5 @@
     background-color: #28a745 !important;
     color: #fff !important;
 }
+
+

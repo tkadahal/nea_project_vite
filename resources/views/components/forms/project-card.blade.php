@@ -84,17 +84,17 @@
 
     <!-- Accordion for remaining fields -->
     <div class="mt-4">
-        <button type="button"
-            class="accordion-toggle w-full text-left px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 focus:outline-none"
-            data-accordion="{{ $accordionId }}" aria-expanded="false" aria-controls="{{ $accordionId }}">
-            <div class="flex justify-between items-center">
-                <span>{{ __('More Details') }}</span>
-                <svg class="w-5 h-5 transform transition-transform accordion-icon" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <div class="flex justify-end">
+            <button type="button"
+                class="accordion-toggle flex items-center px-3 py-1 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none"
+                data-accordion="{{ $accordionId }}" aria-expanded="false" aria-controls="{{ $accordionId }}">
+                <span class="text-sm">{{ __('More Details') }}</span>
+                <svg class="w-4 h-4 ml-2 transform transition-transform accordion-icon" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
-            </div>
-        </button>
+            </button>
+        </div>
         <div id="{{ $accordionId }}" class="hidden mt-2 grid grid-cols-1 gap-2">
             @foreach ($fields as $field)
                 @if ($field['label'] !== trans('global.project.fields.title'))

@@ -1,7 +1,7 @@
 <div class="w-full">
     <!-- Header with Three-Dot Menu -->
     <div class="flex justify-between items-center mb-4 sm:mb-6">
-        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">Your Calendar</h2>
+        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">Your Events</h2>
         <div class="relative">
             <button id="dropdownButton"
                 class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
@@ -13,7 +13,7 @@
             </button>
             <div id="dropdownMenu"
                 class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                <a href="{{ route('admin.calendar.store') }}"
+                <a href="{{ route('admin.event.create') }}"
                     class="block px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                     Add Event
                 </a>
@@ -53,7 +53,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <!-- Calendar -->
         <div class="overflow-hidden">
-            <div id="calendar" wire:ignore class="max-w-full"></div>
+            <div id="calendar" wire:ignore class="w-full"></div>
         </div>
         <!-- Events List -->
         <div>
@@ -86,15 +86,18 @@
         <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" rel="stylesheet">
         <style>
             #calendar {
-                max-width: 100%;
+                width: 100% !important;
+                max-width: none !important;
                 font-size: 12px;
-                /* Default for mobile */
+            }
+
+            .fc {
+                width: 100% !important;
             }
 
             @media (min-width: 640px) {
                 #calendar {
                     font-size: 14px;
-                    /* Larger for desktop */
                 }
             }
 
@@ -111,40 +114,34 @@
 
             #calendar .fc-daygrid-day {
                 padding: 2px;
-                /* Smaller padding on mobile */
             }
 
             @media (min-width: 640px) {
                 #calendar .fc-daygrid-day {
                     padding: 4px;
-                    /* Larger padding on desktop */
                 }
             }
 
             #calendar .fc-daygrid-day-number {
                 font-size: 10px;
-                /* Smaller on mobile */
                 padding: 2px;
             }
 
             @media (min-width: 640px) {
                 #calendar .fc-daygrid-day-number {
                     font-size: 12px;
-                    /* Larger on desktop */
                     padding: 4px;
                 }
             }
 
             #calendar .fc-col-header-cell-cushion {
                 font-size: 10px;
-                /* Smaller day names on mobile */
                 padding: 1px;
             }
 
             @media (min-width: 640px) {
                 #calendar .fc-col-header-cell-cushion {
                     font-size: 12px;
-                    /* Larger day names on desktop */
                     padding: 2px;
                 }
             }
@@ -164,13 +161,16 @@
                 color: #1e40af !important;
             }
 
-            /* Force hand pointer on clickable elements */
             #calendar .fc-daygrid-day,
             #calendar .fc-daygrid-day-frame,
             #calendar .fc-daygrid-day-top,
             #calendar .fc-daygrid-day-number,
             #calendar .fc-daygrid-day-number a {
                 cursor: pointer !important;
+            }
+
+            .sidebar-hidden .main-content {
+                width: 100% !important;
             }
         </style>
     @endpush
@@ -190,12 +190,10 @@
                     headerToolbar: false,
                     events: [], // No events on calendar grid
                     dateClick: function(info) {
-                        // Remove previous selection
                         var previousSelected = calendarEl.querySelector('.fc-daygrid-day-selected');
                         if (previousSelected) {
                             previousSelected.classList.remove('fc-daygrid-day-selected');
                         }
-                        // Add selection to clicked cell
                         info.dayEl.classList.add('fc-daygrid-day-selected');
                         window.Livewire.dispatch('setActiveDate', {
                             date: info.dateStr
@@ -203,28 +201,32 @@
                     },
                     datesSet: function(info) {
                         document.getElementById('calendarMonthYear').textContent = info.view.title;
-                        // Re-apply today highlight
                         highlightToday();
                     }
                 });
-                calendar.render();
+
+                try {
+                    calendar.render();
+                } catch (error) {
+                    console.error('Error rendering calendar:', error);
+                }
 
                 // Highlight today's date
                 function highlightToday() {
                     var today = new Date();
-                    var todayStr = today.toISOString().split('T')[0]; // e.g., 2025-06-11
-                    console.log('Today date:', todayStr); // Debug
+                    var todayStr = today.toISOString().split('T')[0];
+                    console.log('Today date:', todayStr);
                     var todayCell = calendarEl.querySelector(`[data-date="${todayStr}"]`);
                     if (todayCell) {
                         todayCell.classList.add('bg-red-500', 'text-white');
-                        console.log('Today cell highlighted:', todayCell); // Debug
+                        console.log('Today cell highlighted:', todayCell);
                     } else {
-                        console.warn('Today cell not found for date:', todayStr); // Debug
+                        console.warn('Today cell not found for date:', todayStr);
                     }
                 }
                 highlightToday();
 
-                // Highlight active date if set
+                // Highlight active date
                 var activeDate = @json($activeDate);
                 var activeCell = calendarEl.querySelector(`[data-date="${activeDate}"]`);
                 if (activeCell) {
@@ -235,8 +237,29 @@
                 Livewire.on('changeMonth', (event) => {
                     calendar.gotoDate(event.date);
                     document.getElementById('calendarMonthYear').textContent = calendar.view.title;
-                    highlightToday(); // Re-apply today highlight
+                    highlightToday();
                 });
+
+                // Debounce function
+                function debounce(fn, ms) {
+                    let timeout;
+                    return function() {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => fn.apply(this, arguments), ms);
+                    };
+                }
+
+                // Resize calendar on sidebar toggle
+                document.body.addEventListener('sidebarToggle', function() {
+                    calendar.updateSize();
+                    console.log('Calendar resized on sidebar toggle');
+                });
+
+                // Resize calendar on window resize
+                window.addEventListener('resize', debounce(function() {
+                    calendar.updateSize();
+                    console.log('Calendar resized on window resize');
+                }, 100));
 
                 // Toggle dropdown menu
                 const dropdownButton = document.getElementById('dropdownButton');
