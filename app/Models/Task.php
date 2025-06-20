@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -49,6 +50,25 @@ class Task extends Model
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class, 'project_task');
+    }
+
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    public function files(): MorphMany
+    {
+        return $this->morphMany(File::class, 'fileable');
+    }
+
+    public function getEstimatedHoursAttribute(): float
+    {
+        if (!$this->start_date || !$this->due_date) {
+            return 1.0;
+        }
+        $days = $this->start_date->diffInDays($this->due_date) + 1;
+        return $days * 8;
     }
 
     public function getActivitylogOptions(): LogOptions

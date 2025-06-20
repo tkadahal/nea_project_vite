@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DirectorateController;
 use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PriorityController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -58,6 +61,11 @@ Route::group(
         Route::resource('status', StatusController::class);
         Route::resource('priority', PriorityController::class);
 
+        Route::get('projects/{project}/progress/chart', [ProjectController::class, 'progressChart'])->name('projects.progress.chart');
+        Route::get('projects/{project}/expenses/create', [ExpenseController::class, 'create'])->name('projects.expenses.create');
+        Route::post('projects/{project}/expenses', [ExpenseController::class, 'store'])
+            ->name('projects.expenses.store');
+        Route::post('projects/{project}/comments', [CommentController::class, 'storeForProject'])->name('projects.comments.store');
         Route::get('/projects/users/{directorate_id}', [ProjectController::class, 'getUsers'])->name('projects.users');
         Route::get('/projects/departments/{directorate_id}', [ProjectController::class, 'getDepartments'])->name('projects.departments');
         Route::resource('project', ProjectController::class);
@@ -65,6 +73,7 @@ Route::group(
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);
 
+        Route::post('tasks/{task}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
         Route::get('/tasks/gantt-chart', [TaskController::class, 'getGanttChart'])->name('tasks.ganttChart');
         Route::get('/tasks/users-by-projects', [TaskController::class, 'getUsersByProjects'])->name('tasks.users_by_projects');
         Route::get('/tasks/projects/{directorate_id}', [TaskController::class, 'getProjects'])->name('tasks.projects');
@@ -74,6 +83,11 @@ Route::group(
         Route::resource('task', TaskController::class);
 
         Route::resource('event', EventController::class);
+
+        Route::get('files', [FileController::class, 'index'])->name('file.index');
+        Route::post('{model}/{id}/files', [FileController::class, 'store'])->name('files.store');
+        Route::get('files/{file}/download', [FileController::class, 'download'])->name('files.download');
+        Route::delete('files/{file}', [FileController::class, 'destroy'])->name('files.destroy');
 
         Route::get('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('notifications.index');
     }

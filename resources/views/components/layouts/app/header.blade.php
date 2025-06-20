@@ -100,6 +100,9 @@
             <!-- Notification Bell Icon via Livewire -->
             @livewire('notification-bell')
 
+            <!-- Message Bell Icon via Livewire -->
+            @livewire('message-bell')
+
             <!-- Profile Dropdown -->
             <div class="js-profile-dropdown relative">
                 <button class="js-toggle-dropdown flex items-center focus:outline-none">

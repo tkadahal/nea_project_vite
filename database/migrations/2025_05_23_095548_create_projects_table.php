@@ -23,7 +23,7 @@ return new class extends Migration
             $table->datetime('start_date');
             $table->datetime('end_date')->nullable();
 
-            $table->integer('progress')->nullable();
+            $table->decimal('progress', 8, 2)->nullable();
 
             $table->foreignId('project_manager')->nullable()->index()->constrained('users');
 

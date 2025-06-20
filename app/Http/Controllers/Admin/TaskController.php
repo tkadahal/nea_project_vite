@@ -190,7 +190,28 @@ class TaskController extends Controller
 
     public function show(Task $task): View
     {
-        $task->load(['status', 'priority', 'projects', 'users']);
+        $task->load(
+            [
+                'status',
+                'priority',
+                'projects',
+                'users',
+                'comments.user',
+                'comments.replies.user',
+            ]
+        );
+
+        // Mark comments as read for the current user
+        $user = Auth::user();
+        $commentIds = $user->comments()
+            ->where('commentable_type', 'App\Models\Task')
+            ->where('commentable_id', $task->id)
+            ->whereNull('comment_user.read_at')
+            ->pluck('comments.id');
+
+        foreach ($commentIds as $commentId) {
+            $user->comments()->updateExistingPivot($commentId, ['read_at' => now()]);
+        }
 
         return view('admin.tasks.show', compact('task'));
     }
@@ -358,21 +379,43 @@ class TaskController extends Controller
 
     public function getGanttChart(Request $request)
     {
+        Log::info('getGanttChart called with parameters:', $request->all());
+
         $query = Task::with(['projects.directorate', 'priority']);
 
         if ($request->filled('directorate_id')) {
-            $query->whereHas('projects', function ($q) use ($request) {
-                $q->where('directorate_id', $request->directorate_id);
+            $directorateId = $request->directorate_id;
+            $query->whereHas('projects', function ($q) use ($directorateId) {
+                $q->where('directorate_id', $directorateId);
             });
+            Log::info('Applied directorate_id filter:', ['directorate_id' => $directorateId]);
         }
 
         if ($request->filled('priority')) {
-            $query->where('priority_id', $request->priority);
+            $priorityId = $request->priority;
+            $query->where('priority_id', $priorityId);
+            Log::info('Applied priority filter:', ['priority' => $priorityId]);
         }
 
-        $tasks = $query->get()->map(function ($task) {
-            $directorateTitle = $task->projects->first()?->directorate?->title ?? 'N/A';
-            $directorateId = $task->projects->first()?->directorate?->id ?? null;
+        $rawTasks = $query->get();
+        Log::info('Raw tasks retrieved:', ['count' => $rawTasks->count(), 'task_ids' => $rawTasks->pluck('id')->toArray()]);
+
+        $tasks = $rawTasks->map(function ($task) use ($request) {
+            $matchingProject = $request->filled('directorate_id')
+                ? $task->projects->firstWhere('directorate_id', $request->directorate_id)
+                : $task->projects->first();
+
+            $directorateTitle = $matchingProject?->directorate?->title ?? 'N/A';
+            $directorateId = $matchingProject?->directorate?->id ?? null;
+
+            Log::info('Task mapped:', [
+                'task_id' => $task->id,
+                'title' => $task->title,
+                'directorate_id' => $directorateId,
+                'directorate_title' => $directorateTitle,
+                'project_ids' => $task->projects->pluck('id')->toArray(),
+                'filter_directorate_id' => $request->directorate_id,
+            ]);
 
             return [
                 'id' => $task->id,
@@ -383,10 +426,26 @@ class TaskController extends Controller
                 'directorate' => $directorateTitle,
                 'directorate_id' => $directorateId,
                 'priority' => $task->priority_id ?? null,
-                'priority_title' => $task->priority->title ?? 'N/A',
+                'priority_title' => $task->priority?->title ?? 'N/A',
                 'resourceId' => $task->id % 3 + 1,
             ];
-        })->all();
+        })->filter(function ($task) use ($request) {
+            $include = !$request->filled('directorate_id') || $task['directorate_id'] == $request->directorate_id;
+            Log::info('Task filter check:', [
+                'task_id' => $task['id'],
+                'directorate_id' => $task['directorate_id'],
+                'filter_directorate_id' => $request->directorate_id,
+                'included' => $include,
+            ]);
+            return $include;
+        })->values()->all();
+
+        Log::info('GanttChart Response:', [
+            'tasks_count' => count($tasks),
+            'task_ids' => array_column($tasks, 'id'),
+            'directorate_id_filter' => $request->directorate_id,
+            'priority_filter' => $request->priority,
+        ]);
 
         $availableDirectorates = Directorate::all()->pluck('title', 'id')->toArray();
         $priorities = Priority::all()->pluck('title', 'id')->toArray();

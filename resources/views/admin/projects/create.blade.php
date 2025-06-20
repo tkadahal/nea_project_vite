@@ -7,13 +7,14 @@
     <div class="flex flex-col md:flex-row gap-6">
         <div class="flex-1">
             <div
-                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 p-6">
-                <form class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" action="{{ route('admin.project.store') }}"
-                    method="POST">
+                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
+                <form class="grid grid-cols-1 lg:grid-cols-3 gap-6" action="{{ route('admin.project.store') }}"
+                    method="POST" enctype="multipart/form-data">
                     @csrf
 
                     @if ($errors->any())
-                        <div class="col-span-full mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded-lg">
+                        <div
+                            class="col-span-full mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded-lg dark:bg-red-900 dark:text-red-200 dark:border-red-700">
                             <ul class="list-disc list-inside text-sm">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
@@ -23,7 +24,7 @@
                     @endif
 
                     <div id="error-message"
-                        class="col-span-full mb-6 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative">
+                        class="col-span-full mb-6 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative dark:bg-red-900 dark:border-red-700 dark:text-red-200">
                         <span id="error-text"></span>
                         <button type="button" id="close-error" class="absolute top-0 right-0 px-4 py-3">
                             <svg class="fill-current h-6 w-6 text-red-500" role="button"
@@ -41,8 +42,8 @@
                             {{ __('Project Information') }}
                         </h3>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="col-span-full">
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
                                 <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
                                     :options="collect($directorates)
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
@@ -51,14 +52,14 @@
                                     :error="$errors->first('directorate_id')" class="js-single-select" />
                             </div>
 
-                            <div class="col-span-full">
+                            <div>
                                 <x-forms.select label="Department" name="department_id" id="department_select"
                                     :options="[]" :selected="old('department_id')" placeholder="Select department"
                                     allow-clear="true" data-selected="{{ old('department_id') }}" :error="$errors->first('department_id')"
                                     class="js-single-select" />
                             </div>
 
-                            <div class="col-span-full">
+                            <div>
                                 <x-forms.select label="Project Manager" name="project_manager"
                                     id="project_manager_select" :options="[]" :selected="old('project_manager')"
                                     placeholder="Select project manager" allow-clear="true"
@@ -66,42 +67,84 @@
                                     class="js-single-select" />
                             </div>
 
-                            <div class="col-span-full">
+                            <div>
                                 <x-forms.input label="Title" name="title" type="text" :value="old('title')"
                                     :error="$errors->first('title')" />
                             </div>
 
-                            <div class="col-span-full">
+                            <div>
                                 <x-forms.text-area label="Description" name="description" :value="old('description')"
                                     :error="$errors->first('description')" />
                             </div>
 
-                            <div>
-                                <x-forms.date-input label="Start Date" name="start_date" :value="old('start_date')"
-                                    :error="$errors->first('start_date')" />
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <x-forms.date-input label="Start Date" name="start_date" :value="old('start_date')"
+                                        :error="$errors->first('start_date')" />
+                                </div>
+
+                                <div>
+                                    <x-forms.date-input label="End Date" name="end_date" :value="old('end_date')"
+                                        :error="$errors->first('end_date')" />
+                                </div>
                             </div>
 
-                            <div>
-                                <x-forms.date-input label="End Date" name="end_date" :value="old('end_date')"
-                                    :error="$errors->first('end_date')" />
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()"
+                                        :selected="old('status_id')" placeholder="Select status" :error="$errors->first('status_id')"
+                                        class="js-single-select" />
+                                </div>
+
+                                <div>
+                                    <x-forms.select label="Priority" name="priority_id" id="priority_id"
+                                        :options="collect($priorities)
+                                            ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                            ->values()
+                                            ->all()" :selected="old('priority_id')" placeholder="Select priority"
+                                        :error="$errors->first('priority_id')" class="js-single-select" />
+                                </div>
                             </div>
 
-                            <div>
-                                <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('status_id')" placeholder="Select status" :error="$errors->first('status_id')"
-                                    class="js-single-select" />
-                            </div>
-
-                            <div>
-                                <x-forms.select label="Priority" name="priority_id" id="priority_id" :options="collect($priorities)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('priority_id')" placeholder="Select priority" :error="$errors->first('priority_id')"
-                                    class="js-single-select" />
+                            <div class="mt-4">
+                                <div
+                                    class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                    <div class="text-indigo-600 dark:text-indigo-400">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </div>
+                                    <h5 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                                        {{ __('Upload Files') }}
+                                    </h5>
+                                </div>
+                                <div class="space-y-4">
+                                    <div>
+                                        <input type="file" name="files[]" multiple
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
+                                            class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            aria-describedby="files-error" onchange="updateFileNameList(event)">
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            {{ __('Supported formats: PDF, DOC, XLS, PNG, JPG, ZIP. Max size: 10MB each.') }}
+                                        </p>
+                                        @error('files.*')
+                                            <p class="text-red-500 text-sm mt-1" id="files-error">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div id="selected-files-preview" class="space-y-2">
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 hidden"
+                                            id="selected-files-title">
+                                            {{ __('Selected Files:') }}</p>
+                                        <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300"
+                                            id="file-list">
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -171,7 +214,8 @@
                                                     :selected="old(
                                                         'budgets.' . $index . '.fiscal_year_id',
                                                         $budget['fiscal_year_id'] ?? null,
-                                                    )" placeholder="{{ trans('global.pleaseSelect') }}"
+                                                    )"
+                                                    placeholder="{{ trans('global.pleaseSelect') }}"
                                                     :error="$errors->first('budgets.' . $index . '.fiscal_year_id')" class="w-full js-single-select" />
                                             </td>
                                             <td class="px-3 py-3 whitespace-nowrap">
@@ -237,8 +281,8 @@
                         </button>
                     </div>
 
-                    <div class="col-span-full mt-8">
-                        <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+                    <div class="col-span-full mt-8 flex justify-end">
+                        <x-buttons.primary>{{ __('Save Project') }}</x-buttons.primary>
                     </div>
                 </form>
             </div>
@@ -527,8 +571,7 @@
                                 value: String(dept.value),
                                 label: String(dept.label),
                             }))
-                            .filter((opt) => opt.value && opt.label) :
-                            [];
+                            .filter((opt) => opt.value && opt.label) : [];
                         console.log("Updating department select with:", {
                             options: formattedData,
                             selected: "",
@@ -543,7 +586,7 @@
                             .empty()
                             .append(
                                 '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load departments</div>'
-                                );
+                            );
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text(
                             "Failed to load departments: " + (xhr.responseJSON?.message ||
@@ -600,8 +643,7 @@
                                 value: String(user.value),
                                 label: String(user.label),
                             }))
-                            .filter((opt) => opt.value && opt.label) :
-                            [];
+                            .filter((opt) => opt.value && opt.label) : [];
                         console.log("Updating user select with:", {
                             options: formattedData,
                             selected: "",
@@ -616,7 +658,7 @@
                             .empty()
                             .append(
                                 '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load users</div>'
-                                );
+                            );
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text(
                             "Failed to load users: " + (xhr.responseJSON?.message ||
@@ -705,7 +747,7 @@
                             $hiddenInput.attr("name", `budgets[${index}][fiscal_year_id]`);
                             console.log(
                                 `Updated select container ID: ${newId}, data-name: budgets[${index}][fiscal_year_id]`
-                                );
+                            );
                         }
                     });
 
@@ -715,7 +757,7 @@
                         const name = $input.attr("name");
                         if (name) {
                             $input.attr("name", name.replace(/budgets\[\d+\]/,
-                            `budgets[${index}]`));
+                                `budgets[${index}]`));
                         }
                         const id = $input.attr("id");
                         if (id) {

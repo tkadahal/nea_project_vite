@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\LogOptions;
@@ -40,7 +41,7 @@ class Project extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
         'budget' => 'decimal:2',
-        'progress' => 'integer',
+        'progress' => 'float',
     ];
 
     public function directorate(): BelongsTo
@@ -73,6 +74,48 @@ class Project extends Model
         return $this->hasMany(ProjectBudget::class);
     }
 
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
+    }
+
+    public function tasks(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'project_task');
+    }
+
+    public function calculatePhysicalProgress(): float
+    {
+        // Task-based progress
+        $tasks = $this->tasks()->get();
+        if ($tasks->isNotEmpty()) {
+            $totalWeight = $tasks->sum('estimated_hours') ?: $tasks->count();
+            if ($totalWeight == 0) {
+                return $tasks->avg('progress');
+            }
+            $weightedProgress = $tasks->sum(fn($task) => $task->progress * $task->estimated_hours);
+            return round($weightedProgress / $totalWeight, 2);
+        }
+
+        // Contract-based progress (fallback)
+        $contracts = $this->contracts()->get();
+        if ($contracts->isNotEmpty()) {
+            $totalWeight = $contracts->sum('contract_amount') ?: $contracts->count();
+            if ($totalWeight == 0) {
+                return $contracts->avg('progress');
+            }
+            $weightedProgress = $contracts->sum(fn($contract) => $contract->progress * $contract->contract_amount);
+            return round($weightedProgress / $totalWeight, 2);
+        }
+
+        return 0.0;
+    }
+
+    public function updatePhysicalProgress(): void
+    {
+        $this->update(['progress' => $this->calculatePhysicalProgress()]);
+    }
+
     public function getTotalBudgetAttribute(): float
     {
         $latestBudget = $this->relationLoaded('budgets')
@@ -80,6 +123,23 @@ class Project extends Model
             : $this->budgets()->latest('id')->first();
 
         return $latestBudget ? (float) $latestBudget->total_budget : 0.0;
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function getFinancialProgressAttribute(): float
+    {
+        $totalBudget = $this->total_budget;
+        if ($totalBudget == 0) {
+            return 0.0;
+        }
+        $totalExpenses = $this->expenses()->sum('amount');
+        $contractExpenses = $this->contracts()->sum('contract_amount');
+        $totalSpent = $totalExpenses + $contractExpenses;
+        return round(($totalSpent / $totalBudget) * 100, 2);
     }
 
     public function scopeFilterByRole(Builder $query, $user)
@@ -102,6 +162,16 @@ class Project extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'project_user');
+    }
+
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    public function files(): MorphMany
+    {
+        return $this->morphMany(File::class, 'fileable');
     }
 
     public function getActivitylogOptions(): LogOptions

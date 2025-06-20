@@ -130,6 +130,13 @@
                     </x-layouts.sidebar-link>
                 @endcan
 
+
+                {{-- @can('task_access') --}}
+                <x-layouts.sidebar-link href="{{ route('admin.file.index') }}" icon="fas-folder" :active="request()->routeIs('admin.file*')">
+                    Files
+                </x-layouts.sidebar-link>
+                {{-- @endcan --}}
+
                 @can('event_access')
                     <x-layouts.sidebar-link href="{{ route('admin.event.index') }}" icon="fas-pen-to-square"
                         :active="request()->routeIs('admin.event*')">

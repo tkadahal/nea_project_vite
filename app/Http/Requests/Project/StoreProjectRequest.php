@@ -35,6 +35,7 @@ class StoreProjectRequest extends FormRequest
             'budgets.*.internal_budget' => ['required', 'numeric', 'min:0'],
             'budgets.*.foreign_loan_budget' => ['required', 'numeric', 'min:0'],
             'budgets.*.foreign_subsidy_budget' => ['required', 'numeric', 'min:0'],
+            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ];
     }
 }

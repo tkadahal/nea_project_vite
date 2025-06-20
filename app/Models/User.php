@@ -52,7 +52,7 @@ class User extends Authenticatable
     {
         return Str::of($this->name)
             ->explode(' ')
-            ->map(fn (string $name) => Str::of($name)->substr(0, 1))
+            ->map(fn(string $name) => Str::of($name)->substr(0, 1))
             ->implode('');
     }
 
@@ -82,6 +82,13 @@ class User extends Authenticatable
     public function assignRole(Role $role): mixed
     {
         return $this->roles()->save($role);
+    }
+
+    public function comments(): BelongsToMany
+    {
+        return $this->belongsToMany(Comment::class, 'comment_user')
+            ->withPivot('read_at')
+            ->withTimestamps();
     }
 
     public function hasRole($roles): bool

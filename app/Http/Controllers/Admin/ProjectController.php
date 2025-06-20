@@ -22,6 +22,8 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectController extends Controller
 {
@@ -34,7 +36,6 @@ class ProjectController extends Controller
 
         try {
             $roleIds = $user->roles->pluck('id')->toArray();
-            Log::info('Project filtering for user', ['user_id' => $user->id, 'role_ids' => $roleIds]);
 
             if (! in_array(1, $roleIds)) {
                 if (in_array(3, $roleIds)) {
@@ -55,7 +56,6 @@ class ProjectController extends Controller
         }
 
         $projects = $projectQuery->get();
-        Log::info('Projects fetched', ['count' => $projects->count()]);
 
         $directorateColors = [
             1 => 'red',
@@ -180,6 +180,7 @@ class ProjectController extends Controller
     public function store(StoreProjectRequest $request): RedirectResponse
     {
         try {
+            /** @var \Illuminate\Http\Request $request */
             $data = $request->validated();
 
             $project = Project::create(\Illuminate\Support\Arr::except($data, ['budgets']));
@@ -192,6 +193,26 @@ class ProjectController extends Controller
                     'foreign_loan_budget' => $budget['foreign_loan_budget'],
                     'foreign_subsidy_budget' => $budget['foreign_subsidy_budget'],
                 ]);
+            }
+
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $path = $file->store('files', 'public');
+                    $project->files()->create([
+                        'filename' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'file_type' => $file->extension(),
+                        'file_size' => $file->getSize(),
+                        'user_id' => Auth::id(),
+                    ]);
+                }
+            }
+
+            if (Session::has('temp_files')) {
+                foreach (Session::get('temp_files', []) as $tempPath) {
+                    Storage::disk('public')->delete($tempPath);
+                }
+                Session::forget('temp_files');
             }
 
             return redirect()->route('admin.project.index')->with('message', 'Project created successfully.');
@@ -214,7 +235,21 @@ class ProjectController extends Controller
             'priority',
             'projectManager',
             'budgets',
+            'comments.user',
+            'comments.replies.user',
         ]);
+
+        // Mark comments as read for the current user
+        $user = Auth::user();
+        $commentIds = $user->comments()
+            ->where('commentable_type', 'App\Models\Project')
+            ->where('commentable_id', $project->id)
+            ->whereNull('comment_user.read_at')
+            ->pluck('comments.id');
+
+        foreach ($commentIds as $commentId) {
+            $user->comments()->updateExistingPivot($commentId, ['read_at' => now()]);
+        }
 
         return view('admin.projects.show', compact('project'));
     }
@@ -343,5 +378,11 @@ class ProjectController extends Controller
 
             return response()->json(['message' => 'Failed to fetch users.'], 500);
         }
+    }
+
+    public function progressChart(Project $project)
+    {
+        $project->load(['tasks', 'contracts', 'expenses']);
+        return view('admin.expenses.progress_chart', compact('project'));
     }
 }
