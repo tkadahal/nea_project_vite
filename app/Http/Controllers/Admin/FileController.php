@@ -35,9 +35,9 @@ class FileController extends Controller
             if (!in_array(1, $roleIds)) { // Not Super Admin
                 if (in_array(3, $roleIds)) {
                     // Directorate User: Files for all projects/contracts/tasks in their directorate
-                    $directorateId = $user->directorate ? $user->directorate->id : null;
+                    $directorateId = $user->directorate_id;
                     if (!$directorateId) {
-                        Log::warning('No directorate assigned to user', ['user_id' => $user->id]);
+                        Log::warning('No directorate_id assigned to user', ['user_id' => $user->id]);
                         $files = collect();
                     } else {
                         // Get all project IDs for the directorate
@@ -173,7 +173,7 @@ class FileController extends Controller
             $allowed = true; // Super Admin
         } elseif (in_array(3, $roleIds)) {
             // Directorate User
-            $directorateId = $user->directorate ? $user->directorate->id : null;
+            $directorateId = $user->directorate_id;
             if ($modelInstance instanceof Project) {
                 $allowed = $directorateId && $modelInstance->directorate_id === $directorateId;
             } elseif ($modelInstance instanceof Contract) {
@@ -236,7 +236,7 @@ class FileController extends Controller
             $allowed = true; // Super Admin
         } elseif (in_array(3, $roleIds)) {
             // Directorate User
-            $directorateId = $user->directorate ? $user->directorate->id : null;
+            $directorateId = $user->directorate_id;
             if ($file->fileable_type === 'App\Models\Project') {
                 $allowed = $directorateId && $file->fileable->directorate_id === $directorateId;
             } elseif ($file->fileable_type === 'App\Models\Contract') {
@@ -267,7 +267,7 @@ class FileController extends Controller
         }
 
         Log::info('File downloaded', ['file_id' => $file->id, 'filename' => $file->filename]);
-        return Storage::disk('public')->download($file->path, $file->filename);
+        return response()->download(Storage::disk('public')->path($file->path), $file->filename);
     }
 
     /**
@@ -287,7 +287,7 @@ class FileController extends Controller
             $allowed = true; // Super Admin
         } elseif (in_array(3, $roleIds)) {
             // Directorate User
-            $directorateId = $user->directorate ? $user->directorate->id : null;
+            $directorateId = $user->directorate_id;
             if ($file->fileable_type === 'App\Models\Project') {
                 $allowed = $directorateId && $file->fileable->directorate_id === $directorateId;
             } elseif ($file->fileable_type === 'App\Models\Contract') {
