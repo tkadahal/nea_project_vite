@@ -18,12 +18,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Storage;
 
 class ProjectController extends Controller
 {
@@ -37,14 +37,17 @@ class ProjectController extends Controller
         try {
             $roleIds = $user->roles->pluck('id')->toArray();
 
-            if (! in_array(1, $roleIds)) {
-                if (in_array(3, $roleIds)) {
-                    $directorateIds = $user->directorates ? $user->directorates->pluck('id') : collect();
-                    if ($directorateIds->isEmpty()) {
-                        Log::warning('No directorates assigned to user', ['user_id' => $user->id]);
+            if (!in_array(Role::SUPERADMIN, $roleIds)) {
+                if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
+                    // Filter projects by user's directorate_id from users table
+                    if ($user->directorate_id) {
+                        $projectQuery->where('directorate_id', $user->directorate_id);
+                    } else {
+                        Log::warning('No directorate_id assigned to user', ['user_id' => $user->id]);
+                        $projectQuery->where('id', 0); // Return empty result if no directorate_id
                     }
-                    $projectQuery->whereIn('directorate_id', $directorateIds);
                 } else {
+                    // Filter projects where user is explicitly assigned
                     $projectQuery->whereHas('users', function ($query) use ($user) {
                         $query->where('users.id', $user->id);
                     });
@@ -268,7 +271,8 @@ class ProjectController extends Controller
         $priorities = Priority::pluck('title', 'id');
         $fiscalYears = FiscalYear::pluck('title', 'id');
 
-        $project->load('budgets');
+        // Load project relationships
+        $project->load(['budgets', 'files']);
 
         if (in_array(Role::SUPERADMIN, $roleIds)) {
             $directorates = Directorate::pluck('title', 'id');
@@ -298,9 +302,10 @@ class ProjectController extends Controller
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
         try {
+            /** @var \Illuminate\Http\Request $request */
             $data = $request->validated();
 
-            $project->update(\Illuminate\Support\Arr::except($data, ['budgets']));
+            $project->update(\Illuminate\Support\Arr::except($data, ['budgets', 'files']));
 
             $project->budgets()->delete();
 
@@ -314,11 +319,24 @@ class ProjectController extends Controller
                 ]);
             }
 
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $path = $file->store('files', 'public');
+                    $project->files()->create([
+                        'filename' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'file_type' => $file->extension(),
+                        'file_size' => $file->getSize(),
+                        'user_id' => Auth::id(),
+                    ]);
+                }
+            }
+
             return redirect()->route('admin.project.index')->with('message', 'Project updated successfully.');
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to update project', [
+            Log::error('Failed to update project', [
                 'project_id' => $project->id,
-                'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
             ]);
 

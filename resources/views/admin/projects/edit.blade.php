@@ -11,7 +11,7 @@
             <div
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 p-6">
                 <form class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
-                    action="{{ route('admin.project.update', $project) }}" method="POST">
+                    action="{{ route('admin.project.update', $project) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -123,6 +123,74 @@
                                     :selected="old('priority_id', $project->priority_id)" placeholder="Select priority" :error="$errors->first('priority_id')"
                                     class="js-single-select" />
                             </div>
+
+                            <div class="col-span-full">
+                                <div
+                                    class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                    <div class="text-indigo-600 dark:text-indigo-400">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </div>
+                                    <h5 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                                        {{ __('Upload Files') }}
+                                    </h5>
+                                </div>
+                                <div class="space-y-4">
+                                    <div>
+                                        <input type="file" name="files[]" multiple
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
+                                            class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            aria-describedby="files-error" onchange="updateFileNameList(event)">
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            {{ __('Supported formats: PDF, DOC, XLS, PNG, JPG, ZIP. Max size: 10MB each.') }}
+                                        </p>
+                                        @error('files.*')
+                                            <p class="text-red-500 text-sm mt-1" id="files-error">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div id="selected-files-preview" class="space-y-2">
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 hidden"
+                                            id="selected-files-title">
+                                            {{ __('Selected Files:') }}
+                                        </p>
+                                        <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300"
+                                            id="file-list">
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if ($project->files->isNotEmpty())
+                                <div class="col-span-full">
+                                    <div
+                                        class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                        <div class="text-indigo-600 dark:text-indigo-400">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <h5 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                                            {{ __('Uploaded Files') }}
+                                        </h5>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
+                                            @foreach ($project->files as $file)
+                                                <li>
+                                                    <a href="{{ route('admin.files.download', $file->id) }}"
+                                                        class="text-blue-600 hover:underline dark:text-blue-400">
+                                                        {{ $file->filename }}
+                                                    </a>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -191,7 +259,8 @@
                                                     :selected="old(
                                                         'budgets.' . $index . '.fiscal_year_id',
                                                         $budget['fiscal_year_id'] ?? null,
-                                                    )" placeholder="{{ trans('global.pleaseSelect') }}"
+                                                    )"
+                                                    placeholder="{{ trans('global.pleaseSelect') }}"
                                                     :error="$errors->first('budgets.' . $index . '.fiscal_year_id')" class="w-full js-single-select" />
                                             </td>
                                             <td class="px-3 py-3 whitespace-nowrap">
@@ -284,6 +353,24 @@
 
         waitForJQuery(function() {
             const $ = jQuery;
+
+            // File Preview Function
+            function updateFileNameList(event) {
+                const files = event.target.files;
+                const fileList = $("#file-list");
+                const filesTitle = $("#selected-files-title");
+                fileList.empty();
+
+                if (files.length > 0) {
+                    filesTitle.removeClass("hidden");
+                    for (let i = 0; i < files.length; i++) {
+                        const fileName = files[i].name;
+                        fileList.append(`<li>${fileName}</li>`);
+                    }
+                } else {
+                    filesTitle.addClass("hidden");
+                }
+            }
 
             // Custom Dropdown Component Logic
             $(".js-single-select").each(function() {
@@ -470,7 +557,7 @@
                     beforeSend: function() {
                         console.log(
                             `AJAX request started for departments: /admin/projects/departments/${directorateId}`
-                            );
+                        );
                     },
                     success: function(data) {
                         console.log("Departments response:", data);
@@ -488,7 +575,7 @@
                         updateSelectOptions(departmentSelectContainer, [], "");
                         $optionsContainer.empty().append(
                             '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load departments</div>'
-                            );
+                        );
                         $("#error-message").removeClass("hidden").find("#error-text").text(
                             "Failed to load departments: " + (xhr.responseJSON?.message ||
                                 "Unknown error"));
@@ -520,7 +607,7 @@
                     beforeSend: function() {
                         console.log(
                             `AJAX request started for users: /admin/projects/users/${directorateId}`
-                            );
+                        );
                     },
                     success: function(data) {
                         console.log("Users response:", data);
@@ -537,7 +624,7 @@
                         updateSelectOptions(userSelectContainer, [], "");
                         $optionsContainer.empty().append(
                             '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load users</div>'
-                            );
+                        );
                         $("#error-message").removeClass("hidden").find("#error-text").text(
                             "Failed to load users: " + (xhr.responseJSON?.message ||
                                 "Unknown error"));
@@ -618,7 +705,7 @@
                             $hiddenInput.attr("name", `budgets[${index}][fiscal_year_id]`);
                             console.log(
                                 `Updated select container ID: ${newId}, data-name: budgets[${index}][fiscal_year_id]`
-                                );
+                            );
                         }
                     });
 
@@ -813,9 +900,9 @@
             budgetTableBody.find(".budget-entry-row").each(function(index) {
                 console.log(`Row ${index} inputs:`, $(this).find("input:not(.js-hidden-input)").map((i,
                     el) => ({
-                        name: $(el).attr("name"),
-                        id: $(el).attr("id")
-                    })).get());
+                    name: $(el).attr("name"),
+                    id: $(el).attr("id")
+                })).get());
             });
 
             updateRowIndices();

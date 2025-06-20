@@ -76,7 +76,8 @@ class User extends Authenticatable
 
     public function projects(): BelongsToMany
     {
-        return $this->belongsToMany(Project::class, 'project_user');
+        return $this->belongsToMany(Project::class, 'project_user', 'user_id', 'project_id')
+            ->orWhere('project_manager', $this->id);
     }
 
     public function assignRole(Role $role): mixed

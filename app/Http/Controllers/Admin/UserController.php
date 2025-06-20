@@ -30,29 +30,26 @@ class UserController extends Controller
 
         try {
             $roleIds = $user->roles->pluck('id')->toArray();
-            Log::info('User filtering for user', ['user_id' => $user->id, 'role_ids' => $roleIds]);
 
-            if (! in_array(1, $roleIds)) { // Not Superadmin
-                if (in_array(3, $roleIds)) { // Directorate User
+            if (! in_array(1, $roleIds)) {
+                if (in_array(3, $roleIds)) {
                     $directorateId = $user->directorate ? [$user->directorate->id] : [];
                     if (empty($directorateId)) {
                         Log::warning('No directorate assigned to user', ['user_id' => $user->id]);
                     }
                     $userQuery->whereHas('directorate', function ($query) use ($directorateId) {
-                        $query->whereIn('directorate.id', $directorateId);
+                        $query->whereIn('directorate_id', $directorateId);
                     });
-                } else { // Other users (e.g., Admin, Project User)
-                    $userQuery->where('id', $user->id); // Only show the authenticated user
+                } else {
+                    $userQuery->where('id', $user->id);
                 }
             }
-            // Superadmin (role_id = 1) sees all users
         } catch (\Exception $e) {
             Log::error('Error in user filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
             $data['error'] = 'Unable to load users due to an error.';
         }
 
         $users = $userQuery->get();
-        Log::info('Users fetched', ['count' => $users->count()]);
 
         $headers = [
             trans('global.user.fields.id'),
@@ -162,27 +159,27 @@ class UserController extends Controller
         try {
             $projects = Project::where('directorate_id', $directorateId)
                 ->pluck('title', 'id')
-                ->map(fn ($label, $value) => [
+                ->map(fn($label, $value) => [
                     'value' => (string) $value,
                     'label' => $label,
                 ])
                 ->values()
                 ->all();
 
-            Log::info('Projects fetched for directorate_id: '.$directorateId, [
+            Log::info('Projects fetched for directorate_id: ' . $directorateId, [
                 'count' => count($projects),
                 'projects' => $projects,
             ]);
 
             return response()->json($projects);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch projects for directorate_id: '.$directorateId, [
+            Log::error('Failed to fetch projects for directorate_id: ' . $directorateId, [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
-                'message' => 'Failed to fetch projects: '.$e->getMessage(),
+                'message' => 'Failed to fetch projects: ' . $e->getMessage(),
             ], 500);
         }
     }

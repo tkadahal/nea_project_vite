@@ -110,7 +110,7 @@
                                 </div>
                             </div>
 
-                            <div class="mt-4">
+                            <div class="col-span-full">
                                 <div
                                     class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                                     <div class="text-indigo-600 dark:text-indigo-400">
@@ -281,8 +281,8 @@
                         </button>
                     </div>
 
-                    <div class="col-span-full mt-8 flex justify-end">
-                        <x-buttons.primary>{{ __('Save Project') }}</x-buttons.primary>
+                    <div class="col-span-full mt-8 flex">
+                        <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
                     </div>
                 </form>
             </div>
