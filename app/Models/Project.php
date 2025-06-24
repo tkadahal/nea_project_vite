@@ -44,6 +44,8 @@ class Project extends Model
         'progress' => 'float',
     ];
 
+    protected $attributes = [];
+
     public function directorate(): BelongsTo
     {
         return $this->belongsTo(Directorate::class);
@@ -118,12 +120,25 @@ class Project extends Model
 
     public function getTotalBudgetAttribute(): float
     {
-        $latestBudget = $this->relationLoaded('budgets')
-            ? $this->budgets->sortByDesc('id')->first()
-            : $this->budgets()->latest('id')->first();
+        if (!array_key_exists('total_budget', $this->attributes)) {
+            $latestBudget = $this->relationLoaded('budgets')
+                ? $this->budgets->sortByDesc('id')->first()
+                : $this->budgets()->latest('id')->first();
 
-        return $latestBudget ? (float) $latestBudget->total_budget : 0.0;
+            $this->attributes['total_budget'] = $latestBudget ? (float) $latestBudget->total_budget : 0.0;
+        }
+
+        return $this->attributes['total_budget'];
     }
+
+    // public function getTotalBudgetAttribute(): float
+    // {
+    //     $latestBudget = $this->relationLoaded('budgets')
+    //         ? $this->budgets->sortByDesc('id')->first()
+    //         : $this->budgets()->latest('id')->first();
+
+    //     return $latestBudget ? (float) $latestBudget->total_budget : 0.0;
+    // }
 
     public function expenses(): HasMany
     {
@@ -132,15 +147,36 @@ class Project extends Model
 
     public function getFinancialProgressAttribute(): float
     {
-        $totalBudget = $this->total_budget;
-        if ($totalBudget == 0) {
-            return 0.0;
+        if (!array_key_exists('financial_progress', $this->attributes)) {
+            $totalBudget = $this->total_budget;
+            if ($totalBudget == 0) {
+                $this->attributes['financial_progress'] = 0.0;
+            } else {
+                $totalExpenses = $this->relationLoaded('expenses')
+                    ? $this->expenses->sum('amount')
+                    : $this->expenses()->sum('amount');
+                $contractExpenses = $this->relationLoaded('contracts')
+                    ? $this->contracts->sum('contract_amount')
+                    : $this->contracts()->sum('contract_amount');
+                $totalSpent = $totalExpenses + $contractExpenses;
+                $this->attributes['financial_progress'] = round(($totalSpent / $totalBudget) * 100, 2);
+            }
         }
-        $totalExpenses = $this->expenses()->sum('amount');
-        $contractExpenses = $this->contracts()->sum('contract_amount');
-        $totalSpent = $totalExpenses + $contractExpenses;
-        return round(($totalSpent / $totalBudget) * 100, 2);
+
+        return $this->attributes['financial_progress'];
     }
+
+    // public function getFinancialProgressAttribute(): float
+    // {
+    //     $totalBudget = $this->total_budget;
+    //     if ($totalBudget == 0) {
+    //         return 0.0;
+    //     }
+    //     $totalExpenses = $this->expenses()->sum('amount');
+    //     $contractExpenses = $this->contracts()->sum('contract_amount');
+    //     $totalSpent = $totalExpenses + $contractExpenses;
+    //     return round(($totalSpent / $totalBudget) * 100, 2);
+    // }
 
     public function scopeFilterByRole(Builder $query, $user)
     {

@@ -15,6 +15,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Status;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -402,5 +403,107 @@ class ProjectController extends Controller
     {
         $project->load(['tasks', 'contracts', 'expenses']);
         return view('admin.expenses.progress_chart', compact('project'));
+    }
+
+    public function analytics(Request $request)
+    {
+        try {
+            // Fetch filter options
+            $directorates = Directorate::all();
+            $departments = Department::all();
+            $statuses = Status::all();
+            $priorities = Priority::all();
+
+            // Base query for projects with role-based filtering and eager loading
+            $query = Project::query()->with(['directorate', 'status', 'priority', 'tasks', 'contracts', 'expenses', 'budgets']);
+
+            // Apply role-based filtering
+            $user = Auth::user();
+            if ($user && $user->roles->contains('id', 3)) {
+                $query->where('directorate_id', $user->directorate_id);
+            } elseif ($user && $user->roles->contains('id', 4)) {
+                $query->whereIn('id', function ($query) use ($user) {
+                    $query->select('project_id')
+                        ->from('project_user')
+                        ->where('user_id', $user->id);
+                });
+            }
+
+            // Apply filters from request
+            if ($request->has('directorate_id')) {
+                $query->where('directorate_id', $request->directorate_id);
+            }
+            if ($request->has('department_id')) {
+                $query->where('department_id', $request->department_id);
+            }
+            if ($request->has('status_id')) {
+                $query->where('status_id', $request->status_id);
+            }
+            if ($request->has('priority_id')) {
+                $query->where('priority_id', $request->priority_id);
+            }
+
+            // Fetch projects with pagination
+            $projects = $query->paginate(10);
+
+            // Pre-calculate additional attributes
+            $projects->getCollection()->transform(function ($project) {
+                $totalBudget = $project->total_budget;
+                $project->remaining_budget = $totalBudget - ($project->expenses->sum('amount') + $project->contracts->sum('contract_amount'));
+                $project->days_remaining = $project->end_date ? max(0, $project->end_date->diffInDays(now()) * ($project->end_date > now() ? 1 : -1)) : 0;
+                return $project;
+            });
+
+            // Prepare summary data
+            $completedStatusId = Status::where('title', 'Completed')->value('id');
+            $summary = [
+                'total_projects' => $query->count(),
+                'completed_projects' => $query->where('status_id', $completedStatusId)->count(),
+                'overdue_projects' => $query->where('end_date', '<', now())->where('status_id', '!=', $completedStatusId)->count(),
+                'average_progress' => round($query->avg('progress') ?? 0, 2),
+            ];
+
+            // Prepare chart data
+            $chartProjects = $query->get();
+            $charts = [
+                'progress' => [
+                    'labels' => $chartProjects->pluck('title')->take(5),
+                    'physical' => $chartProjects->take(5)->map->progress,
+                    'financial' => $chartProjects->take(5)->map->financial_progress,
+                ],
+                'task_contract' => [
+                    'labels' => ['Tasks', 'Contracts'],
+                    'data' => [
+                        $chartProjects->sum(fn($project) => $project->tasks->count()),
+                        $chartProjects->sum(fn($project) => $project->contracts->count()),
+                    ],
+                ],
+            ];
+
+            // Return JSON response for AJAX requests
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'summary' => $summary,
+                    'charts' => $charts,
+                    'projects' => $projects->items(),
+                    'pagination' => [
+                        'current_page' => $projects->currentPage(),
+                        'last_page' => $projects->lastPage(),
+                        'per_page' => $projects->perPage(),
+                        'total' => $projects->total(),
+                    ],
+                ]);
+            }
+
+            // Return view for initial load
+            return view('admin.analytics.project-analytics', compact('projects', 'summary', 'charts', 'directorates', 'departments', 'statuses', 'priorities'));
+        } catch (\Exception $e) {
+            Log::error('Error in ProjectController@analytics: ' . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'An error occurred. Please try again.'], 500);
+            }
+            return redirect()->back()->withErrors(['error' => 'An error occurred. Please check the logs.']);
+        }
     }
 }

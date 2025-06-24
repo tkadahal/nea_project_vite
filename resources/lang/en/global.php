@@ -305,6 +305,8 @@ return [
         'fields' => [
             'id' => 'ID',
             'id_helper' => '',
+            'directorate_id' => 'Directorate',
+            'directorate_id_helper' => '',
             'project_id' => 'Project',
             'project_id_helper' => '',
             'title' => 'Contract Name',

@@ -61,6 +61,7 @@ Route::group(
         Route::resource('status', StatusController::class);
         Route::resource('priority', PriorityController::class);
 
+        Route::get('/projects/analytics', [ProjectController::class, 'analytics'])->name('projects.analytics');
         Route::get('projects/{project}/progress/chart', [ProjectController::class, 'progressChart'])->name('projects.progress.chart');
         Route::get('projects/{project}/expenses/create', [ExpenseController::class, 'create'])->name('projects.expenses.create');
         Route::post('projects/{project}/expenses', [ExpenseController::class, 'store'])
@@ -73,6 +74,8 @@ Route::group(
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);
 
+        Route::get('/tasks/analytics/export', [TaskController::class, 'exportAnalytics'])->name('tasks.analytics.export');
+        Route::get('/tasks/analytics', [TaskController::class, 'analytics'])->name('tasks.analytics');
         Route::post('tasks/{task}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
         Route::get('/tasks/gantt-chart', [TaskController::class, 'getGanttChart'])->name('tasks.ganttChart');
         Route::get('/tasks/users-by-projects', [TaskController::class, 'getUsersByProjects'])->name('tasks.users_by_projects');
