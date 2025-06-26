@@ -52,8 +52,12 @@
 
     <!-- Project Status and Tasks Section -->
     <div class="grid grid-cols-12 gap-4 sm:gap-6 mb-4 sm:mb-6">
-        @livewire('project-status')
-        @livewire('task-status')
+        <div class="col-span-12 lg:col-span-4">
+            @livewire('project-status')
+        </div>
+        <div class="col-span-12 lg:col-span-8">
+            @livewire('task-status')
+        </div>
     </div>
 
     <!-- Task Sprint Overview Section -->

@@ -69,6 +69,7 @@ Route::group(
         Route::post('projects/{project}/comments', [CommentController::class, 'storeForProject'])->name('projects.comments.store');
         Route::get('/projects/users/{directorate_id}', [ProjectController::class, 'getUsers'])->name('projects.users');
         Route::get('/projects/departments/{directorate_id}', [ProjectController::class, 'getDepartments'])->name('projects.departments');
+        Route::get('/projects/budget/create', [ProjectController::class, 'createBudget'])->name('project.budget.create');
         Route::resource('project', ProjectController::class);
 
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');

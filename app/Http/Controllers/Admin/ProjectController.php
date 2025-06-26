@@ -506,4 +506,11 @@ class ProjectController extends Controller
             return redirect()->back()->withErrors(['error' => 'An error occurred. Please check the logs.']);
         }
     }
+
+    public function createBudget(): View
+    {
+        $projects = Project::all();
+        $fiscalYears = FiscalYear::pluck('title', 'id')->toArray();
+        return view('admin.projects.budget.create', compact('projects', 'fiscalYears'));
+    }
 }

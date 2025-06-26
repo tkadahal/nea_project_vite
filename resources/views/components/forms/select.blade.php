@@ -56,7 +56,7 @@
                 class="js-search-input w-full px-2 py-1 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300"
                 placeholder="Search...">
         </div>
-        <div class="js-options-container"></div>
+        <div class="js-options-container custom-scroll" style="overflow-y: auto;"></div>
         <div class="js-no-options px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hidden">
             No options available
         </div>
@@ -72,7 +72,54 @@
 <style>
     .js-dropdown {
         z-index: 1000;
-        /* Higher than default z-10 */
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+        background: #e5e7eb;
+        /* gray-200 */
+        border-radius: 4px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: #9ca3af;
+        /* gray-400 */
+        border-radius: 4px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+        /* gray-500 */
+    }
+
+    .dark .custom-scroll::-webkit-scrollbar-track {
+        background: #1f2937;
+        /* gray-800 */
+    }
+
+    .dark .custom-scroll::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        /* gray-600 */
+        border-radius: 4px;
+    }
+
+    .dark .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #374151;
+        /* gray-700 */
+    }
+
+    .custom-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #9ca3af #e5e7eb;
+        /* thumb: gray-400, track: gray-200 */
+    }
+
+    .dark .custom-scroll {
+        scrollbar-color: #4b5563 #1f2937;
+        /* thumb: gray-600, track: gray-800 */
     }
 </style>
 
@@ -150,6 +197,12 @@
                         $optionsContainer.append($option);
                     });
                 }
+                console.log('Applied styles to .js-options-container:', {
+                    class: $optionsContainer.attr('class'),
+                    style: $optionsContainer.attr('style'),
+                    computedStyle: window.getComputedStyle($optionsContainer[0]).webkitScrollbarColor ||
+                        'N/A'
+                });
             }
 
             function updateSelectedLabel() {

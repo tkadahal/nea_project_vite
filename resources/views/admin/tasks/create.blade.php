@@ -4,43 +4,49 @@
         <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Create New Task') }}</p>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-6">
-        <div class="flex-1">
-            <div
-                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 p-6">
-                <form class="max-w-3xl mx-auto" action="{{ route('admin.task.store') }}" method="POST">
-                    @csrf
+    {{-- Removed outer flex containers, the form will now handle the grid layout --}}
+    <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
+        <form class="w-full" action="{{ route('admin.task.store') }}" method="POST">
+            @csrf
 
-                    @if ($errors->any())
-                        <div class="mb-4 p-4 bg-red-100 text-red-800 border border-red-300 rounded">
-                            <ul class="list-disc list-inside text-sm">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+            @if ($errors->any())
+                <div
+                    class="mb-4 p-4 bg-red-100 text-red-800 border border-red-300 rounded dark:bg-red-900 dark:text-red-200 dark:border-red-700">
+                    <ul class="list-disc list-inside text-sm">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-                    <div id="error-message"
-                        class="mb-4 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative">
-                        <span id="error-text"></span>
-                        <button type="button" id="close-error" class="absolute top-0 right-0 px-4 py-3">
-                            <svg class="fill-current h-6 w-6 text-red-500" role="button"
-                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path
-                                    d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-                            </svg>
-                        </button>
-                    </div>
+            <div id="error-message"
+                class="mb-4 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative dark:bg-red-900 dark:border-red-700 dark:text-red-200">
+                <span id="error-text"></span>
+                <button type="button" id="close-error" class="absolute top-0 right-0 px-4 py-3">
+                    <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20">
+                        <path
+                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+                    </svg>
+                </button>
+            </div>
 
+            {{-- New: Main Grid for Two Columns --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                {{-- Left Column: Task Information --}}
+                <div>
                     <div
-                        class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 h-full">
+                        {{-- Added h-full to make it fill the height --}}
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                             {{ __('Task Information') }}
                         </h3>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 gap-6"> {{-- Changed to grid-cols-1 to make inner items stack --}}
                             <div class="col-span-full">
                                 <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
                                     :options="collect($directorates)
@@ -71,52 +77,66 @@
                                 <x-forms.text-area label="Description" name="description" :value="old('description', '')"
                                     placeholder="Enter task description" :error="$errors->first('description')" rows="5" />
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <x-forms.date-input label="Start Date" name="start_date" :value="old('start_date', '')"
-                                        :error="$errors->first('start_date')" />
-                                </div>
-
-                                <div>
-                                    <x-forms.date-input label="Due Date" name="due_date" :value="old('due_date', '')"
-                                        :error="$errors->first('due_date')" />
-                                </div>
-
-                                <div>
-                                    <x-forms.date-input label="Completion Date" name="completion_date"
-                                        :value="old('completion_date', '')" :error="$errors->first('completion_date')" />
-                                </div>
+                {{-- Right Column: Dates and Status & Priority --}}
+                <div class="space-y-6"> {{-- Use space-y to add vertical gap between stacked sections --}}
+                    <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <h3
+                            class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                            {{ __('Status & Priority') }}
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
+                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                    ->values()
+                                    ->all()"
+                                    :selected="old('status_id', '')" placeholder="Select status" :error="$errors->first('status_id')"
+                                    class="js-single-select" />
                             </div>
 
-                            <div class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
-                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                        ->values()
-                                        ->all()"
-                                        :selected="old('status_id', '')" placeholder="Select status" :error="$errors->first('status_id')"
-                                        class="js-single-select" />
-                                </div>
-
-                                <div>
-                                    <x-forms.select label="Priority" name="priority_id" id="priority_id"
-                                        :options="collect($priorities)
-                                            ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                            ->values()
-                                            ->all()" :selected="old('priority_id', '')" placeholder="Select priority"
-                                        :error="$errors->first('priority_id')" class="js-single-select" />
-                                </div>
+                            <div>
+                                <x-forms.select label="Priority" name="priority_id" id="priority_id" :options="collect($priorities)
+                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                    ->values()
+                                    ->all()"
+                                    :selected="old('priority_id', '')" placeholder="Select priority" :error="$errors->first('priority_id')"
+                                    class="js-single-select" />
                             </div>
                         </div>
                     </div>
+                    <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <h3
+                            class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                            {{ __('Dates') }}
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <x-forms.date-input label="Start Date" name="start_date" :value="old('start_date', '')"
+                                    :error="$errors->first('start_date')" />
+                            </div>
 
-                    <div>
-                        <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+                            <div>
+                                <x-forms.date-input label="Due Date" name="due_date" :value="old('due_date', '')"
+                                    :error="$errors->first('due_date')" />
+                            </div>
+
+                            <div>
+                                <x-forms.date-input label="Completion Date" name="completion_date" :value="old('completion_date', '')"
+                                    :error="$errors->first('completion_date')" />
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <div class="mt-6 flex justify-end">
+                <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+            </div>
+        </form>
     </div>
 
     @push('scripts')

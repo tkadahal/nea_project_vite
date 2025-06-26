@@ -11,6 +11,56 @@
                     Dashboard
                 </x-layouts.sidebar-link>
 
+                <li class="js-collapsible-menu">
+                    <button
+                        class="js-toggle-submenu flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                        <div class="flex items-center">
+                            <!-- Replaced with ChartBarIcon for Analytics -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <span class="js-submenu-label transition-opacity duration-300 opacity-100">
+                                Analytics
+                            </span>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="js-chevron h-4 w-4 transition-transform opacity-100" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+
+                    <div class="js-submenu mt-1 ml-4 space-y-1 hidden">
+                        <a href="{{ route('admin.tasks.analytics') }}"
+                            class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <div class="flex items-center">
+                                <!-- Replaced with ClipboardListIcon for Tasks -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                </svg>
+                                <span>Tasks</span>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('admin.projects.analytics') }}"
+                            class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <div class="flex items-center">
+                                <!-- Replaced with FolderIcon for Projects -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span>Projects</span>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+
                 @can('admin_menu_access')
                     <!-- Components - Level 1 -->
                     <div class="p-4 flex items-center justify-between">
@@ -105,7 +155,8 @@
                 @endcan
 
                 @can('department_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-bars" :active="request()->routeIs('admin.department*')">
+                    <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-bars"
+                        :active="request()->routeIs('admin.department*')">
                         Department
                     </x-layouts.sidebar-link>
                 @endcan
