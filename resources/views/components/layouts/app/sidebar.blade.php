@@ -168,6 +168,13 @@
                     </x-layouts.sidebar-link>
                 @endcan
 
+                @can('project_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.projectBudget.index') }}" icon="fas-clipboard"
+                        :active="request()->routeIs('admin.projectBudget*')">
+                        Project Budget
+                    </x-layouts.sidebar-link>
+                @endcan
+
                 @can('contract_access')
                     <x-layouts.sidebar-link href="{{ route('admin.contract.index') }}" icon="fas-list" :active="request()->routeIs('admin.contract*')">
                         Contracts
@@ -202,7 +209,8 @@
                 @endcan
 
                 @can('priority_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-fire" :active="request()->routeIs('admin.priority*')">
+                    <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-fire"
+                        :active="request()->routeIs('admin.priority*')">
                         Priority
                     </x-layouts.sidebar-link>
                 @endcan

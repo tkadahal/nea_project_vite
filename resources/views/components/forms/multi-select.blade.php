@@ -5,6 +5,7 @@
     'options' => [],
     'selected' => [],
     'placeholder' => 'Select options...',
+    'class' => '',
 ])
 
 @php
@@ -21,9 +22,7 @@
         throw new \Exception('$placeholder must be a string, got: ' . gettype($placeholder));
     }
 
-    // Use provided id or sanitize name (remove []) for id
     $componentId = $id ?? str_replace(['[]', '[', ']'], '', $name);
-    // Generate a unique ID to avoid conflicts
     $uniqueId = $componentId . '-' . uniqid();
     $selected = collect($selected)
         ->flatten()
@@ -36,9 +35,9 @@
         ->all();
 @endphp
 
-<div class="js-multi-select relative w-full" id="{{ $uniqueId }}" data-name="{{ str_replace('[]', '', $name) }}"
-    data-options="{{ json_encode($options) }}" data-selected="{{ json_encode($selected) }}"
-    data-placeholder="{{ $placeholder }}">
+<div class="js-multi-select relative w-full {{ $class }}" id="{{ $uniqueId }}"
+    data-name="{{ str_replace('[]', '', $name) }}" data-options="{{ json_encode($options) }}"
+    data-selected="{{ json_encode($selected) }}" data-placeholder="{{ $placeholder }}">
     @if ($label)
         <label for="{{ $uniqueId }}"
             class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">{{ $label }}</label>
@@ -47,26 +46,31 @@
     <div class="flex items-center mb-2 space-x-2">
         <button type="button"
             class="js-select-all px-3 py-1 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-md border border-blue-500">
-            Select All
+            {{ __('Select All') }}
         </button>
         <button type="button"
             class="js-deselect-all px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md border border-red-500">
-            Deselect All
+            {{ __('Deselect All') }}
         </button>
     </div>
 
     <div
-        class="js-multi-select-container flex flex-wrap items-center gap-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 min-h-[42px]">
+        class="js-multi-select-container flex flex-wrap items-center gap-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 min-h-[42px] focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
         <input type="text"
-            class="js-search-input flex-1 bg-transparent border-none focus:outline-none text-gray-700 dark:text-gray-300 px-2 py-1"
+            class="js-search-input flex-1 bg-transparent border-none focus:outline-none text-gray-700 dark:text-gray-200 px-2 py-1"
             placeholder="{{ $selected ? '' : $placeholder }}">
     </div>
 
     <div
-        class="js-dropdown absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto hidden">
-        <div class="js-options-container"></div>
+        class="js-dropdown absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto hidden">
+        <div class="p-3">
+            <input type="text"
+                class="js-search-input w-full px-3 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                placeholder="{{ __('Search...') }}">
+        </div>
+        <div class="js-options-container custom-scroll max-h-40 overflow-y-auto"></div>
         <div class="js-no-options px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hidden">
-            No options available
+            {{ __('No options available') }}
         </div>
     </div>
 
@@ -79,6 +83,56 @@
         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
     @enderror
 </div>
+
+<style>
+    .js-dropdown {
+        z-index: 1000;
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .dark .custom-scroll::-webkit-scrollbar-track {
+        background: #1f2937;
+    }
+
+    .dark .custom-scroll::-webkit-scrollbar-thumb {
+        background: #6b7280;
+    }
+
+    .dark .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+
+    .custom-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #888 #f1f1f1;
+    }
+
+    .dark .custom-scroll {
+        scrollbar-color: #6b7280 #1f2937;
+    }
+
+    .js-option {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+    }
+</style>
 
 <script>
     (function waitForJQuery() {
@@ -146,7 +200,7 @@
                     filteredOptions.forEach(opt => {
                         const isSelected = selected.includes(String(opt.value));
                         const $option = $(`
-                            <div class="js-option flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 cursor-pointer" data-value="${opt.value}">
+                            <div class="js-option flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 rounded-md cursor-pointer" data-value="${opt.value}">
                                 <input type="checkbox" class="js-option-checkbox mr-2 form-checkbox h-4 w-4 text-indigo-600" ${isSelected ? "checked" : ""}>
                                 <span>${opt.label}</span>
                             </div>
@@ -170,7 +224,7 @@
                     const option = options.find(opt => String(opt.value) === String(value));
                     const label = option ? option.label : `Unknown (ID: ${value})`;
                     const $optionSpan = $(`
-                        <span class="js-selected-option inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded-md dark:bg-gray-600 dark:text-gray-300 m-1" data-value="${value}">
+                        <span class="js-selected-option inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded-md dark:bg-gray-600 dark:text-gray-200 m-1" data-value="${value}">
                             <span>${label}</span>
                             <button type="button" class="js-remove-option ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,6 +236,13 @@
                     $selectedContainer.prepend($optionSpan);
                 });
                 $searchInput.attr('placeholder', selected.length ? '' : placeholder);
+                $searchInput.trigger('change'); // Support Livewire or other frameworks
+                if (window.Livewire) {
+                    window.Livewire.dispatch('input', {
+                        name: name,
+                        value: selected
+                    });
+                }
             }
 
             renderOptions();
@@ -255,16 +316,17 @@
                 renderOptions();
             });
 
-            $container.on("options-updated", function() {
+            $container.on("options-updated", function(event, data) {
                 try {
-                    options = $container.data("options") || [];
+                    options = data.options || JSON.parse($container.attr("data-options") || "[]");
+                    selected = (data.selected || []).filter(val =>
+                        options.some(opt => String(opt.value) === String(val))
+                    );
                 } catch (e) {
                     console.error('Error updating options for #{{ $uniqueId }}:', e.message);
                     options = [];
+                    selected = [];
                 }
-                selected = ($container.data("selected") || []).filter(val =>
-                    options.some(opt => String(opt.value) === String(val))
-                );
                 console.log('Options updated for #{{ $uniqueId }}:', options, 'Selected:', selected);
                 renderOptions();
                 updateSelected();

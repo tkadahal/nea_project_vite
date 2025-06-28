@@ -10,19 +10,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('project_budgets', function (Blueprint $table) {
+        Schema::create('project_budget_revisions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('project_id')->index()->constrained();
-            $table->foreignId('fiscal_year_id')->index()->constrained();
-            $table->decimal('total_budget', 15, 2)->nullable();
+            $table->foreignId('project_budget_id')->index()->constrained('project_budgets')->onDelete('cascade');
             $table->decimal('internal_budget', 15, 2)->nullable();
             $table->decimal('foreign_loan_budget', 15, 2)->nullable();
             $table->decimal('foreign_subsidy_budget', 15, 2)->nullable();
-            $table->integer('budget_revision')->default(1);
+            $table->decimal('total_budget', 15, 2)->nullable();
             $table->timestamps();
-            $table->softDeletes();
-
-            $table->unique(['project_id', 'fiscal_year_id'], 'project_budgets_project_id_fiscal_year_id_unique');
         });
     }
 };

@@ -189,15 +189,15 @@ class ProjectController extends Controller
 
             $project = Project::create(\Illuminate\Support\Arr::except($data, ['budgets']));
 
-            foreach ($data['budgets'] as $budget) {
-                $project->budgets()->create([
-                    'fiscal_year_id' => $budget['fiscal_year_id'],
-                    'total_budget' => $budget['total_budget'],
-                    'internal_budget' => $budget['internal_budget'],
-                    'foreign_loan_budget' => $budget['foreign_loan_budget'],
-                    'foreign_subsidy_budget' => $budget['foreign_subsidy_budget'],
-                ]);
-            }
+            // foreach ($data['budgets'] as $budget) {
+            //     $project->budgets()->create([
+            //         'fiscal_year_id' => $budget['fiscal_year_id'],
+            //         'total_budget' => $budget['total_budget'],
+            //         'internal_budget' => $budget['internal_budget'],
+            //         'foreign_loan_budget' => $budget['foreign_loan_budget'],
+            //         'foreign_subsidy_budget' => $budget['foreign_subsidy_budget'],
+            //     ]);
+            // }
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {

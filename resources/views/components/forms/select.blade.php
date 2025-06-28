@@ -5,6 +5,7 @@
     'options' => [],
     'selected' => null,
     'placeholder' => 'Select an option...',
+    'class' => '',
 ])
 
 @php
@@ -27,7 +28,7 @@
     $uniqueId = $componentId . '-' . uniqid();
 @endphp
 
-<div class="js-single-select relative w-full" id="{{ $uniqueId }}" data-name="{{ $name }}"
+<div class="js-single-select relative w-full {{ $class }}" id="{{ $uniqueId }}" data-name="{{ $name }}"
     data-options="{{ json_encode($options) }}" data-selected="{{ json_encode($selected) }}"
     data-placeholder="{{ $placeholder }}">
     @if ($label)
@@ -37,7 +38,7 @@
 
     <div
         class="js-toggle-dropdown flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full min-h-[42px]">
-        <span class="js-selected-label flex-1 px-2 py-1 text-gray-700 dark:text-gray-300">
+        <span class="js-selected-label flex-1 px-2 py-1 text-gray-700 dark:text-gray-200">
             @php
                 $selectedOption = collect($options)->firstWhere('value', $selected);
                 $selectedLabel = $selectedOption ? $selectedOption['label'] : $placeholder;
@@ -50,13 +51,13 @@
     </div>
 
     <div
-        class="js-dropdown absolute z-10 mt-1 w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto hidden">
-        <div class="p-2">
+        class="js-dropdown absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto hidden">
+        <div class="p-3">
             <input type="text"
-                class="js-search-input w-full px-2 py-1 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300"
+                class="js-search-input w-full px-3 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="Search...">
         </div>
-        <div class="js-options-container custom-scroll" style="overflow-y: auto;"></div>
+        <div class="js-options-container custom-scroll max-h-40 overflow-y-auto"></div>
         <div class="js-no-options px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hidden">
             No options available
         </div>
@@ -74,25 +75,23 @@
         z-index: 1000;
     }
 
+    /* Custom scrollbar to match create.blade.php */
     .custom-scroll::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
     }
 
     .custom-scroll::-webkit-scrollbar-track {
-        background: #e5e7eb;
-        /* gray-200 */
+        background: #f1f1f1;
         border-radius: 4px;
     }
 
     .custom-scroll::-webkit-scrollbar-thumb {
-        background: #9ca3af;
-        /* gray-400 */
+        background: #888;
         border-radius: 4px;
     }
 
     .custom-scroll::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
-        /* gray-500 */
+        background: #555;
     }
 
     .dark .custom-scroll::-webkit-scrollbar-track {
@@ -101,25 +100,29 @@
     }
 
     .dark .custom-scroll::-webkit-scrollbar-thumb {
-        background: #4b5563;
-        /* gray-600 */
-        border-radius: 4px;
+        background: #6b7280;
+        /* gray-500 */
     }
 
     .dark .custom-scroll::-webkit-scrollbar-thumb:hover {
-        background: #374151;
-        /* gray-700 */
+        background: #9ca3af;
+        /* gray-400 */
     }
 
+    /* Firefox */
     .custom-scroll {
         scrollbar-width: thin;
-        scrollbar-color: #9ca3af #e5e7eb;
-        /* thumb: gray-400, track: gray-200 */
+        scrollbar-color: #888 #f1f1f1;
     }
 
     .dark .custom-scroll {
-        scrollbar-color: #4b5563 #1f2937;
-        /* thumb: gray-600, track: gray-800 */
+        scrollbar-color: #6b7280 #1f2937;
+    }
+
+    /* Option styles to match project-status */
+    .js-option {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
     }
 </style>
 
@@ -190,19 +193,13 @@
                     filteredOptions.forEach((opt) => {
                         const isSelected = String(opt.value) === String(selected);
                         const $option = $(`
-                            <div class="js-option cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600" data-value="${opt.value}">
+                            <div class="js-option cursor-pointer px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 rounded-md" data-value="${opt.value}">
                                 ${opt.label}
                             </div>
                         `).toggleClass("bg-gray-100 dark:bg-gray-600", isSelected);
                         $optionsContainer.append($option);
                     });
                 }
-                console.log('Applied styles to .js-options-container:', {
-                    class: $optionsContainer.attr('class'),
-                    style: $optionsContainer.attr('style'),
-                    computedStyle: window.getComputedStyle($optionsContainer[0]).webkitScrollbarColor ||
-                        'N/A'
-                });
             }
 
             function updateSelectedLabel() {
@@ -219,6 +216,7 @@
                 if (!$dropdown.hasClass("hidden")) {
                     $searchInput.focus();
                 }
+                console.log('Dropdown toggled for #{{ $uniqueId }}:', !$dropdown.hasClass("hidden"));
             });
 
             $searchInput.on("input", function() {
@@ -241,6 +239,7 @@
                 $searchInput.val("");
                 renderOptions();
                 $hiddenInput.trigger("change");
+                console.log('Option selected for #{{ $uniqueId }}:', selected);
             });
 
             $(document).on("options-updated", '.js-single-select[data-name="' + name + '"]', function(event, data) {
@@ -262,6 +261,7 @@
                 const $target = $(e.target);
                 if (!$container.is($target) && $container.find($target).length === 0) {
                     $dropdown.addClass("hidden");
+                    console.log('Dropdown closed for #{{ $uniqueId }}');
                 }
             });
         }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CommentController;
+use App\Http\Controllers\Admin\ProjectBudgetController;
 use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -87,6 +88,8 @@ Route::group(
         Route::resource('task', TaskController::class);
 
         Route::resource('event', EventController::class);
+
+        Route::resource('projectBudget', ProjectBudgetController::class);
 
         Route::get('files', [FileController::class, 'index'])->name('file.index');
         Route::post('{model}/{id}/files', [FileController::class, 'store'])->name('files.store');

@@ -81,9 +81,9 @@ class Project extends Model
         return $this->hasMany(Contract::class);
     }
 
-    public function tasks(): BelongsTo
+    public function tasks(): HasMany
     {
-        return $this->belongsTo(Task::class, 'project_task');
+        return $this->hasMany(Task::class, 'project_task');
     }
 
     public function calculatePhysicalProgress(): float
