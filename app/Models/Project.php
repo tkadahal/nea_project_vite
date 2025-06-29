@@ -81,14 +81,13 @@ class Project extends Model
         return $this->hasMany(Contract::class);
     }
 
-    public function tasks(): HasMany
+    public function tasks(): BelongsToMany
     {
-        return $this->hasMany(Task::class, 'project_task');
+        return $this->belongsToMany(Task::class, 'project_task');
     }
 
     public function calculatePhysicalProgress(): float
     {
-        // Task-based progress
         $tasks = $this->tasks()->get();
         if ($tasks->isNotEmpty()) {
             $totalWeight = $tasks->sum('estimated_hours') ?: $tasks->count();
@@ -99,7 +98,6 @@ class Project extends Model
             return round($weightedProgress / $totalWeight, 2);
         }
 
-        // Contract-based progress (fallback)
         $contracts = $this->contracts()->get();
         if ($contracts->isNotEmpty()) {
             $totalWeight = $contracts->sum('contract_amount') ?: $contracts->count();
@@ -131,15 +129,6 @@ class Project extends Model
         return $this->attributes['total_budget'];
     }
 
-    // public function getTotalBudgetAttribute(): float
-    // {
-    //     $latestBudget = $this->relationLoaded('budgets')
-    //         ? $this->budgets->sortByDesc('id')->first()
-    //         : $this->budgets()->latest('id')->first();
-
-    //     return $latestBudget ? (float) $latestBudget->total_budget : 0.0;
-    // }
-
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
@@ -166,17 +155,36 @@ class Project extends Model
         return $this->attributes['financial_progress'];
     }
 
-    // public function getFinancialProgressAttribute(): float
-    // {
-    //     $totalBudget = $this->total_budget;
-    //     if ($totalBudget == 0) {
-    //         return 0.0;
-    //     }
-    //     $totalExpenses = $this->expenses()->sum('amount');
-    //     $contractExpenses = $this->contracts()->sum('contract_amount');
-    //     $totalSpent = $totalExpenses + $contractExpenses;
-    //     return round(($totalSpent / $totalBudget) * 100, 2);
-    // }
+    public function getExpensesByQuarter(FiscalYear $fiscalYear): array
+    {
+        $expenses = $this->expenses()
+            ->where('fiscal_year_id', $fiscalYear->id)
+            ->get()
+            ->groupBy('quarter');
+
+        $result = [];
+        for ($quarter = 1; $quarter <= 4; $quarter++) {
+            $result[$quarter] = $expenses->has($quarter)
+                ? $expenses[$quarter]->sum('amount')
+                : 0.0;
+        }
+
+        return $result;
+    }
+
+    public function getExpensesByBudgetType(FiscalYear $fiscalYear): array
+    {
+        $expenses = $this->expenses()
+            ->where('fiscal_year_id', $fiscalYear->id)
+            ->get()
+            ->groupBy('budget_type');
+
+        return [
+            'internal' => $expenses->has('internal') ? $expenses['internal']->sum('amount') : 0.0,
+            'foreign_loan' => $expenses->has('foreign_loan') ? $expenses['foreign_loan']->sum('amount') : 0.0,
+            'foreign_subsidy' => $expenses->has('foreign_subsidy') ? $expenses['foreign_subsidy']->sum('amount') : 0.0,
+        ];
+    }
 
     public function scopeFilterByRole(Builder $query, $user)
     {
@@ -225,7 +233,6 @@ class Project extends Model
             ->useLogName('project')
             ->setDescriptionForEvent(function (string $eventName) {
                 $user = Auth::user()?->name ?? 'System';
-
                 return match ($eventName) {
                     'created' => "Project created by {$user}",
                     'updated' => "Project updated by {$user}",

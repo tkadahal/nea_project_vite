@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\DirectorateController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\FileController;
+use App\Http\Controllers\Admin\FiscalYearController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PriorityController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -64,9 +65,6 @@ Route::group(
 
         Route::get('/projects/analytics', [ProjectController::class, 'analytics'])->name('projects.analytics');
         Route::get('projects/{project}/progress/chart', [ProjectController::class, 'progressChart'])->name('projects.progress.chart');
-        Route::get('projects/{project}/expenses/create', [ExpenseController::class, 'create'])->name('projects.expenses.create');
-        Route::post('projects/{project}/expenses', [ExpenseController::class, 'store'])
-            ->name('projects.expenses.store');
         Route::post('projects/{project}/comments', [CommentController::class, 'storeForProject'])->name('projects.comments.store');
         Route::get('/projects/users/{directorate_id}', [ProjectController::class, 'getUsers'])->name('projects.users');
         Route::get('/projects/departments/{directorate_id}', [ProjectController::class, 'getDepartments'])->name('projects.departments');
@@ -89,7 +87,13 @@ Route::group(
 
         Route::resource('event', EventController::class);
 
+        // Route::resource('fiscalYear', FiscalYearController::class);
+
         Route::resource('projectBudget', ProjectBudgetController::class);
+
+        Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');
+        Route::get('budgets/available', [ExpenseController::class, 'availableBudget'])->name('budgets.available');
+        Route::resource('expense', ExpenseController::class);
 
         Route::get('files', [FileController::class, 'index'])->name('file.index');
         Route::post('{model}/{id}/files', [FileController::class, 'store'])->name('files.store');

@@ -14,9 +14,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('fiscal_year_id')->constrained()->onDelete('cascade');
             $table->decimal('amount', 10, 2);
             $table->string('description')->nullable();
             $table->date('date');
+            $table->integer('quarter')->nullable();
+            $table->string('budget_type')->nullable();
             $table->timestamps();
         });
     }

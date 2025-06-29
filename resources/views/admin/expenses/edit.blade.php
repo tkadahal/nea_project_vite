@@ -3,15 +3,17 @@
         <a href="{{ route('admin.expense.index') }}"
             class="hover:text-blue-500 dark:hover:text-blue-400">{{ __('Expenses') }}</a>
         <span class="mx-2">/</span>
-        <span>{{ __('Add Expense') }}</span>
+        <span>{{ __('Edit Expense') }}</span>
     </nav>
 
     <div class="max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Add New Expense') }}</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Edit Expense for:') }}
+            {{ $expense->project->title }}</h1>
 
-        <form method="POST" action="{{ route('admin.expense.store') }}"
+        <form method="POST" action="{{ route('admin.expense.update', $expense) }}"
             class="mt-6 space-y-6 bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
             @csrf
+            @method('PUT')
 
             @if (session('success'))
                 <div
@@ -36,7 +38,7 @@
                     ->map(fn($project) => ['value' => (int) $project->id, 'label' => $project->title])
                     ->values()
                     ->all()"
-                    :selected="old('project_id')" placeholder="{{ __('Select project') }}" :error="$errors->first('project_id')"
+                    :selected="old('project_id', $expense->project_id)" placeholder="{{ __('Select project') }}" :error="$errors->first('project_id')"
                     class="js-single-select" />
             </div>
 
@@ -45,7 +47,7 @@
                     :options="collect($fiscalYears)
                         ->map(fn($year) => ['value' => (int) $year->id, 'label' => $year->title])
                         ->values()
-                        ->all()" :selected="old('fiscal_year_id')" placeholder="{{ __('Select fiscal year') }}" :error="$errors->first('fiscal_year_id')"
+                        ->all()" :selected="old('fiscal_year_id', $expense->fiscal_year_id)" placeholder="{{ __('Select fiscal year') }}" :error="$errors->first('fiscal_year_id')"
                     class="js-single-select" />
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" id="available-budget"></p>
             </div>
@@ -56,13 +58,13 @@
                     ['value' => 'foreign_loan', 'label' => __('Foreign Loan Budget')],
                     ['value' => 'foreign_subsidy', 'label' => __('Foreign Subsidy Budget')],
                 ]"
-                    :selected="old('budget_type')" placeholder="{{ __('Select budget type') }}" :error="$errors->first('budget_type')"
+                    :selected="old('budget_type', $expense->budget_type)" placeholder="{{ __('Select budget type') }}" :error="$errors->first('budget_type')"
                     class="js-single-select" />
             </div>
 
             <div>
                 <x-forms.input label="{{ __('Amount') }}" name="amount" id="amount" type="number" step="0.01"
-                    min="0" :value="old('amount')" required
+                    min="0" :value="old('amount', $expense->amount)" required
                     class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     :error="$errors->first('amount')" />
             </div>
@@ -72,7 +74,7 @@
                     class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Description') }}</label>
                 <textarea name="description" id="description"
                     class="mt-1 w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows="4">{{ old('description') }}</textarea>
+                    rows="4">{{ old('description', $expense->description) }}</textarea>
                 @error('description')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -85,7 +87,7 @@
                     ['value' => 3, 'label' => 'Q3'],
                     ['value' => 4, 'label' => 'Q4'],
                 ]"
-                    placeholder="{{ __('Select a quarter') }}" class="js-single-select" required />
+                    :selected="$expense->quarter" placeholder="{{ __('Select a quarter') }}" class="js-single-select" required />
                 @error('quarter')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
@@ -93,9 +95,10 @@
 
             <div>
                 <x-forms.input label="{{ __('Date') }}" name="date" id="date" type="date"
-                    :value="old('date')" required
+                    :value="old('date', $expense->date->format('Y-m-d'))" required
                     class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     :error="$errors->first('date')" />
+                sightseeing
             </div>
 
             <div class="flex justify-end space-x-3">
@@ -106,8 +109,8 @@
                 </a>
                 <button type="submit"
                     class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-offset-gray-900"
-                    aria-label="{{ __('Add Expense') }}">
-                    {{ __('Add Expense') }}
+                    aria-label="{{ __('Update Expense') }}">
+                    {{ __('Update Expense') }}
                 </button>
             </div>
         </form>
