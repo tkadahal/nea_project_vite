@@ -20,6 +20,11 @@ class UpdateTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'directorate_id' => [
+                'required',
+                'integer',
+                'exists:directorates,id',
+            ],
             'title' => [
                 'required',
                 'string',
@@ -50,6 +55,20 @@ class UpdateTaskRequest extends FormRequest
             'priority_id' => [
                 'required',
                 'exists:priorities,id',
+            ],
+            'projects.*' => [
+                'integer',
+            ],
+            'projects' => [
+                'required',
+                'array',
+            ],
+            'users.*' => [
+                'integer',
+            ],
+            'users' => [
+                'required',
+                'array',
             ],
         ];
     }

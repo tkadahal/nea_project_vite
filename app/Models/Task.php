@@ -17,6 +17,7 @@ class Task extends Model
     use LogsActivity;
 
     protected $fillable = [
+        'directorate_id',
         'title',
         'description',
         'start_date',
@@ -36,6 +37,11 @@ class Task extends Model
         'deleted_at' => 'datetime',
         'progress' => 'integer',
     ];
+
+    public function directorate(): BelongsTo
+    {
+        return $this->belongsTo(Directorate::class);
+    }
 
     public function status(): BelongsTo
     {

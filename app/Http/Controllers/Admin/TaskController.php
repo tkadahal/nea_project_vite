@@ -68,7 +68,7 @@ class TaskController extends Controller
             'actions' => ['view', 'edit', 'delete'],
         ];
 
-        $withRelations = ['status', 'priority', 'projects', 'users'];
+        $withRelations = ['status', 'priority', 'projects', 'users', 'directorate'];
         $taskQuery = Task::with($withRelations)->latest();
 
         try {
@@ -80,27 +80,33 @@ class TaskController extends Controller
                 Log::info('Superadmin access, showing all tasks', ['user_id' => $user->id]);
             } else {
                 // Non-superadmin users
-                if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
-                    $taskQuery->whereHas('projects', function ($query) use ($user) {
-                        $query->where('directorate_id', $user->directorate_id)->whereNull('deleted_at');
-                    });
-                    Log::info('Filtering tasks for Directorate User', [
-                        'user_id' => $user->id,
-                        'directorate_id' => $user->directorate_id,
-                    ]);
-                } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
-                    $taskQuery->whereHas('projects', function ($query) use ($user) {
-                        $query->whereIn('id', $user->projects()->whereNull('deleted_at')->pluck('id'))->whereNull('deleted_at');
-                    });
-                    Log::info('Filtering tasks for Project User', [
-                        'user_id' => $user->id,
-                        'project_count' => $user->projects()->count(),
-                    ]);
-                } else {
-                    // Fallback for users with no valid role
-                    $taskQuery->whereRaw('1 = 0'); // Return no tasks
-                    Log::warning('No valid role for task access', ['user_id' => $user->id, 'role_ids' => $roleIds]);
-                }
+                $taskQuery->where(function ($query) use ($user, $roleIds) {
+                    if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
+                        $query->where('directorate_id', $user->directorate_id)
+                            ->orWhereHas('projects', function ($q) use ($user) {
+                                $q->where('directorate_id', $user->directorate_id)->whereNull('deleted_at');
+                            });
+                        Log::info('Filtering tasks for Directorate User', [
+                            'user_id' => $user->id,
+                            'directorate_id' => $user->directorate_id,
+                        ]);
+                    } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
+                        $projectIds = $user->projects()->whereNull('deleted_at')->pluck('id');
+                        $query->whereIn('directorate_id', function ($q) use ($projectIds) {
+                            $q->select('directorate_id')->from('projects')->whereIn('id', $projectIds)->whereNull('deleted_at');
+                        })->orWhereHas('projects', function ($q) use ($user) {
+                            $q->whereIn('id', $user->projects()->whereNull('deleted_at')->pluck('id'))->whereNull('deleted_at');
+                        });
+                        Log::info('Filtering tasks for Project User', [
+                            'user_id' => $user->id,
+                            'project_count' => $projectIds->count(),
+                        ]);
+                    } else {
+                        // Fallback for users with no valid role
+                        $query->whereRaw('1 = 0'); // Return no tasks
+                        Log::warning('No valid role for task access', ['user_id' => $user->id, 'role_ids' => $roleIds]);
+                    }
+                });
             }
         } catch (\Exception $e) {
             Log::error('Error in task filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
@@ -139,6 +145,7 @@ class TaskController extends Controller
                         'priority' => $task->priority->title ?? 'N/A',
                         'projects' => $task->projects->pluck('title')->all(),
                         'users' => $task->users->pluck('name')->all(),
+                        'directorate' => $task->directorate?->title ?? 'N/A',
                     ],
                 ];
             })->filter(fn($event) => $event['start'] !== null)->values()->all();
@@ -155,6 +162,7 @@ class TaskController extends Controller
                 trans('global.task.fields.due_date'),
                 trans('global.task.fields.projects'),
                 trans('global.task.fields.users'),
+                trans('global.task.fields.directorate'),
             ];
             $data['tableData'] = $tasks->map(function ($task) {
                 return [
@@ -165,6 +173,7 @@ class TaskController extends Controller
                     'due_date' => $task->due_date ? $task->due_date->format('Y-m-d') : 'N/A',
                     'projects' => $task->projects->pluck('title')->join(', '),
                     'users' => $task->users->pluck('name')->join(', '),
+                    'directorate' => $task->directorate?->title ?? 'N/A',
                 ];
             })->all();
         }
@@ -182,18 +191,17 @@ class TaskController extends Controller
 
         if (in_array(Role::SUPERADMIN, $roleIds)) {
             $directorates = Directorate::pluck('title', 'id');
-            $projects = collect();
+            $projects = Project::whereNull('deleted_at')->pluck('title', 'id');
         } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
             $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
-            $projects = Project::without(['tasks', 'expenses', 'contracts'])
-                ->where('directorate_id', $user->directorate_id)
+            $projects = Project::where('directorate_id', $user->directorate_id)
                 ->whereNull('deleted_at')
-                ->get();
+                ->pluck('title', 'id');
         } elseif (in_array(Role::PROJECT_USER, $roleIds) && $user->directorate_id) {
             $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
             $projects = $user->projects()
                 ->whereNull('deleted_at')
-                ->get();
+                ->pluck('title', 'id');
         } else {
             $directorates = collect();
             $projects = collect();
@@ -255,14 +263,46 @@ class TaskController extends Controller
     {
         abort_if(Gate::denies('task_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $user = Auth::user();
+        $roleIds = $user->roles->pluck('id')->toArray();
         $task->load(['status', 'priority', 'projects', 'users']);
+        $directorates = collect();
+        $projects = collect();
+        $users = collect();
         $statuses = Status::pluck('title', 'id');
         $priorities = Priority::pluck('title', 'id');
-        $directorates = Directorate::pluck('title', 'id');
-        $projects = Project::pluck('title', 'id');
-        $users = User::pluck('name', 'id');
 
-        return view('admin.tasks.edit', compact('task', 'statuses', 'priorities', 'directorates', 'projects', 'users'));
+        if (in_array(Role::SUPERADMIN, $roleIds)) {
+            $directorates = Directorate::pluck('title', 'id');
+            $projects = Project::whereNull('deleted_at')->pluck('title', 'id');
+        } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
+            $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
+            $projects = Project::where('directorate_id', $user->directorate_id)
+                ->whereNull('deleted_at')
+                ->pluck('title', 'id');
+            // Include task's directorate_id if different, but restrict editing
+            if ($task->directorate_id && $task->directorate_id != $user->directorate_id) {
+                $directorates->put($task->directorate_id, Directorate::find($task->directorate_id)?->title ?? 'N/A');
+            }
+        } elseif (in_array(Role::PROJECT_USER, $roleIds) && $user->directorate_id) {
+            $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
+            $projects = $user->projects()
+                ->whereNull('deleted_at')
+                ->pluck('title', 'id');
+            // Include task's directorate_id if different, but restrict editing
+            if ($task->directorate_id && $task->directorate_id != $user->directorate_id) {
+                $directorates->put($task->directorate_id, Directorate::find($task->directorate_id)?->title ?? 'N/A');
+            }
+        } else {
+            Log::warning('No valid role or directorate_id for user in edit', [
+                'user_id' => $user->id,
+                'role_ids' => $roleIds,
+                'directorate_id' => $user->directorate_id,
+                'task_id' => $task->id,
+            ]);
+        }
+
+        return view('admin.tasks.edit', compact('task', 'directorates', 'projects', 'users', 'statuses', 'priorities'));
     }
 
     public function update(StoreTaskRequest $request, Task $task): RedirectResponse

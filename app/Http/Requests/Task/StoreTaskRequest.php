@@ -20,6 +20,11 @@ class StoreTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'directorate_id' => [
+                'required',
+                'integer',
+                'exists:directorates,id',
+            ],
             'title' => [
                 'required',
                 'string',

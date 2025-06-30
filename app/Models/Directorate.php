@@ -40,6 +40,11 @@ class Directorate extends Model
         return $this->hasMany(Project::class);
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
     public function newEloquentBuilder($query): ModelBuilder
     {
         return new ModelBuilder(
