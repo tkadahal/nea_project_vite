@@ -107,104 +107,132 @@
 
     @push('scripts')
         <script>
-            (function waitForjQuery() {
-                if (window.jQuery) {
-                    jQuery(document).ready(function($) {
-                        // Store projects data for debugging
-                        window.debugProjectsData = [];
+            function waitForJQuery(callback, retries = 50, interval = 100) {
+                if (typeof jQuery !== "undefined" && jQuery.fn.jquery && document.readyState !== "loading") {
+                    console.log("jQuery and DOM ready. jQuery version:", jQuery.fn.jquery, "DOM state:", document.readyState);
+                    callback();
+                } else if (retries > 0) {
+                    console.warn("jQuery or DOM not ready, retrying... jQuery:", typeof jQuery !== "undefined" ? jQuery.fn
+                        .jquery : "undefined", "DOM:", document.readyState, "Retries left:", retries);
+                    setTimeout(function() {
+                        waitForJQuery(callback, retries - 1, interval);
+                    }, interval);
+                } else {
+                    console.error("Failed to load jQuery or DOM after maximum retries.");
+                    $("#error-message").removeClass("hidden").find("#error-text").text(
+                        "Failed to initialize form due to missing jQuery or DOM.");
+                }
+            }
 
-                        // Find the Projects multi-select by data-name
-                        const $projectsContainer = $('.js-multi-select[data-name="projects"]');
-                        console.log('Projects container found:', $projectsContainer.length, 'ID:',
-                            $projectsContainer.attr('id'));
+            waitForJQuery(function() {
+                const $ = jQuery;
 
-                        // AJAX handler for projects (only for non-directorate/project users)
-                        @if (!$isDirectorateOrProjectUser)
-                            $('input[name="directorate_id"].js-hidden-input').on('change', function() {
-                                const directorateId = $(this).val();
-                                console.log('Directorate changed:', directorateId);
+                // Store projects data for debugging
+                window.debugProjectsData = [];
 
-                                if (directorateId) {
-                                    $.ajax({
-                                        url: '{{ route('admin.users.projects', ':directorateId') }}'
-                                            .replace(':directorateId', encodeURIComponent(
-                                                directorateId)),
-                                        type: 'GET',
-                                        headers: {
-                                            'Accept': 'application/json',
-                                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
-                                                'content')
-                                        },
-                                        success: function(data) {
-                                            console.log('AJAX success, raw response:', data);
-                                            const formattedData = Array.isArray(data) ? data
-                                                .filter(
-                                                    opt => opt.value !== undefined && opt
-                                                    .label !== undefined
-                                                ) : [];
-                                            console.log('Formatted projects:', formattedData);
-                                            window.debugProjectsData =
-                                            formattedData; // Store for inspection
-                                            const validOldProjects =
-                                                @json(old('projects', []))
-                                                .filter(projectId => formattedData.some(opt =>
-                                                        String(opt.value) === String(projectId)
-                                                        ));
-                                            console.log('Valid old projects:',
-                                            validOldProjects);
-                                            $projectsContainer
-                                                .data('options', formattedData)
-                                                .data('selected', validOldProjects)
-                                                .trigger('options-updated');
-                                            if (formattedData.length === 0) {
-                                                $('#error-message').removeClass('hidden');
-                                                $('#error-text').text(
-                                                    'No projects available for the selected directorate.'
-                                                    );
-                                            }
-                                        },
-                                        error: function(xhr) {
-                                            console.error('AJAX error:', xhr.status, xhr
-                                                .statusText, xhr.responseJSON);
-                                            $('#error-message').removeClass('hidden');
-                                            $('#error-text').text('Failed to load projects: ' +
-                                                (xhr.responseJSON?.message ||
-                                                    'Unknown error'));
-                                            $projectsContainer
-                                                .data('options', [])
-                                                .data('selected', [])
-                                                .trigger('options-updated');
-                                        }
+                // Find the Projects multi-select by data-name
+                const $projectsContainer = $('.js-multi-select[data-name="projects"]');
+                console.log('Projects container found:', $projectsContainer.length, 'ID:', $projectsContainer.attr(
+                    'id'));
+
+                // AJAX handler for projects (only for non-directorate/project users)
+                @if (!$isDirectorateOrProjectUser)
+                    $('input[name="directorate_id"].js-hidden-input').on('change', function() {
+                        const directorateId = $(this).val();
+                        console.log('Directorate changed:', directorateId);
+
+                        if (!directorateId || isNaN(directorateId) || directorateId <= 0) {
+                            console.log('No valid directorate_id, resetting projects');
+                            $projectsContainer
+                                .data('options', [])
+                                .data('selected', [])
+                                .trigger('options-updated', {
+                                    options: [],
+                                    selected: []
+                                });
+                            return;
+                        }
+
+                        const $optionsContainer = $projectsContainer.find('.js-options-container');
+                        $optionsContainer.empty().append(
+                            '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading...</div>'
+                        );
+
+                        const projectsUrl = '{{ route('admin.users.projects', ':directorateId') }}'.replace(
+                            ':directorateId', encodeURIComponent(directorateId));
+                        console.log('Projects AJAX URL:', projectsUrl);
+
+                        $.ajax({
+                            url: projectsUrl,
+                            type: 'GET',
+                            dataType: 'json',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            success: function(data) {
+                                console.log('Projects AJAX success:', data);
+                                const formattedData = Array.isArray(data) ?
+                                    data.map(project => ({
+                                        value: String(project.value),
+                                        label: String(project.label)
+                                    })).filter(opt => opt.value && opt.label) : [];
+                                console.log('Formatted projects:', formattedData);
+                                window.debugProjectsData = formattedData; // Store for inspection
+                                const validOldProjects = @json(old('projects', []))
+                                    .filter(projectId => formattedData.some(opt => String(opt
+                                        .value) === String(projectId)));
+                                console.log('Valid old projects:', validOldProjects);
+                                $projectsContainer
+                                    .data('options', formattedData)
+                                    .data('selected', validOldProjects)
+                                    .trigger('options-updated', {
+                                        options: formattedData,
+                                        selected: validOldProjects
                                     });
-                                } else {
-                                    console.log('Directorate cleared, resetting projects');
-                                    $projectsContainer
-                                        .data('options', [])
-                                        .data('selected', [])
-                                        .trigger('options-updated');
+                                if (formattedData.length === 0) {
+                                    $('#error-message').removeClass('hidden').find('#error-text')
+                                        .text(
+                                            'No projects available for the selected directorate.'
+                                        );
                                 }
-                            });
-
-                            // Trigger initial change for pre-selected directorate
-                            const preSelected = $('input[name="directorate_id"].js-hidden-input').val();
-                            if (preSelected) {
-                                console.log('Initial directorate:', preSelected);
-                                setTimeout(() => {
-                                    $('input[name="directorate_id"].js-hidden-input').trigger('change');
-                                }, 200);
+                            },
+                            error: function(xhr) {
+                                console.error('Projects AJAX error:', xhr.status, xhr.statusText,
+                                    xhr.responseJSON);
+                                $projectsContainer
+                                    .data('options', [])
+                                    .data('selected', [])
+                                    .trigger('options-updated', {
+                                        options: [],
+                                        selected: []
+                                    });
+                                $('#error-message').removeClass('hidden').find('#error-text').text(
+                                    'Failed to load projects: ' + (xhr.responseJSON?.message ||
+                                        'Unknown error')
+                                );
                             }
-                        @endif
-
-                        // Close error message
-                        $('#close-error').on('click', function() {
-                            $('#error-message').addClass('hidden');
-                            $('#error-text').text('');
                         });
                     });
-                } else {
-                    setTimeout(waitForjQuery, 100);
-                }
-            })();
+
+                    // Trigger initial change for pre-selected directorate
+                    const preSelected = $('input[name="directorate_id"].js-hidden-input').val();
+                    if (preSelected && !isNaN(preSelected) && preSelected > 0) {
+                        console.log('Initial directorate:', preSelected);
+                        setTimeout(() => {
+                            $('input[name="directorate_id"].js-hidden-input').trigger('change');
+                        }, 200);
+                    } else {
+                        console.log('No valid initial directorate_id, skipping trigger');
+                    }
+                @endif
+
+                // Close error message
+                $('#close-error').on('click', function() {
+                    $('#error-message').addClass('hidden').find('#error-text').text('');
+                });
+            });
         </script>
     @endpush
 </x-layouts.app>

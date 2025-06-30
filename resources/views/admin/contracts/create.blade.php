@@ -1,13 +1,13 @@
+```blade
 <x-layouts.app>
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Contract') }}</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Create New Contract') }}</p>
     </div>
 
-    {{-- The outer flex-col md:flex-row gap-6 and flex-1 are no longer needed here as the form itself will manage columns --}}
     <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
-        <form class="w-full" action="{{ route('admin.contract.store') }}" method="POST">
+        <form class="w-full" action="{{ route('admin.contract.store') }}" method="POST" id="contract-form">
             @csrf
 
             @if ($errors->any())
@@ -33,33 +33,51 @@
                 </button>
             </div>
 
-            {{-- New: Main Grid for Two Columns --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {{-- Left Column: Contract Details --}}
                 <div>
                     <div
                         class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 h-full">
-                        {{-- Added h-full to make it fill the height --}}
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                             {{ __('Contract Details') }}
                         </h3>
 
-                        <div class="grid grid-cols-1 gap-6"> {{-- Changed to grid-cols-1 to make inner items stack --}}
-                            <div class="col-span-full">
-                                <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
-                                    :options="collect($directorates)
-                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                        ->values()
-                                        ->all()" :selected="old('directorate_id', '')" placeholder="Select directorate"
-                                    :error="$errors->first('directorate_id')" class="js-single-select" /> {{-- Added js-single-select class --}}
-                            </div>
+                        <div class="grid grid-cols-1 gap-6">
+                            @if (Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN))
+                                <div class="col-span-full">
+                                    <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
+                                        :options="collect($directorates)
+                                            ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                            ->values()
+                                            ->all()" :selected="old('directorate_id', '')" placeholder="Select directorate"
+                                        :error="$errors->first('directorate_id')" class="js-single-select" />
+                                </div>
+                            @else
+                                <input type="hidden" name="directorate_id"
+                                    value="{{ Auth::user()->directorate_id ?? '' }}">
+                            @endif
 
                             <div class="col-span-full">
-                                <x-forms.select label="Project" name="project_id" id="project_id" :options="[]"
+                                <x-forms.select label="Project" name="project_id" id="project_id" :options="collect($projects)
+                                    ->map(
+                                        fn($project) => [
+                                            'value' => (string) $project['id'],
+                                            'label' => $project['title'],
+                                            'total_budget' => $project['total_budget'],
+                                            'remaining_budget' => $project['remaining_budget'],
+                                        ],
+                                    )
+                                    ->values()
+                                    ->all()"
                                     :selected="old('project_id', '')" placeholder="Select project" :error="$errors->first('project_id')"
-                                    class="js-single-select" /> {{-- Added js-single-select class --}}
+                                    :class="Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN)
+                                        ? 'js-single-select'
+                                        : ''" />
+                                <div id="project-budget"
+                                    class="mt-2 text-sm text-gray-600 dark:text-gray-400 {{ $projects->isEmpty() ? 'hidden' : '' }}">
+                                    Available Budget: <span
+                                        id="budget-amount">{{ $projects->isNotEmpty() ? $projects->firstWhere('id', old('project_id', ''))['remaining_budget'] ?? 'N/A' : 'N/A' }}</span>
+                                </div>
                             </div>
 
                             <div class="col-span-full">
@@ -79,7 +97,7 @@
 
                             <div>
                                 <x-forms.input label="Amount" name="contract_amount" type="number" step="0.01"
-                                    :value="old('contract_amount')" placeholder="0.00" :error="$errors->first('contract_amount')" />
+                                    :value="old('contract_amount')" placeholder="0.00" :error="$errors->first('contract_amount')" id="contract-amount" />
                             </div>
 
                             <div class="col-span-full">
@@ -90,8 +108,7 @@
                     </div>
                 </div>
 
-                {{-- Right Column: Other Sections --}}
-                <div class="space-y-6"> {{-- Use space-y to add vertical gap between stacked sections --}}
+                <div class="space-y-6">
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
@@ -104,7 +121,7 @@
                                     ->values()
                                     ->all()"
                                     :selected="old('status_id', '')" placeholder="Select status" :error="$errors->first('status_id')"
-                                    class="js-single-select" /> {{-- Added js-single-select class --}}
+                                    class="js-single-select" />
                             </div>
 
                             <div>
@@ -113,7 +130,7 @@
                                     ->values()
                                     ->all()"
                                     :selected="old('priority_id', '')" placeholder="Select priority" :error="$errors->first('priority_id')"
-                                    class="js-single-select" /> {{-- Added js-single-select class --}}
+                                    class="js-single-select" />
                             </div>
                         </div>
                     </div>
@@ -154,115 +171,312 @@
             </div>
 
             <div class="mt-6 flex justify-end">
-                <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+                <x-buttons.primary type="submit" id="submit-button">{{ __('Save') }}</x-buttons.primary>
             </div>
         </form>
     </div>
 
     @push('scripts')
-        <script>
-            (function waitForJQuery() {
-                if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.jquery !== 'undefined') {
-                    console.log('jQuery version in contract create:', window.jQuery.fn.jquery);
-                    initializeScript(window.jQuery);
-                } else {
-                    console.log('Waiting for jQuery...');
-                    setTimeout(waitForJQuery, 50);
-                }
-            })();
+        @if (Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN))
+            <script>
+                (function waitForJQuery() {
+                    if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.jquery !== 'undefined') {
+                        console.log('jQuery version:', window.jQuery.fn.jquery);
+                        initializeScript(window.jQuery);
+                    } else {
+                        console.log('Waiting for jQuery...');
+                        setTimeout(waitForJQuery, 50);
+                    }
+                })();
 
-            function initializeScript(jQuery) {
-                jQuery(document).ready(function() {
-                    const projectSelect = jQuery('.js-single-select[data-name="project_id"]');
-                    const errorMessage = jQuery('#error-message');
-                    const errorText = jQuery('#error-text');
-                    const directorateInput = jQuery('input[name="directorate_id"].js-hidden-input');
+                function initializeScript($) {
+                    $(document).ready(function() {
+                        // Target js-single-select divs by data-name
+                        const directorateContainer = $('.js-single-select[data-name="directorate_id"]');
+                        const projectContainer = $('.js-single-select[data-name="project_id"]');
+                        // Target hidden inputs for value changes
+                        const directorateInput = directorateContainer.find('input[type="hidden"][name="directorate_id"]');
+                        const projectInput = projectContainer.find('input[type="hidden"][name="project_id"]');
+                        const errorMessage = $('#error-message');
+                        const errorText = $('#error-text');
+                        const contractAmountInput = $('#contract-amount');
+                        const budgetDisplay = $('#project-budget');
+                        const budgetAmount = $('#budget-amount');
+                        const submitButton = $('#submit-button');
+                        let remainingBudget = 0;
 
-                    console.log('Directorate input found:', directorateInput.length);
-                    console.log('Project select found:', projectSelect.length);
+                        console.log('Superadmin script initialized (create)');
+                        console.log('Directorate container:', directorateContainer.length ? 'Found' : 'Not found',
+                            directorateContainer);
+                        console.log('Project container:', projectContainer.length ? 'Found' : 'Not found',
+                            projectContainer);
+                        console.log('Directorate container HTML:', directorateContainer.length ? directorateContainer[0]
+                            .outerHTML : 'N/A');
+                        console.log('Project container HTML:', projectContainer.length ? projectContainer[0].outerHTML :
+                            'N/A');
+                        console.log('Directorate input:', directorateInput.length ? 'Found' : 'Not found',
+                            directorateInput);
+                        console.log('Project input:', projectInput.length ? 'Found' : 'Not found', projectInput);
 
-                    // Handle directorate change to fetch projects
-                    directorateInput.on('change', function() {
-                        const directorateId = jQuery(this).val();
-                        console.log('Directorate changed:', directorateId);
+                        directorateInput.on('change', function() {
+                            const directorateId = $(this).val();
+                            console.log('Directorate changed:', directorateId);
 
-                        if (directorateId) {
-                            projectSelect.find('.js-options-container').html(
-                                '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading projects...</div>'
-                            );
-                            projectSelect.find('input.js-hidden-input').val('').trigger('change');
-
-                            jQuery.ajax({
-                                url: '/admin/contracts/projects/' + encodeURIComponent(directorateId),
-                                type: 'GET',
-                                headers: {
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': jQuery('meta[name="csrf-token"]').attr('content')
-                                },
-                                success: function(data) {
-                                    const options = Array.isArray(data) ? data.map(project => ({
-                                        value: String(project.value),
-                                        label: String(project.label ||
-                                            'Untitled Project')
-                                    })).filter(opt => opt.value && opt.label && opt.label !==
-                                        'undefined') : [];
-                                    const selected = @json(old('project_id', '')) && options.some(
-                                            opt => String(opt.value) === String(
-                                                @json(old('project_id', '')))) ?
-                                        String(@json(old('project_id', ''))) : '';
-                                    console.log('Triggering options-updated for project select:',
-                                        projectSelect.attr('id'));
-                                    projectSelect
-                                        .attr('data-options', JSON.stringify(options))
-                                        .attr('data-selected', JSON.stringify(selected))
-                                        .trigger('options-updated', {
-                                            options,
-                                            selected
-                                        });
-                                    console.log('Projects fetched:', options.slice(0, 3),
-                                        'Selected:', selected);
-                                },
-                                error: function(xhr) {
-                                    console.error('AJAX error:', xhr.status, xhr.statusText, xhr
-                                        .responseJSON);
-                                    projectSelect
-                                        .attr('data-options', JSON.stringify([]))
-                                        .attr('data-selected', JSON.stringify(''))
-                                        .trigger('options-updated', {
-                                            options: [],
-                                            selected: ''
-                                        });
-                                    errorMessage.removeClass('hidden');
-                                    errorText.text('Failed to load projects: ' + (xhr.responseJSON
-                                        ?.message || 'AJAX error'));
-                                }
-                            });
-                        } else {
-                            console.log('Triggering options-updated for project select:', projectSelect.attr(
-                                'id'));
-                            projectSelect
-                                .attr('data-options', JSON.stringify([]))
-                                .attr('data-selected', JSON.stringify(''))
-                                .trigger('options-updated', {
+                            if (directorateId) {
+                                // Clear project options
+                                projectContainer.trigger('options-updated', {
                                     options: [],
-                                    selected: ''
+                                    selected: null
                                 });
-                            console.log('Directorate cleared, projects reset');
+                                projectContainer.find('.js-selected-label').text(projectContainer.attr(
+                                    'data-placeholder'));
+                                budgetDisplay.addClass('hidden');
+                                budgetAmount.text('N/A');
+                                remainingBudget = 0;
+                                submitButton.prop('disabled', true);
+
+                                $.ajax({
+                                    url: '/admin/contracts/projects/' + encodeURIComponent(directorateId),
+                                    type: 'GET',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                    },
+                                    success: function(data) {
+                                        console.log('AJAX success, projects received:', data);
+                                        const options = Array.isArray(data) ? data.map(project => ({
+                                            value: String(project.value),
+                                            label: String(project.label ||
+                                                'Untitled Project'),
+                                            total_budget: project.total_budget || '0.00',
+                                            remaining_budget: project.remaining_budget ||
+                                                '0.00'
+                                        })).filter(opt => opt.value && opt.label && opt.label !==
+                                            'undefined') : [];
+                                        console.log('Processed options:', options);
+                                        if (options.length === 0) {
+                                            console.warn('No projects returned for directorate:',
+                                                directorateId);
+                                            errorMessage.removeClass('hidden');
+                                            errorText.text(
+                                                'No projects available for this directorate.');
+                                            submitButton.prop('disabled', true);
+                                        } else {
+                                            // Update project dropdown options
+                                            projectContainer.trigger('options-updated', {
+                                                options: options,
+                                                selected: @json(old('project_id', '')) &&
+                                                    options.some(opt => String(opt.value) ===
+                                                        String(@json(old('project_id', '')))) ?
+                                                    String(@json(old('project_id', ''))) : null
+                                            });
+                                            errorMessage.addClass('hidden');
+                                            errorText.text('');
+                                        }
+                                    },
+                                    error: function(xhr) {
+                                        console.error('AJAX error:', xhr.status, xhr.statusText, xhr
+                                            .responseJSON);
+                                        projectContainer.trigger('options-updated', {
+                                            options: [],
+                                            selected: null
+                                        });
+                                        errorMessage.removeClass('hidden');
+                                        errorText.text('Failed to load projects: ' + (xhr.responseJSON
+                                            ?.message || 'AJAX error'));
+                                        budgetDisplay.addClass('hidden');
+                                        budgetAmount.text('N/A');
+                                        remainingBudget = 0;
+                                        submitButton.prop('disabled', true);
+                                    }
+                                });
+                            } else {
+                                console.log('Directorate cleared');
+                                projectContainer.trigger('options-updated', {
+                                    options: [],
+                                    selected: null
+                                });
+                                budgetDisplay.addClass('hidden');
+                                budgetAmount.text('N/A');
+                                remainingBudget = 0;
+                                submitButton.prop('disabled', true);
+                                errorMessage.addClass('hidden');
+                                errorText.text('');
+                            }
+                        });
+
+                        projectInput.on('change', function() {
+                            const projectId = $(this).val();
+                            console.log('Project changed:', projectId);
+
+                            if (projectId) {
+                                const projectOptions = JSON.parse(projectContainer.attr('data-options') || '[]');
+                                const selectedOption = projectOptions.find(opt => String(opt.value) === String(
+                                    projectId));
+                                const remainingBudgetValue = selectedOption ? selectedOption.remaining_budget :
+                                    null;
+                                console.log('Selected option budget:', remainingBudgetValue);
+                                if (remainingBudgetValue !== undefined && remainingBudgetValue !== null) {
+                                    remainingBudget = parseFloat(String(remainingBudgetValue).replace(/,/g, '')) ||
+                                        0;
+                                    budgetDisplay.removeClass('hidden');
+                                    budgetAmount.text(remainingBudgetValue);
+                                    validateContractAmount();
+                                } else {
+                                    budgetDisplay.addClass('hidden');
+                                    budgetAmount.text('N/A');
+                                    remainingBudget = 0;
+                                    submitButton.prop('disabled', true);
+                                    errorMessage.addClass('hidden');
+                                    errorText.text('');
+                                }
+                            } else {
+                                budgetDisplay.addClass('hidden');
+                                budgetAmount.text('N/A');
+                                remainingBudget = 0;
+                                submitButton.prop('disabled', true);
+                                errorMessage.addClass('hidden');
+                                errorText.text('');
+                            }
+                        });
+
+                        function validateContractAmount() {
+                            const amount = parseFloat(contractAmountInput.val()) || 0;
+                            console.log('Validating contract amount:', amount, 'Remaining budget:', remainingBudget);
+                            if (amount > remainingBudget && remainingBudget !== 0) {
+                                errorMessage.removeClass('hidden');
+                                errorText.text(
+                                    `Contract amount (${amount.toFixed(2)}) exceeds available budget (${remainingBudget.toFixed(2)}).`
+                                );
+                                submitButton.prop('disabled', true);
+                            } else {
+                                errorMessage.addClass('hidden');
+                                errorText.text('');
+                                submitButton.prop('disabled', remainingBudget === 0);
+                            }
+                        }
+
+                        contractAmountInput.on('input', validateContractAmount);
+
+                        $('#close-error').on('click', function() {
+                            console.log('Close error clicked');
+                            errorMessage.addClass('hidden');
+                            errorText.text('');
+                            submitButton.prop('disabled', remainingBudget === 0 || parseFloat(contractAmountInput
+                                .val()) > remainingBudget);
+                        });
+
+                        // Trigger initial change if directorate is selected
+                        if (directorateContainer.length && directorateInput.val()) {
+                            console.log('Triggering initial directorate change:', directorateInput.val());
+                            directorateInput.trigger('change');
+                        } else {
+                            console.warn('No initial directorate selected or container not found');
                         }
                     });
+                }
+            </script>
+        @else
+            <script>
+                (function waitForJQuery() {
+                    if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.jquery !== 'undefined') {
+                        console.log('jQuery version:', window.jQuery.fn.jquery);
+                        initializeScript(window.jQuery);
+                    } else {
+                        console.log('Waiting for jQuery...');
+                        setTimeout(waitForJQuery, 50);
+                    }
+                })();
 
-                    // Handle error message close
-                    jQuery('#close-error').on('click', function() {
-                        console.log('Close error clicked');
-                        errorMessage.addClass('hidden');
-                        errorText.text('');
+                function initializeScript($) {
+                    $(document).ready(function() {
+                        const projectContainer = $('.js-single-select[data-name="project_id"]');
+                        const projectInput = projectContainer.find('input[type="hidden"][name="project_id"]');
+                        const errorMessage = $('#error-message');
+                        const errorText = $('#error-text');
+                        const contractAmountInput = $('#contract-amount');
+                        const budgetDisplay = $('#project-budget');
+                        const budgetAmount = $('#budget-amount');
+                        const submitButton = $('#submit-button');
+                        let remainingBudget = 0;
+
+                        console.log('Non-superadmin script initialized (create)');
+                        console.log('Project container:', projectContainer.length ? 'Found' : 'Not found',
+                            projectContainer);
+                        console.log('Project container HTML:', projectContainer.length ? projectContainer[0].outerHTML :
+                            'N/A');
+                        console.log('Project input:', projectInput.length ? 'Found' : 'Not found', projectInput);
+
+                        projectInput.on('change', function() {
+                            const projectId = $(this).val();
+                            console.log('Project changed:', projectId);
+
+                            if (projectId) {
+                                const projectOptions = JSON.parse(projectContainer.attr('data-options') || '[]');
+                                const selectedOption = projectOptions.find(opt => String(opt.value) === String(
+                                    projectId));
+                                const remainingBudgetValue = selectedOption ? selectedOption.remaining_budget :
+                                    null;
+                                console.log('Selected option budget:', remainingBudgetValue);
+                                if (remainingBudgetValue !== undefined && remainingBudgetValue !== null) {
+                                    remainingBudget = parseFloat(String(remainingBudgetValue).replace(/,/g, '')) ||
+                                        0;
+                                    budgetDisplay.removeClass('hidden');
+                                    budgetAmount.text(remainingBudgetValue);
+                                    validateContractAmount();
+                                } else {
+                                    budgetDisplay.addClass('hidden');
+                                    budgetAmount.text('N/A');
+                                    remainingBudget = 0;
+                                    submitButton.prop('disabled', true);
+                                    errorMessage.addClass('hidden');
+                                    errorText.text('');
+                                }
+                            } else {
+                                budgetDisplay.addClass('hidden');
+                                budgetAmount.text('N/A');
+                                remainingBudget = 0;
+                                submitButton.prop('disabled', true);
+                                errorMessage.addClass('hidden');
+                                errorText.text('');
+                            }
+                        });
+
+                        function validateContractAmount() {
+                            const amount = parseFloat(contractAmountInput.val()) || 0;
+                            console.log('Validating contract amount:', amount, 'Remaining budget:', remainingBudget);
+                            if (amount > remainingBudget && remainingBudget !== 0) {
+                                errorMessage.removeClass('hidden');
+                                errorText.text(
+                                    `Contract amount (${amount.toFixed(2)}) exceeds available budget (${remainingBudget.toFixed(2)}).`
+                                );
+                                submitButton.prop('disabled', true);
+                            } else {
+                                errorMessage.addClass('hidden');
+                                errorText.text('');
+                                submitButton.prop('disabled', remainingBudget === 0);
+                            }
+                        }
+
+                        contractAmountInput.on('input', validateContractAmount);
+
+                        $('#close-error').on('click', function() {
+                            console.log('Close error clicked');
+                            errorMessage.addClass('hidden');
+                            errorText.text('');
+                            submitButton.prop('disabled', remainingBudget === 0 || parseFloat(contractAmountInput
+                                .val()) > remainingBudget);
+                        });
+
+                        const initialProjectId = @json(old('project_id', ''));
+                        if (initialProjectId && projectContainer.length) {
+                            console.log('Setting initial project:', initialProjectId);
+                            projectInput.val(initialProjectId).trigger('change');
+                        }
                     });
-
-                    // Trigger initial load
-                    console.log('Initial directorate value:', directorateInput.val());
-                    directorateInput.trigger('change');
-                });
-            }
-        </script>
+                }
+            </script>
+        @endif
     @endpush
 </x-layouts.app>
+```

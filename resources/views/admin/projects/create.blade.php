@@ -4,7 +4,6 @@
         <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Create new project') }}</p>
     </div>
 
-    {{-- Main form container, now adjusted for full width and styling --}}
     <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
         <form class="w-full" action="{{ route('admin.project.store') }}" method="POST" enctype="multipart/form-data">
@@ -33,18 +32,14 @@
                 </button>
             </div>
 
-            {{-- New: Main Grid for Two Columns --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {{-- Left Column: Project Information --}}
                 <div>
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                             {{ __('Project Information') }}
                         </h3>
-
-                        <div class="grid grid-cols-1 gap-6"> {{-- Changed to grid-cols-1 to make inner items stack --}}
+                        <div class="grid grid-cols-1 gap-6">
                             <div class="col-span-full">
                                 <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
                                     :options="collect($directorates)
@@ -82,19 +77,17 @@
                     </div>
                 </div>
 
-                {{-- Right Column: Other Sections --}}
-                <div class="space-y-6"> {{-- Use space-y to add vertical gap between stacked sections --}}
+                <div class="space-y-6">
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                             {{ __('Dates & Progress') }}
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6"> {{-- Keep md:grid-cols-2 for inside this section --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <x-forms.date-input label="Start Date" name="start_date" :value="old('start_date')"
                                     :error="$errors->first('start_date')" />
                             </div>
-
                             <div>
                                 <x-forms.date-input label="End Date" name="end_date" :value="old('end_date')"
                                     :error="$errors->first('end_date')" />
@@ -107,7 +100,7 @@
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                             {{ __('Status & Priority') }}
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6"> {{-- Keep md:grid-cols-2 for inside this section --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
                                     ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
@@ -116,7 +109,6 @@
                                     :selected="old('status_id')" placeholder="Select status" :error="$errors->first('status_id')"
                                     class="js-single-select" />
                             </div>
-
                             <div>
                                 <x-forms.select label="Priority" name="priority_id" id="priority_id" :options="collect($priorities)
                                     ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
@@ -133,10 +125,8 @@
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
                             {{ __('Attachments') }}
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6"> {{-- Keep md:grid-cols-2 for inside this section --}}
-
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="col-span-full">
-
                                 <div class="space-y-4">
                                     <div>
                                         <input type="file" name="files[]" multiple
@@ -172,7 +162,6 @@
         </form>
     </div>
 
-    {{-- The Javascript section remains unchanged --}}
     <script>
         function waitForJQuery(callback, retries = 50) {
             if (
@@ -201,13 +190,11 @@
         waitForJQuery(function() {
             const $ = jQuery;
 
-            // Function to update the file name list
             window.updateFileNameList = function(event) {
                 const input = event.target;
                 const fileListContainer = document.getElementById('file-list');
                 const selectedFilesTitle = document.getElementById('selected-files-title');
-
-                fileListContainer.innerHTML = ''; // Clear previous list
+                fileListContainer.innerHTML = '';
                 if (input.files.length > 0) {
                     selectedFilesTitle.classList.remove('hidden');
                     for (let i = 0; i < input.files.length; i++) {
@@ -221,13 +208,12 @@
                 }
             };
 
-
             $(".js-single-select").each(function() {
                 const $container = $(this);
                 const componentId = $container.attr("id");
                 const dataName = $container.data("name");
                 let currentOptions = $container.data("options") || [];
-                let currentSelectedValue = String($container.data("selected") || ""); // Ensure string
+                let currentSelectedValue = String($container.data("selected") || "");
                 const $optionsContainer = $container.find(".js-options-container");
                 const $selectedLabel = $container.find(".js-selected-label");
                 const $hiddenInput = $container.find("input.js-hidden-input");
@@ -243,14 +229,8 @@
                 }
 
                 function renderOptions(searchTerm = "") {
-                    // console.log(`Rendering options for ${componentId}:`, {
-                    //     options: currentOptions,
-                    //     selected: currentSelectedValue,
-                    //     searchTerm,
-                    // });
                     $optionsContainer.empty();
                     if (!currentOptions || currentOptions.length === 0) {
-                        // console.log(`No options available for ${componentId}`);
                         $container.find(".js-no-options").removeClass("hidden");
                         $selectedLabel.text(
                             $container.data("placeholder") || "Select an option",
@@ -267,7 +247,6 @@
                             String(option.label).toLowerCase().includes(String(searchTerm).toLowerCase())
                         ) :
                         currentOptions;
-                    // console.log(`Filtered options for ${componentId}:`, filteredOptions);
                     $.each(filteredOptions, function(index, option) {
                         const $option = $(`
                             <div class="js-option cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600" data-value="${option.value}">
@@ -277,7 +256,6 @@
                         $optionsContainer.append($option);
                     });
 
-                    // Update selected label and hidden input based on currentSelectedValue
                     const selectedOption = currentOptions.find(
                         (opt) => String(opt.value) === String(currentSelectedValue),
                     );
@@ -288,7 +266,7 @@
                     );
                     $hiddenInput.val(selectedOption ? currentSelectedValue : "");
                     if (!selectedOption) {
-                        currentSelectedValue = ""; // Clear if selected value is no longer in options
+                        currentSelectedValue = "";
                         $container.data("selected", "");
                         $container.attr("data-selected", "");
                     }
@@ -296,19 +274,13 @@
 
                 function updateHiddenInput() {
                     $hiddenInput.val(currentSelectedValue || "");
-                    $hiddenInput.trigger("change"); // Trigger change for dependent selects
-                    // console.log(`Updated hidden input for ${componentId}:`, {
-                    //     name: dataName,
-                    //     value: currentSelectedValue,
-                    // });
+                    $hiddenInput.trigger("change");
                 }
 
-                // Handle clear button
                 const $clearButton = $container.find(".js-clear-button");
                 if ($clearButton.length) {
                     $clearButton.off("click").on("click", function(e) {
                         e.stopPropagation();
-                        console.log(`Clear button clicked for ${componentId}`);
                         currentSelectedValue = "";
                         $container.data("selected", "");
                         $container.attr("data-selected", "");
@@ -316,35 +288,25 @@
                             $container.data("placeholder") || "Select an option",
                         );
                         $dropdown.addClass("hidden");
-                        updateHiddenInput
-                    (); // This will trigger the change event, which will in turn call dependent loads
-                        renderOptions(); // Re-render to clear highlighting if any
+                        updateHiddenInput();
+                        renderOptions();
                     });
                 }
-
 
                 $container
                     .off("options-updated")
                     .on("options-updated", function(event, data) {
-                        // console.log(`Options-updated event triggered for ${componentId}:`, data);
                         currentOptions = data?.options || $container.data("options") || [];
-
-                        // If a 'selected' value is provided in the event, use it.
-                        // Otherwise, check if the current selected value is still valid in the new options.
                         let newSelected = data?.selected !== undefined ? String(data.selected) :
                             currentSelectedValue;
                         if (newSelected && !currentOptions.some(opt => String(opt.value) ===
                                 newSelected)) {
-                            // If the newSelected value is not in the updated options, clear it.
                             newSelected = "";
                         }
                         currentSelectedValue = newSelected;
-
-
-                        renderOptions(); // Render options based on potentially new currentSelectedValue
-                        updateHiddenInput(); // Always update hidden input to reflect current state
+                        renderOptions();
+                        updateHiddenInput();
                     });
-
 
                 $optionsContainer
                     .off("click", ".js-option")
@@ -357,7 +319,6 @@
                         $selectedLabel.text($option.text().trim());
                         $dropdown.addClass("hidden");
                         updateHiddenInput();
-                        // console.log(`Option selected for ${componentId}:`, currentSelectedValue);
                     });
 
                 $searchInput.off("input").on("input", function() {
@@ -369,16 +330,13 @@
                     .off("click")
                     .on("click", function(e) {
                         e.stopPropagation();
-                        // Close other open dropdowns
                         $(".js-dropdown").not($dropdown).addClass("hidden");
                         $dropdown.toggleClass("hidden");
                         if (!$dropdown.hasClass("hidden")) {
-                            $searchInput.val(''); // Clear search on open
-                            renderOptions(); // Re-render all options when opening
+                            $searchInput.val('');
+                            renderOptions();
                             $searchInput.focus();
                         }
-                        // console.log(`Toggled dropdown for ${componentId}:`, !$dropdown.hasClass(
-                        //     "hidden"));
                     });
 
                 $(document)
@@ -389,9 +347,6 @@
                         }
                     });
 
-                // Initial render based on existing data
-                // console.log(`Initial select options for ${componentId}:`, currentOptions);
-                // console.log(`Initial selected value for ${componentId}:`, currentSelectedValue);
                 renderOptions();
             });
 
@@ -401,23 +356,17 @@
             const userSelectContainer = $('.js-single-select[data-name="project_manager"]');
 
             function updateSelectOptions(container, options, selected = "") {
-                // console.log("Updating select options:", {
-                //     containerId: container.attr("id"),
-                //     options,
-                //     selected,
-                // });
                 container.data("options", options);
                 container.data("selected", selected);
-                container.attr("data-selected", selected); // Also update attribute for consistency
+                container.attr("data-selected", selected);
                 container.trigger("options-updated", {
                     options,
-                    selected,
+                    selected
                 });
             }
 
             function loadDepartments(directorateId, selectedDepartmentId = "") {
                 if (!directorateId) {
-                    // console.log("No directorate ID provided, clearing department options");
                     updateSelectOptions(departmentSelectContainer, [], "");
                     return;
                 }
@@ -442,8 +391,6 @@
                                 label: String(dept.label),
                             }))
                             .filter((opt) => opt.value && opt.label) : [];
-
-                        // Determine initial selected value for department
                         let initialDepartmentSelected = "";
                         if (selectedDepartmentId && formattedData.some(opt => String(opt.value) ===
                                 String(selectedDepartmentId))) {
@@ -454,7 +401,6 @@
                             initialDepartmentSelected = String(departmentSelectContainer.data(
                                 'selected'));
                         }
-
                         updateSelectOptions(departmentSelectContainer, formattedData,
                             initialDepartmentSelected);
                     },
@@ -464,19 +410,16 @@
                             .empty()
                             .append(
                                 '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load departments</div>'
-                            );
+                                );
                         $("#error-message").removeClass("hidden");
-                        $("#error-text").text(
-                            "Failed to load departments: " + (xhr.responseJSON?.message ||
-                                "Unknown error"),
-                        );
+                        $("#error-text").text("Failed to load departments: " + (xhr.responseJSON
+                            ?.message || "Unknown error"));
                     }
                 });
             }
 
             function loadUsers(directorateId, selectedUserId = "") {
                 if (!directorateId) {
-                    // console.log("No directorate ID provided, clearing user options");
                     updateSelectOptions(userSelectContainer, [], "");
                     return;
                 }
@@ -500,10 +443,7 @@
                                 value: String(user.value),
                                 label: String(user.label),
                             }))
-                            .filter((opt) => opt.value && opt.label) :
-                        []; // Corrected 'label' to 'opt.label'
-
-                        // Determine initial selected value for user
+                            .filter((opt) => opt.value && opt.label) : [];
                         let initialUserSelected = "";
                         if (selectedUserId && formattedData.some(opt => String(opt.value) === String(
                                 selectedUserId))) {
@@ -512,7 +452,6 @@
                                 String(opt.value) === String(userSelectContainer.data('selected')))) {
                             initialUserSelected = String(userSelectContainer.data('selected'));
                         }
-
                         updateSelectOptions(userSelectContainer, formattedData, initialUserSelected);
                     },
                     error: function(xhr) {
@@ -521,12 +460,10 @@
                             .empty()
                             .append(
                                 '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load users</div>'
-                            );
+                                );
                         $("#error-message").removeClass("hidden");
-                        $("#error-text").text(
-                            "Failed to load users: " + (xhr.responseJSON?.message ||
-                                "Unknown error"),
-                        );
+                        $("#error-text").text("Failed to load users: " + (xhr.responseJSON?.message ||
+                            "Unknown error"));
                     }
                 });
             }
@@ -537,7 +474,6 @@
                 loadUsers(directorateId);
             });
 
-            // Initial load based on old values
             const initialDirectorateId = directorateInput.val();
             const initialDepartmentId = departmentSelectContainer.data('selected');
             const initialProjectManagerId = userSelectContainer.data('selected');

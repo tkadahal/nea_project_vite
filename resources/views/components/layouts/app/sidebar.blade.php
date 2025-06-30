@@ -15,7 +15,6 @@
                     <button
                         class="js-toggle-submenu flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                         <div class="flex items-center">
-                            <!-- Replaced with ChartBarIcon for Analytics -->
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -32,11 +31,11 @@
                         </svg>
                     </button>
 
-                    <div class="js-submenu mt-1 ml-4 space-y-1 hidden">
+                    <div
+                        class="js-submenu mt-1 ml-6 space-y-1 hidden border-l-2 border-gray-300 dark:border-gray-600 pl-2">
                         <a href="{{ route('admin.tasks.analytics') }}"
                             class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                             <div class="flex items-center">
-                                <!-- Replaced with ClipboardListIcon for Tasks -->
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -49,7 +48,6 @@
                         <a href="{{ route('admin.projects.analytics') }}"
                             class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                             <div class="flex items-center">
-                                <!-- Replaced with FolderIcon for Projects -->
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -62,7 +60,7 @@
                 </li>
 
                 @can('admin_menu_access')
-                    <!-- Components - Level 1 -->
+                    <!-- Admin Menu -->
                     <div class="p-4 flex items-center justify-between">
                         <div class="flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" viewBox="0 0 20 20"
@@ -75,6 +73,7 @@
                                 :class="{ 'opacity-0': !sidebarOpen }">Admin Menu</span>
                         </div>
                     </div>
+
                     @can('user_management_access')
                         <li class="js-collapsible-menu">
                             <button
@@ -96,7 +95,8 @@
                                 </svg>
                             </button>
 
-                            <div class="js-submenu mt-1 ml-4 space-y-1 hidden">
+                            <div
+                                class="js-submenu mt-1 ml-6 space-y-1 hidden border-l-2 border-gray-300 dark:border-gray-600 pl-2">
                                 @can('permission_access')
                                     <a href="{{ route('admin.permission.index') }}"
                                         class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
@@ -146,7 +146,68 @@
                 <li class="flex px-3 py-2 text-base font-bold text-blue-700">
                     {{ trans('global.menu.title') }}
                 </li>
-                <!-- Pages - Level 1 -->
+
+                <!-- Projects Dropdown -->
+                @can('project_access')
+                    <li class="js-collapsible-menu">
+                        <button
+                            class="js-toggle-submenu flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span class="js-submenu-label transition-opacity duration-300 opacity-100">Projects</span>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="js-chevron h-4 w-4 transition-transform opacity-100" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+
+                        <div
+                            class="js-submenu mt-1 ml-6 space-y-1 hidden border-l-2 border-gray-300 dark:border-gray-600 pl-2">
+                            <a href="{{ route('admin.project.index') }}"
+                                class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground {{ request()->routeIs('admin.project*') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : '' }}">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    </svg>
+                                    <span>Projects</span>
+                                </div>
+                            </a>
+
+                            <a href="{{ route('admin.projectBudget.index') }}"
+                                class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground {{ request()->routeIs('admin.projectBudget*') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : '' }}">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>Project Budget</span>
+                                </div>
+                            </a>
+
+                            <a href="{{ route('admin.expense.index') }}"
+                                class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground {{ request()->routeIs('admin.expense*') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : '' }}">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <span>Expenses</span>
+                                </div>
+                            </a>
+                        </div>
+                    </li>
+                @endcan
+
                 @can('directorate_access')
                     <x-layouts.sidebar-link href="{{ route('admin.directorate.index') }}" icon="fas-building"
                         :active="request()->routeIs('admin.directorate*')">
@@ -158,20 +219,6 @@
                     <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-bars"
                         :active="request()->routeIs('admin.department*')">
                         Department
-                    </x-layouts.sidebar-link>
-                @endcan
-
-                @can('project_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.project.index') }}" icon="fas-clipboard"
-                        :active="request()->routeIs('admin.project*')">
-                        Projects
-                    </x-layouts.sidebar-link>
-                @endcan
-
-                @can('project_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.projectBudget.index') }}" icon="fas-clipboard"
-                        :active="request()->routeIs('admin.projectBudget*')">
-                        Project Budget
                     </x-layouts.sidebar-link>
                 @endcan
 
@@ -188,12 +235,9 @@
                     </x-layouts.sidebar-link>
                 @endcan
 
-
-                {{-- @can('task_access') --}}
                 <x-layouts.sidebar-link href="{{ route('admin.file.index') }}" icon="fas-folder" :active="request()->routeIs('admin.file*')">
                     Files
                 </x-layouts.sidebar-link>
-                {{-- @endcan --}}
 
                 @can('event_access')
                     <x-layouts.sidebar-link href="{{ route('admin.event.index') }}" icon="fas-pen-to-square"
@@ -209,8 +253,7 @@
                 @endcan
 
                 @can('priority_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-fire"
-                        :active="request()->routeIs('admin.priority*')">
+                    <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-fire" :active="request()->routeIs('admin.priority*')">
                         Priority
                     </x-layouts.sidebar-link>
                 @endcan
@@ -233,7 +276,8 @@
                         </svg>
                     </button>
 
-                    <div class="js-submenu mt-1 ml-4 space-y-1 hidden">
+                    <div
+                        class="js-submenu mt-1 ml-6 space-y-1 hidden border-l-2 border-gray-300 dark:border-gray-600 pl-2">
                         <a href="#"
                             class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                             <div class="flex items-center">

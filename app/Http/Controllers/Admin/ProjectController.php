@@ -40,15 +40,13 @@ class ProjectController extends Controller
 
             if (!in_array(Role::SUPERADMIN, $roleIds)) {
                 if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
-                    // Filter projects by user's directorate_id from users table
                     if ($user->directorate_id) {
                         $projectQuery->where('directorate_id', $user->directorate_id);
                     } else {
                         Log::warning('No directorate_id assigned to user', ['user_id' => $user->id]);
-                        $projectQuery->where('id', 0); // Return empty result if no directorate_id
+                        $projectQuery->where('id', 0);
                     }
                 } else {
-                    // Filter projects where user is explicitly assigned
                     $projectQuery->whereHas('users', function ($query) use ($user) {
                         $query->where('users.id', $user->id);
                     });
@@ -189,16 +187,6 @@ class ProjectController extends Controller
 
             $project = Project::create(\Illuminate\Support\Arr::except($data, ['budgets']));
 
-            // foreach ($data['budgets'] as $budget) {
-            //     $project->budgets()->create([
-            //         'fiscal_year_id' => $budget['fiscal_year_id'],
-            //         'total_budget' => $budget['total_budget'],
-            //         'internal_budget' => $budget['internal_budget'],
-            //         'foreign_loan_budget' => $budget['foreign_loan_budget'],
-            //         'foreign_subsidy_budget' => $budget['foreign_subsidy_budget'],
-            //     ]);
-            // }
-
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
                     $path = $file->store('files', 'public');
@@ -243,7 +231,6 @@ class ProjectController extends Controller
             'comments.replies.user',
         ]);
 
-        // Mark comments as read for the current user
         $user = Auth::user();
         $commentIds = $user->comments()
             ->where('commentable_type', 'App\Models\Project')
@@ -272,7 +259,6 @@ class ProjectController extends Controller
         $priorities = Priority::pluck('title', 'id');
         $fiscalYears = FiscalYear::pluck('title', 'id');
 
-        // Load project relationships
         $project->load(['budgets', 'files']);
 
         if (in_array(Role::SUPERADMIN, $roleIds)) {
@@ -307,18 +293,6 @@ class ProjectController extends Controller
             $data = $request->validated();
 
             $project->update(\Illuminate\Support\Arr::except($data, ['budgets', 'files']));
-
-            $project->budgets()->delete();
-
-            foreach ($data['budgets'] as $budget) {
-                $project->budgets()->create([
-                    'fiscal_year_id' => $budget['fiscal_year_id'],
-                    'total_budget' => $budget['total_budget'],
-                    'internal_budget' => $budget['internal_budget'],
-                    'foreign_loan_budget' => $budget['foreign_loan_budget'],
-                    'foreign_subsidy_budget' => $budget['foreign_subsidy_budget'],
-                ]);
-            }
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
@@ -408,16 +382,13 @@ class ProjectController extends Controller
     public function analytics(Request $request)
     {
         try {
-            // Fetch filter options
             $directorates = Directorate::all();
             $departments = Department::all();
             $statuses = Status::all();
             $priorities = Priority::all();
 
-            // Base query for projects with role-based filtering and eager loading
-            $query = Project::query()->with(['directorate', 'status', 'priority', 'tasks', 'contracts', 'expenses', 'budgets']);
+            $query = Project::query()->with(['directorate', 'status', 'priority', 'tasks', 'contracts', 'expenses', 'budgets', 'users']);
 
-            // Apply role-based filtering
             $user = Auth::user();
             if ($user && $user->roles->contains('id', 3)) {
                 $query->where('directorate_id', $user->directorate_id);
@@ -429,7 +400,6 @@ class ProjectController extends Controller
                 });
             }
 
-            // Apply filters from request
             if ($request->has('directorate_id')) {
                 $query->where('directorate_id', $request->directorate_id);
             }
@@ -443,10 +413,8 @@ class ProjectController extends Controller
                 $query->where('priority_id', $request->priority_id);
             }
 
-            // Fetch projects with pagination
             $projects = $query->paginate(10);
 
-            // Pre-calculate additional attributes
             $projects->getCollection()->transform(function ($project) {
                 $totalBudget = $project->total_budget;
                 $project->remaining_budget = $totalBudget - ($project->expenses->sum('amount') + $project->contracts->sum('contract_amount'));
@@ -454,7 +422,6 @@ class ProjectController extends Controller
                 return $project;
             });
 
-            // Prepare summary data
             $completedStatusId = Status::where('title', 'Completed')->value('id');
             $summary = [
                 'total_projects' => $query->count(),
@@ -463,13 +430,18 @@ class ProjectController extends Controller
                 'average_progress' => round($query->avg('progress') ?? 0, 2),
             ];
 
-            // Prepare chart data
-            $chartProjects = $query->get();
+            // Optional: Add average_users_per_project if needed
+            $userCounts = $query->get()->map(function ($project) {
+                return $project->users->count();
+            });
+            $summary['average_users_per_project'] = $userCounts->avg() ?? 0;
+
+            $chartProjects = $query->get()->take(5);
             $charts = [
                 'progress' => [
-                    'labels' => $chartProjects->pluck('title')->take(5),
-                    'physical' => $chartProjects->take(5)->map->progress,
-                    'financial' => $chartProjects->take(5)->map->financial_progress,
+                    'labels' => $chartProjects->pluck('title'),
+                    'physical' => $chartProjects->pluck('progress'),
+                    'financial' => $chartProjects->pluck('financial_progress')->all() ?: array_fill(0, 5, 0),
                 ],
                 'task_contract' => [
                     'labels' => ['Tasks', 'Contracts'],
@@ -480,7 +452,6 @@ class ProjectController extends Controller
                 ],
             ];
 
-            // Return JSON response for AJAX requests
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -496,7 +467,6 @@ class ProjectController extends Controller
                 ]);
             }
 
-            // Return view for initial load
             return view('admin.analytics.project-analytics', compact('projects', 'summary', 'charts', 'directorates', 'departments', 'statuses', 'priorities'));
         } catch (\Exception $e) {
             Log::error('Error in ProjectController@analytics: ' . $e->getMessage());

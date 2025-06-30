@@ -6,10 +6,10 @@
                     class="font-semibold">{{ $project->title }}</span></p>
         </div>
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('admin.projects.expenses.create', $project) }}"
+            <a href="{{ route('admin.expense.index') }}"
                 class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                aria-label="{{ __('Add New Expense') }}">
-                {{ __('Add Expense') }}
+                aria-label="{{ __('View Expenses') }}">
+                {{ __('View Expenses') }}
             </a>
             <a href="{{ route('admin.project.index') }}"
                 class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 text-sm"
@@ -124,7 +124,7 @@
                                             {{ __('Contract Amount') }}</th>
                                         <th
                                             class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {{ __('Actions') }}</th> {{-- NEW: Actions Header --}}
+                                            {{ __('Actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -142,7 +142,6 @@
                                             <td class="px-3 py-2 text-gray-900 dark:text-gray-100">
                                                 {{ number_format($contract->contract_amount, 2) }}</td>
                                             <td class="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                                {{-- NEW: View Button --}}
                                                 <a href="{{ route('admin.contract.show', $contract) }}"
                                                     class="inline-flex items-center px-2 py-1 bg-indigo-500 text-white text-xs rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1"

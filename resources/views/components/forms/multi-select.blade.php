@@ -178,7 +178,7 @@
             }
 
             if (!Array.isArray(options) || !options.every(opt => opt.value !== undefined && opt.label !==
-                undefined)) {
+                    undefined)) {
                 console.warn('Invalid options format for #{{ $uniqueId }}:', options);
                 options = [];
             }
@@ -201,7 +201,6 @@
                         const isSelected = selected.includes(String(opt.value));
                         const $option = $(`
                             <div class="js-option flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 rounded-md cursor-pointer" data-value="${opt.value}">
-                                <input type="checkbox" class="js-option-checkbox mr-2 form-checkbox h-4 w-4 text-indigo-600" ${isSelected ? "checked" : ""}>
                                 <span>${opt.label}</span>
                             </div>
                         `);
@@ -266,28 +265,10 @@
             $optionsContainer.on('click', '.js-option', function(e) {
                 e.preventDefault();
                 const value = String($(this).data("value"));
-                const $checkbox = $(this).find(".js-option-checkbox");
                 if (selected.includes(value)) {
                     selected = selected.filter(v => v !== value);
-                    $checkbox.prop("checked", false);
                 } else {
                     selected.push(value);
-                    $checkbox.prop("checked", true);
-                }
-                $container.data("selected", selected);
-                updateSelected();
-                renderOptions();
-            });
-
-            $optionsContainer.on('click', '.js-option-checkbox', function(e) {
-                e.stopPropagation();
-                const value = String($(this).closest(".js-option").data("value"));
-                if (selected.includes(value)) {
-                    selected = selected.filter(v => v !== value);
-                    $(this).prop("checked", false);
-                } else {
-                    selected.push(value);
-                    $(this).prop("checked", true);
                 }
                 $container.data("selected", selected);
                 updateSelected();

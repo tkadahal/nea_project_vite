@@ -75,22 +75,33 @@ class TaskController extends Controller
             $roleIds = $user->roles->pluck('id')->toArray();
             Log::info('Task filtering for user', ['user_id' => $user->id, 'role_ids' => $roleIds]);
 
-            if (! in_array(1, $roleIds)) { // Not Superadmin
-                $taskQuery->whereHas('users', function ($query) use ($user) {
-                    $query->where('users.id', $user->id);
-                });
-
-                if (in_array(3, $roleIds)) { // Directorate User
-                    $directorateIds = $user->directorates ? $user->directorates->pluck('id') : collect();
-                    if ($directorateIds->isEmpty()) {
-                        Log::warning('No directorates assigned to user', ['user_id' => $user->id]);
-                    }
-                    $taskQuery->whereHas('projects', function ($query) use ($directorateIds) {
-                        $query->whereIn('directorate_id', $directorateIds);
+            if (in_array(Role::SUPERADMIN, $roleIds)) {
+                // Superadmin sees all tasks, no filtering
+                Log::info('Superadmin access, showing all tasks', ['user_id' => $user->id]);
+            } else {
+                // Non-superadmin users
+                if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
+                    $taskQuery->whereHas('projects', function ($query) use ($user) {
+                        $query->where('directorate_id', $user->directorate_id)->whereNull('deleted_at');
                     });
+                    Log::info('Filtering tasks for Directorate User', [
+                        'user_id' => $user->id,
+                        'directorate_id' => $user->directorate_id,
+                    ]);
+                } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
+                    $taskQuery->whereHas('projects', function ($query) use ($user) {
+                        $query->whereIn('id', $user->projects()->whereNull('deleted_at')->pluck('id'))->whereNull('deleted_at');
+                    });
+                    Log::info('Filtering tasks for Project User', [
+                        'user_id' => $user->id,
+                        'project_count' => $user->projects()->count(),
+                    ]);
+                } else {
+                    // Fallback for users with no valid role
+                    $taskQuery->whereRaw('1 = 0'); // Return no tasks
+                    Log::warning('No valid role for task access', ['user_id' => $user->id, 'role_ids' => $roleIds]);
                 }
             }
-            // Superadmin (role_id = 1) sees all tasks
         } catch (\Exception $e) {
             Log::error('Error in task filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
             $data['error'] = 'Unable to load tasks due to an error.';
@@ -165,13 +176,34 @@ class TaskController extends Controller
     {
         abort_if(Gate::denies('task_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $directorates = Directorate::pluck('title', 'id');
-        $projects = collect();
+        $user = Auth::user();
+        $roleIds = $user->roles->pluck('id')->toArray();
         $users = collect();
+
+        if (in_array(Role::SUPERADMIN, $roleIds)) {
+            $directorates = Directorate::pluck('title', 'id');
+            $projects = collect();
+        } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
+            $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
+            $projects = Project::without(['tasks', 'expenses', 'contracts'])
+                ->where('directorate_id', $user->directorate_id)
+                ->whereNull('deleted_at')
+                ->get();
+        } elseif (in_array(Role::PROJECT_USER, $roleIds) && $user->directorate_id) {
+            $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
+            $projects = $user->projects()
+                ->whereNull('deleted_at')
+                ->get();
+        } else {
+            $directorates = collect();
+            $projects = collect();
+            Log::warning('No valid role or directorate_id for user', ['user_id' => $user->id]);
+        }
+
         $statuses = Status::pluck('title', 'id');
         $priorities = Priority::pluck('title', 'id');
 
-        return view('admin.tasks.create', compact('statuses', 'priorities', 'directorates', 'projects', 'users'));
+        return view('admin.tasks.create', compact('directorates', 'projects', 'users', 'statuses', 'priorities'));
     }
 
     public function store(StoreTaskRequest $request): RedirectResponse
@@ -205,7 +237,6 @@ class TaskController extends Controller
             ]
         );
 
-        // Mark comments as read for the current user
         $user = Auth::user();
         $commentIds = $user->comments()
             ->where('commentable_type', 'App\Models\Task')
