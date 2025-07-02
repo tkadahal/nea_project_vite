@@ -73,7 +73,7 @@ class Project extends Model
 
     public function budgets(): HasMany
     {
-        return $this->hasMany(ProjectBudget::class);
+        return $this->hasMany(Budget::class);
     }
 
     public function contracts(): HasMany

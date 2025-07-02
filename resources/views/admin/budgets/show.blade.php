@@ -2,7 +2,7 @@
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Project Budget Details') }}</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
-            {{ __('Details for budget of project: ' . $projectBudget->project->title) }}</p>
+            {{ __('Details for budget of project: ' . $budget->project->title) }}</p>
     </div>
 
     <div class="flex flex-col md:flex-row gap-6">
@@ -18,47 +18,47 @@
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Project') }}</label>
-                        <p class="mt-1 text-gray-900 dark:text-gray-200">{{ $projectBudget->project->title }}</p>
+                        <p class="mt-1 text-gray-900 dark:text-gray-200">{{ $budget->project->title }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Fiscal Year') }}</label>
-                        <p class="mt-1 text-gray-900 dark:text-gray-200">{{ $projectBudget->fiscalYear->title }}</p>
+                        <p class="mt-1 text-gray-900 dark:text-gray-200">{{ $budget->fiscalYear->title }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Total Budget') }}</label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($projectBudget->total_budget, 2) }}</p>
+                            {{ number_format($budget->total_budget, 2) }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Internal Budget') }}</label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($projectBudget->internal_budget, 2) }}</p>
+                            {{ number_format($budget->internal_budget, 2) }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Foreign Loan Budget') }}</label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($projectBudget->foreign_loan_budget, 2) }}</p>
+                            {{ number_format($budget->foreign_loan_budget, 2) }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Foreign Subsidy Budget') }}</label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($projectBudget->foreign_subsidy_budget, 2) }}</p>
+                            {{ number_format($budget->foreign_subsidy_budget, 2) }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Budget Revision') }}</label>
-                        <p class="mt-1 text-gray-900 dark:text-gray-200">{{ $projectBudget->budget_revision }}</p>
+                        <p class="mt-1 text-gray-900 dark:text-gray-200">{{ $budget->budget_revision }}</p>
                     </div>
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Remaining Budget') }}</label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($projectBudget->remaining_budget, 2) }}</p>
+                            {{ number_format($budget->remaining_budget, 2) }}</p>
                     </div>
                 </div>
 
@@ -123,7 +123,7 @@
                 @endif
 
                 <div class="mt-8 flex">
-                    <a href="{{ route('admin.projectBudget.index') }}"
+                    <a href="{{ route('admin.budget.index') }}"
                         class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
                         {{ __('Back to Budgets') }}
                     </a>

@@ -444,6 +444,66 @@ class PermissionsTableSeeder extends Seeder
                 'updated_at' => '2022-01-24 18:00:13',
                 'deleted_at' => null,
             ],
+            [
+                'title' => 'budget_access',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'budget_create',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'budget_edit',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'budget_show',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'budget_delete',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'expense_access',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'expense_create',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'expense_edit',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'expense_show',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
+                'title' => 'expense_delete',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
         ];
 
         Permission::insert($permissions);

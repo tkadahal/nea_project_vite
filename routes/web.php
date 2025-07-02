@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CommentController;
-use App\Http\Controllers\Admin\ProjectBudgetController;
+use App\Http\Controllers\Admin\BudgetController;
 use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -89,7 +89,7 @@ Route::group(
 
         // Route::resource('fiscalYear', FiscalYearController::class);
 
-        Route::resource('projectBudget', ProjectBudgetController::class);
+        Route::resource('budget', BudgetController::class);
 
         Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');
         Route::get('budgets/available', [ExpenseController::class, 'availableBudget'])->name('budgets.available');

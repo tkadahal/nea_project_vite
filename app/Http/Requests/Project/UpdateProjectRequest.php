@@ -29,12 +29,7 @@ class UpdateProjectRequest extends FormRequest
             'status_id' => ['required', 'exists:statuses,id'],
             'priority_id' => ['required', 'exists:priorities,id'],
             'project_manager' => ['nullable', 'exists:users,id'],
-            'budgets' => ['required', 'array', 'min:1'],
-            'budgets.*.fiscal_year_id' => ['required', 'exists:fiscal_years,id'],
-            'budgets.*.total_budget' => ['required', 'numeric', 'min:0'],
-            'budgets.*.internal_budget' => ['required', 'numeric', 'min:0'],
-            'budgets.*.foreign_loan_budget' => ['required', 'numeric', 'min:0'],
-            'budgets.*.foreign_subsidy_budget' => ['required', 'numeric', 'min:0'],
+            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ];
     }
 }

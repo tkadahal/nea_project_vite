@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('project_budget_revisions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('project_budget_id')->index()->constrained('project_budgets')->onDelete('cascade');
+            $table->foreignId('budget_id')->index()->constrained();
             $table->decimal('internal_budget', 15, 2)->nullable();
             $table->decimal('foreign_loan_budget', 15, 2)->nullable();
             $table->decimal('foreign_subsidy_budget', 15, 2)->nullable();

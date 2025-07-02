@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Expense\StoreExpenseRequest;
+use App\Http\Requests\Expense\UpdateExpenseRequest;
 use App\Models\FiscalYear;
 use App\Models\Project;
 use App\Models\Expense;
@@ -14,14 +16,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExpenseController extends Controller
 {
-    /**
-     * Display a listing of expenses with filtering options.
-     */
     public function index(Request $request): View
     {
+        abort_if(Gate::denies('expense_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $query = Expense::query()->with(['project', 'fiscalYear', 'user']);
 
         if ($projectId = $request->input('project_id')) {
@@ -44,30 +47,21 @@ class ExpenseController extends Controller
         return view('admin.expenses.index', compact('expenses', 'projects', 'fiscalYears', 'budgets'));
     }
 
-    /**
-     * Show the form for creating a new expense.
-     */
     public function create(): View
     {
-        $projects = Project::all();
+        abort_if(Gate::denies('expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $user = Auth::user();
+        $projects = $user->projects()->get();
         $fiscalYears = FiscalYear::all();
         return view('admin.expenses.create', compact('projects', 'fiscalYears'));
     }
 
-    /**
-     * Store a newly created expense in storage.
-     */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreExpenseRequest $request): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'project_id' => 'required|integer|exists:projects,id',
-            'fiscal_year_id' => 'required|integer|exists:fiscal_years,id',
-            'budget_type' => 'required|in:internal,foreign_loan,foreign_subsidy',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string|max:1000',
-            'date' => 'required|date',
-            'quarter' => 'required|integer|min:1|max:4',
-        ]);
+        abort_if(Gate::denies('expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $validatedData = $request->validated();
 
         // Validate expense against budget
         $budget = ProjectBudget::where('project_id', $validatedData['project_id'])
@@ -97,17 +91,6 @@ class ExpenseController extends Controller
             ])->withInput();
         }
 
-        Log::info('Expense store request', [
-            'project_id' => $validatedData['project_id'],
-            'fiscal_year_id' => $validatedData['fiscal_year_id'],
-            'user_id' => Auth::id(),
-            'budget_type' => $validatedData['budget_type'],
-            'amount' => $validatedData['amount'],
-            'date' => $validatedData['date'],
-            'quarter' => $validatedData['quarter'],
-            'available_budget' => $availableBudget,
-        ]);
-
         Expense::create([
             'project_id' => $validatedData['project_id'],
             'user_id' => Auth::id(),
@@ -122,39 +105,29 @@ class ExpenseController extends Controller
         return redirect()->route('admin.expense.index')->with('success', 'Expense added successfully.');
     }
 
-    /**
-     * Display the specified expense.
-     */
     public function show(Expense $expense): View
     {
+        abort_if(Gate::denies('expense_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $expense->load(['project', 'fiscalYear', 'user']);
         return view('admin.expenses.show', compact('expense'));
     }
 
-    /**
-     * Show the form for editing the specified expense.
-     */
     public function edit(Expense $expense): View
     {
-        $projects = Project::all();
+        abort_if(Gate::denies('expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $user = Auth::user();
+        $projects = $user->projects()->get();
         $fiscalYears = FiscalYear::all();
         return view('admin.expenses.edit', compact('expense', 'projects', 'fiscalYears'));
     }
 
-    /**
-     * Update the specified expense in storage.
-     */
-    public function update(Request $request, Expense $expense): RedirectResponse
+    public function update(UpdateExpenseRequest $request, Expense $expense): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'project_id' => 'required|integer|exists:projects,id',
-            'fiscal_year_id' => 'required|integer|exists:fiscal_years,id',
-            'budget_type' => 'required|in:internal,foreign_loan,foreign_subsidy',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string|max:1000',
-            'date' => 'required|date',
-            'quarter' => 'required|integer|min:1|max:4',
-        ]);
+        abort_if(Gate::denies('expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $validatedData = $request->validated();
 
         // Validate expense against budget
         $budget = ProjectBudget::where('project_id', $validatedData['project_id'])
@@ -209,11 +182,10 @@ class ExpenseController extends Controller
         return redirect()->route('admin.expense.index')->with('success', 'Expense updated successfully.');
     }
 
-    /**
-     * Remove the specified expense from storage.
-     */
     public function destroy(Expense $expense): RedirectResponse
     {
+        abort_if(Gate::denies('expense_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         Log::info('Expense delete request', ['expense_id' => $expense->id]);
         $expense->delete();
         return redirect()->route('admin.expense.index')->with('success', 'Expense deleted successfully.');

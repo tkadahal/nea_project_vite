@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('project_budgets', function (Blueprint $table) {
+        Schema::create('budgets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->index()->constrained();
             $table->foreignId('fiscal_year_id')->index()->constrained();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['project_id', 'fiscal_year_id'], 'project_budgets_project_id_fiscal_year_id_unique');
+            $table->unique(['project_id', 'fiscal_year_id'], 'budgets_project_id_fiscal_year_id_unique');
         });
     }
 };

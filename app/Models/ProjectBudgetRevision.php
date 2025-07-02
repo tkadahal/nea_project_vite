@@ -13,7 +13,7 @@ class ProjectBudgetRevision extends Model
     use HasFactory;
 
     protected $fillable = [
-        'project_budget_id',
+        'budget_id',
         'internal_budget',
         'foreign_loan_budget',
         'foreign_subsidy_budget',
@@ -29,8 +29,8 @@ class ProjectBudgetRevision extends Model
         'total_budget' => 'decimal:2',
     ];
 
-    public function projectBudget(): BelongsTo
+    public function budget(): BelongsTo
     {
-        return $this->belongsTo(ProjectBudget::class);
+        return $this->belongsTo(Budget::class);
     }
 }

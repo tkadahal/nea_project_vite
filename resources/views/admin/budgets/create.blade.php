@@ -8,7 +8,7 @@
         <div class="flex-1">
             <div
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
-                <form class="max-w-3xl mx-auto" action="{{ route('admin.projectBudget.store') }}" method="POST">
+                <form class="max-w-3xl mx-auto" action="{{ route('admin.budget.store') }}" method="POST">
                     @csrf
 
                     @if ($errors->any())
@@ -63,25 +63,25 @@
 
                             <div class="col-span-full">
                                 <x-forms.input label="Internal Budget" name="internal_budget" type="number"
-                                    step="0.01" min="0" :value="old('internal_budget', 0)" :error="$errors->first('internal_budget')"
-                                    class="budget-component" />
+                                    step="0.01" min="0" :value="old('internal_budget', '')" :error="$errors->first('internal_budget')"
+                                    class="budget-component" placeholder="0.00" />
                             </div>
 
                             <div class="col-span-full">
                                 <x-forms.input label="Foreign Loan Budget" name="foreign_loan_budget" type="number"
-                                    step="0.01" min="0" :value="old('foreign_loan_budget', 0)" :error="$errors->first('foreign_loan_budget')"
-                                    class="budget-component" />
+                                    step="0.01" min="0" :value="old('foreign_loan_budget', '')" :error="$errors->first('foreign_loan_budget')"
+                                    class="budget-component" placeholder="0.00" />
                             </div>
 
                             <div class="col-span-full">
                                 <x-forms.input label="Foreign Subsidy Budget" name="foreign_subsidy_budget"
-                                    type="number" step="0.01" min="0" :value="old('foreign_subsidy_budget', 0)" :error="$errors->first('foreign_subsidy_budget')"
-                                    class="budget-component" />
+                                    type="number" step="0.01" min="0" :value="old('foreign_subsidy_budget', '')" :error="$errors->first('foreign_subsidy_budget')"
+                                    class="budget-component" placeholder="0.00" />
                             </div>
 
                             <div class="col-span-full">
                                 <x-forms.input label="Total Budget" name="total_budget" type="number" step="0.01"
-                                    min="0" :value="old('total_budget', 0)" :error="$errors->first('total_budget')" readonly="true"
+                                    min="0" :value="old('total_budget', '')" :error="$errors->first('total_budget')" readonly="true"
                                     class="bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-700 dark:text-gray-300" />
                             </div>
                         </div>

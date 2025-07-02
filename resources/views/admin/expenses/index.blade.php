@@ -4,13 +4,16 @@
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Expenses') }}</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Manage project expenses') }}</p>
         </div>
-        <div class="flex flex-wrap gap-3">
-            <a href="{{ route('admin.expense.create') }}"
-                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                aria-label="{{ __('Add New Expense') }}">
-                {{ __('Add Expense') }}
-            </a>
-        </div>
+
+        @can('expense_create')
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('admin.expense.create') }}"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
+                    aria-label="{{ __('Add New Expense') }}">
+                    {{ __('Add Expense') }}
+                </a>
+            </div>
+        @endcan
     </div>
 
     <div class="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
