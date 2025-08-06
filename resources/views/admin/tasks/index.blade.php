@@ -2,9 +2,11 @@
     <div class="mb-6 flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                {{ __('Tasks') }}
+                {{ trans('global.task.title') }}
             </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Manage your tasks') }}</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.manage') }} {{ trans('global.task.title') }}
+            </p>
         </div>
         <div class="flex items-center gap-2">
             <div class="inline-flex rounded-md shadow-sm" role="group">
@@ -29,10 +31,13 @@
                     📊
                 </button>
             </div>
-            <a href="{{ route('admin.task.create') }}"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-700 dark:hover:bg-blue-800 dark:focus:ring-offset-gray-900">
-                {{ __('Add New') }}
-            </a>
+
+            @can('task_create')
+                <a href="{{ route('admin.task.create') }}"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-700 dark:hover:bg-blue-800 dark:focus:ring-offset-gray-900">
+                    {{ trans('global.add') }} {{ trans('global.new') }}
+                </a>
+            @endcan
         </div>
     </div>
 
@@ -44,7 +49,7 @@
 
     @if ($activeView === 'list')
         <div id="task-search" class="mb-4">
-            <input type="text" id="taskSearchInput" placeholder="{{ trans('global.search') }}..."
+            <input type="text" id="taskSearchInput" placeholder="{{ trans('global.search') }}"
                 class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
         </div>
     @endif

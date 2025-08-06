@@ -17,6 +17,10 @@ return new class extends Migration
             $table->decimal('foreign_loan_budget', 15, 2)->nullable();
             $table->decimal('foreign_subsidy_budget', 15, 2)->nullable();
             $table->decimal('total_budget', 15, 2)->nullable();
+
+            $table->date('decision_date')->nullable();
+            $table->text('remarks')->nullable();
+
             $table->timestamps();
         });
     }

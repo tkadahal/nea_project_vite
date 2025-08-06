@@ -21,10 +21,10 @@ return new class extends Migration
             $table->date('due_date')->nullable();
             $table->date('completion_date')->nullable();
 
-            $table->foreignId('status_id')->index()->constrained();
+            //$table->foreignId('status_id')->index()->constrained();
             $table->foreignId('priority_id')->index()->constrained();
 
-            $table->string('progress')->nullable();
+            // $table->string('progress')->nullable();
 
             $table->boolean('active')->default(0);
 

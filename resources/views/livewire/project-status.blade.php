@@ -2,7 +2,9 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700 col-span-12 lg:col-span-4"
         id="project-status-component">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-base sm:text-sm font-semibold text-gray-800 dark:text-white">Project Status</h2>
+            <h2 class="text-base sm:text-sm font-semibold text-gray-800 dark:text-white">
+                {{ trans('global.project.title_singular') }} {{ trans('global.status.title_singular') }}
+            </h2>
             <div class="relative" wire:ignore>
                 <button
                     class="dropdown-toggle-project text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white">
@@ -21,23 +23,27 @@
                                     class="w-full text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
                                     placeholder="Search directorates...">
                             </div>
-                            <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Filter by
-                                Directorate
+                            <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                                {{ trans('global.filterDirectorate') }}
                             </h3>
                             <div class="max-h-40 overflow-y-auto custom-scroll">
                                 <button wire:click="$set('directorateFilter', null)"
                                     class="directorate-option-project block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
-                                    data-filter="all" data-name="All Directorates">All Directorates</button>
+                                    data-filter="all" data-name="All Directorates">
+                                    {{ trans('global.allDirectorate') }}
+                                </button>
                                 @foreach ($availableDirectorates as $id => $name)
                                     <button wire:click="$set('directorateFilter', {{ $id }})"
                                         class="directorate-option-project block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
-                                        data-filter="{{ $id }}"
-                                        data-name="{{ $name }}">{{ $name }}</button>
+                                        data-filter="{{ $id }}" data-name="{{ $name }}">
+                                        {{ $name }}
+                                    </button>
                                 @endforeach
                             </div>
                             <div id="project-no-results"
                                 class="hidden px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                                No results found</div>
+                                {{ trans('global.noRecords') }}
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -51,7 +57,9 @@
                             id="completed-percentage">
                             {{ $project_status['completed'] }}%
                         </p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ trans('global.completed') }}
+                        </p>
                     </div>
                 </div>
                 <div wire:ignore>
@@ -62,26 +70,35 @@
         <div class="flex justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400">
             <div class="text-center">
                 <div class="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full inline-block mr-1 sm:mr-2"></div>
-                <span>Completed</span>
+                <span>
+                    {{ trans('global.completed') }}
+                </span>
                 <p class="text-gray-800 dark:text-white font-medium" id="completed-text">
                     {{ $project_status['completed'] }}%
                 </p>
             </div>
             <div class="text-center">
                 <div class="w-2 h-2 sm:w-3 sm:h-3 bg-purple-500 rounded-full inline-block mr-1 sm:mr-2"></div>
-                <span>In-progress</span>
+                <span>
+                    {{ trans('global.inProgress') }}
+                </span>
                 <p class="text-gray-800 dark:text-white font-medium" id="in-progress-text">
                     {{ $project_status['in_progress'] }}%</p>
             </div>
             <div class="text-center">
                 <div class="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full inline-block mr-1 sm:mr-2"></div>
-                <span>Behind</span>
+                <span>
+                    {{ trans('global.behind') }}
+                </span>
                 <p class="text-gray-800 dark:text-white font-medium" id="behind-text">{{ $project_status['behind'] }}%
                 </p>
             </div>
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Debug: completed={{ $project_status['completed'] }},
-            in_progress={{ $project_status['in_progress'] }}, behind={{ $project_status['behind'] }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            Debug: {{ trans('global.completed') }}={{ $project_status['completed'] }},
+            {{ trans('global.inProgress') }}={{ $project_status['in_progress'] }},
+            {{ trans('global.behind') }}={{ $project_status['behind'] }}
+        </p>
     </div>
 
     <style>

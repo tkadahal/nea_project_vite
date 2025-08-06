@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AnalyticalDashboardController;
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\BudgetController;
 use App\Http\Controllers\Admin\ContractController;
@@ -24,11 +25,13 @@ use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-})->name('home');
+// Route::get('/', function () {
+//     return redirect()->route('login');
+// })->name('home');
 
-Route::view('test', 'full-page');
+// Route::view('test', 'full-page');
+
+Route::permanentRedirect('/', '/login');
 
 Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', \App\Http\Middleware\AuthGates::class])
@@ -55,6 +58,11 @@ Route::group(
         Route::resource('permission', PermissionController::class);
         Route::resource('role', RoleController::class);
 
+        Route::get('analytics/task', [AnalyticalDashboardController::class, 'taskAnalytics'])->name('analytics.task');
+        Route::get('analytics/project', [AnalyticalDashboardController::class, 'projectAnalytics'])->name('analytics.project');
+        Route::get('/tasks/analytics/export', [AnalyticalDashboardController::class, 'exportTaskAnalytics'])->name('tasks.analytics.export');
+        Route::get('/projects/analytics/export', [AnalyticalDashboardController::class, 'exportProjectAnalytics'])->name('projects.analytics.export');
+
         Route::get('/users/projects/{directorate_id}', [UserController::class, 'getProjects'])->name('users.projects');
         Route::resource('user', UserController::class);
 
@@ -63,7 +71,7 @@ Route::group(
         Route::resource('status', StatusController::class);
         Route::resource('priority', PriorityController::class);
 
-        Route::get('/projects/analytics', [ProjectController::class, 'analytics'])->name('projects.analytics');
+        // Route::get('/projects/analytics', [ProjectController::class, 'analytics'])->name('projects.analytics');
         Route::get('projects/{project}/progress/chart', [ProjectController::class, 'progressChart'])->name('projects.progress.chart');
         Route::post('projects/{project}/comments', [CommentController::class, 'storeForProject'])->name('projects.comments.store');
         Route::get('/projects/users/{directorate_id}', [ProjectController::class, 'getUsers'])->name('projects.users');
@@ -74,16 +82,16 @@ Route::group(
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);
 
-        Route::get('/tasks/analytics/export', [TaskController::class, 'exportAnalytics'])->name('tasks.analytics.export');
-        Route::get('/tasks/analytics', [TaskController::class, 'analytics'])->name('tasks.analytics');
-        Route::post('tasks/{task}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
+        Route::get('/task/{task}/{project}', [TaskController::class, 'show'])->name('task.show');
+        Route::post('/task/load-more', [TaskController::class, 'loadMore'])->name('task.loadMore');
+        Route::post('/task/updateStatus', [TaskController::class, 'updateStatus'])->name('task.updateStatus');
+        Route::post('/tasks/filter', [TaskController::class, 'filter'])->name('tasks.filter');
+        Route::post('/tasks/set-view', [TaskController::class, 'setViewPreference'])->name('task.set-view');
         Route::get('/tasks/gantt-chart', [TaskController::class, 'getGanttChart'])->name('tasks.ganttChart');
         Route::get('/tasks/users-by-projects', [TaskController::class, 'getUsersByProjects'])->name('tasks.users_by_projects');
         Route::get('/tasks/projects/{directorate_id}', [TaskController::class, 'getProjects'])->name('tasks.projects');
-        Route::post('/admin/task/updateStatus', [TaskController::class, 'updateStatus'])->name('task.updateStatus');
-        Route::post('/admin/tasks/filter', [TaskController::class, 'filter'])->name('tasks.filter');
-        Route::post('/admin/tasks/set-view', [TaskController::class, 'setViewPreference'])->name('task.set-view');
-        Route::resource('task', TaskController::class);
+        Route::post('/tasks/{task}/{project}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
+        Route::resource('task', TaskController::class)->except(['show']);
 
         Route::resource('event', EventController::class);
 

@@ -1,14 +1,18 @@
 <x-layouts.app>
     <!-- Page Title -->
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Directorate') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Create New Directorate') }}</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {{ trans('global.directorate.title') }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">
+            {{ trans('global.create') }} {{ trans('global.directorate.title_singular') }}
+        </p>
     </div>
 
     <div class="flex flex-col md:flex-row gap-6">
         <div class="flex-1">
             <div
-                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 p-6">
+                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 p-6">
                 <form class="max-w-3xl mx-auto" action="{{ route('admin.directorate.store') }}" method="POST">
                     @csrf
 
@@ -38,32 +42,37 @@
                         class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6 pb-3 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Directorate Information') }}
+                            {{ trans('global.directorate.title_singular') }} {{ trans('global.information') }}
                         </h3>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="col-span-full">
-                                <x-forms.input label="Name" name="title" type="text" :value="old('title')"
-                                    placeholder="Enter directorate name" :error="$errors->first('title')" />
+                                <x-forms.input label="{{ trans('global.directorate.fields.title') }}" name="title"
+                                    type="text" :value="old('title')" placeholder="Enter directorate name"
+                                    :error="$errors->first('title')" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.text-area label="Description" name="description" :value="old('description')"
-                                    placeholder="Enter directorate description" :error="$errors->first('description')" />
+                                <x-forms.text-area label="{{ trans('global.directorate.fields.description') }}"
+                                    name="description" :value="old('description')" placeholder="Enter directorate description"
+                                    :error="$errors->first('description')" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.multi-select label="Departments" name="departments[]" :options="collect($departments)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('departments', [])" multiple placeholder="Select departments" :error="$errors->first('departments')" />
+                                <x-forms.multi-select label="{{ trans('global.directorate.fields.departments') }}"
+                                    name="departments[]" :options="collect($departments)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()" :selected="old('departments', [])" multiple
+                                    placeholder="Select departments" :error="$errors->first('departments')" />
                             </div>
                         </div>
                     </div>
 
                     <div class="mt-6 flex justify-end">
-                        <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+                        <x-buttons.primary>
+                            {{ trans('global.save') }}
+                        </x-buttons.primary>
                     </div>
                 </form>
             </div>

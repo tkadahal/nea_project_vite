@@ -2,9 +2,11 @@
     <div class="mb-6 flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                {{ __('Project') }}
+                {{ trans('global.project.title') }}
             </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Manage Project') }}</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.manage') }} {{ trans('global.project.title') }}
+            </p>
         </div>
         <div class="flex items-center gap-2">
             <div class="inline-flex rounded-md shadow-sm" role="group">
@@ -20,18 +22,20 @@
                 </button>
             </div>
 
-            <a href="{{ route('admin.project.create') }}"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700
+            @can('project_create')
+                <a href="{{ route('admin.project.create') }}"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
                       dark:bg-blue-700 dark:hover:bg-blue-800 dark:focus:ring-offset-gray-900">
-                {{ __('Add New') }}
-            </a>
+                    {{ trans('global.add') }} {{ trans('global.new') }}
+                </a>
+            @endcan
         </div>
     </div>
 
     <!-- Search Bar for Card View -->
     <div id="card-search" class="mb-4 hidden">
-        <input type="text" id="cardSearchInput" placeholder="{{ __('Search...') }}"
+        <input type="text" id="cardSearchInput" placeholder="{{ trans('global.search') }}"
             class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
@@ -131,7 +135,7 @@
             const searchInput = document.getElementById('cardSearchInput').value.toLowerCase();
             const cards = Array.from(document.querySelectorAll('#cardContainer .card-item'));
             const filteredCards = cards.filter(card => card.getAttribute('data-search').toLowerCase().includes(
-            searchInput));
+                searchInput));
             const totalPages = Math.ceil(filteredCards.length / cardRowsPerPage);
 
             cardCurrentPage += delta;

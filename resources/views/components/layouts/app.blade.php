@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name') }}</title>
+    <title>{{ trans('global.site_title') }}</title>
     <script>
         window.setAppearance = function(appearance) {
             let setDark = () => document.documentElement.classList.add('dark')
@@ -34,7 +34,7 @@
         }
         window.setAppearance(window.localStorage.getItem('appearance') || 'system')
     </script>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/toastr.css'])
     @livewireStyles
     <style>
         .modal {
@@ -106,13 +106,13 @@
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            console.log("Session message: {{ session('message') ?? 'No message' }}");
-        </script>
-        <script>
             function waitForJqueryAndToastr(callback) {
+                console.log('Checking for jQuery and Toastr');
                 if (typeof window.jQuery !== 'undefined' && typeof window.toastr !== 'undefined') {
+                    console.log('jQuery and Toastr loaded, executing callback');
                     callback();
                 } else {
+                    console.log('jQuery or Toastr not loaded, retrying in 100ms');
                     setTimeout(() => waitForJqueryAndToastr(callback), 100);
                 }
             }

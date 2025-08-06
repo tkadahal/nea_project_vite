@@ -10,12 +10,13 @@ use App\Http\Requests\Expense\UpdateExpenseRequest;
 use App\Models\FiscalYear;
 use App\Models\Project;
 use App\Models\Expense;
-use App\Models\ProjectBudget;
+use App\Models\Budget;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -39,12 +40,58 @@ class ExpenseController extends Controller
             $query->where('budget_type', $budgetType);
         }
 
-        $expenses = $query->paginate(10);
+        $expenses = $query->latest()->paginate(10);
         $projects = Project::all();
         $fiscalYears = FiscalYear::all();
-        $budgets = ProjectBudget::whereIn('project_id', $projects->pluck('id'))->get();
+        $budgetTypes = [
+            ['value' => 'internal', 'label' => trans('global.budget.fields.internal_budget')],
+            ['value' => 'foreign_loan', 'label' => trans('global.budget.fields.foreign_loan_budget')],
+            ['value' => 'foreign_subsidy', 'label' => trans('global.budget.fields.foreign_subsidy_budget')],
+        ];
 
-        return view('admin.expenses.index', compact('expenses', 'projects', 'fiscalYears', 'budgets'));
+        $headers = [
+            trans('global.expense.fields.id'),
+            trans('global.expense.fields.project_id'),
+            trans('global.expense.fields.fiscal_year_id'),
+            trans('global.expense.fields.budget_type'),
+            trans('global.expense.fields.amount'),
+            trans('global.expense.fields.description'),
+            trans('global.expense.fields.date'),
+            trans('global.expense.fields.quarter'),
+        ];
+
+        $data = $expenses->map(function ($expense) {
+            return [
+                'id' => $expense->id,
+                'project' => $expense->project->title ?? 'N/A',
+                'fiscal_year' => $expense->fiscalYear->title ?? 'N/A',
+                'budget_type' => str_replace(
+                    ['internal', 'foreign_loan', 'foreign_subsidy'],
+                    [
+                        trans('global.budget.fields.internal_budget'),
+                        trans('global.budget.fields.foreign_loan_budget'),
+                        trans('global.budget.fields.foreign_subsidy_budget')
+                    ],
+                    $expense->budget_type
+                ),
+                'amount' => $expense->amount,
+                'description' => Str::limit($expense->description, 50, '...'),
+                'date' => $expense->date->format('M d, Y'),
+                'quarter' => 'Q' . $expense->quarter,
+            ];
+        })->all();
+
+        return view('admin.expenses.index', [
+            'headers' => $headers,
+            'data' => $data,
+            'expenses' => $expenses,
+            'projects' => $projects,
+            'fiscalYears' => $fiscalYears,
+            'budgetTypes' => $budgetTypes,
+            'routePrefix' => 'admin.expense',
+            'actions' => ['view', 'edit', 'delete'],
+            'deleteConfirmationMessage' => __('Are you sure you want to delete this expense?'),
+        ]);
     }
 
     public function create(): View
@@ -64,7 +111,7 @@ class ExpenseController extends Controller
         $validatedData = $request->validated();
 
         // Validate expense against budget
-        $budget = ProjectBudget::where('project_id', $validatedData['project_id'])
+        $budget = Budget::where('project_id', $validatedData['project_id'])
             ->where('fiscal_year_id', $validatedData['fiscal_year_id'])
             ->first();
 
@@ -130,7 +177,7 @@ class ExpenseController extends Controller
         $validatedData = $request->validated();
 
         // Validate expense against budget
-        $budget = ProjectBudget::where('project_id', $validatedData['project_id'])
+        $budget = Budget::where('project_id', $validatedData['project_id'])
             ->where('fiscal_year_id', $validatedData['fiscal_year_id'])
             ->first();
 
@@ -215,7 +262,7 @@ class ExpenseController extends Controller
             'budget_type' => 'required|in:internal,foreign_loan,foreign_subsidy',
         ]);
 
-        $budget = ProjectBudget::where('project_id', $validated['project_id'])
+        $budget = Budget::where('project_id', $validated['project_id'])
             ->where('fiscal_year_id', $validated['fiscal_year_id'])
             ->first();
 

@@ -1,102 +1,121 @@
 <x-layouts.app>
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Project Budget Allocation') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Add a budget for a project') }}</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {{ trans('global.budget.title') }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">
+            {{ trans('global.add') }} {{ trans('global.budget.title') }}
+        </p>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-6">
-        <div class="flex-1">
-            <div
-                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
-                <form class="max-w-3xl mx-auto" action="{{ route('admin.budget.store') }}" method="POST">
-                    @csrf
+    <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
+        <form class="w-full" action="{{ route('admin.budget.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
 
-                    @if ($errors->any())
-                        <div
-                            class="col-span-full mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded-lg dark:bg-red-900 dark:text-red-200 dark:border-red-700">
-                            <ul class="list-disc list-inside text-sm">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+            @if ($errors->any())
+                <div
+                    class="col-span-full mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded-lg dark:bg-red-900 dark:text-red-200 dark:border-red-700">
+                    <ul class="list-disc list-inside text-sm">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-                    <div id="error-message"
-                        class="col-span-full mb-6 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative dark:bg-red-900 dark:border-red-700 dark:text-red-200">
-                        <span id="error-text"></span>
-                        <button type="button" id="close-error" class="absolute top-0 right-0 px-4 py-3">
-                            <svg class="fill-current h-6 w-6 text-red-500" role="button"
-                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path
-                                    d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-                            </svg>
-                        </button>
-                    </div>
+            <div id="error-message"
+                class="col-span-full mb-6 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative dark:bg-red-900 dark:border-red-700 dark:text-red-200">
+                <span id="error-text"></span>
+                <button type="button" id="close-error" class="absolute top-0 right-0 px-4 py-3">
+                    <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20">
+                        <path
+                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3-152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+                    </svg>
+                </button>
+            </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Budget Information') }}
+                            {{ trans('global.budget.title') }} {{ trans('global.information') }}
                         </h3>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="col-span-full">
-                                <x-forms.select label="Project" name="project_id" id="project_id" :options="collect($projects)
+                        <div class="space-y-6">
+                            <x-forms.select label="{{ trans('global.budget.fields.project_id') }}" name="project_id"
+                                id="project_id" :options="collect($projects)
                                     ->map(
-                                        fn($project) => ['value' => (string) $project->id, 'label' => $project->title],
+                                        fn($project) => [
+                                            'value' => (string) $project->id,
+                                            'label' => $project->title,
+                                        ],
                                     )
                                     ->values()
-                                    ->all()"
-                                    :selected="old('project_id', session('project_id'))" placeholder="Select project" :error="$errors->first('project_id')"
-                                    class="js-single-select" />
-                            </div>
+                                    ->all()" :selected="old('project_id', session('project_id'))"
+                                placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('project_id')"
+                                class="js-single-select" />
 
-                            <div class="col-span-full">
-                                <x-forms.select label="Fiscal Year" name="fiscal_year_id" id="fiscal_year_id"
-                                    :options="collect($fiscalYears)
-                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                        ->values()
-                                        ->all()" :selected="old('fiscal_year_id')" placeholder="Select fiscal year"
-                                    :error="$errors->first('fiscal_year_id')" class="js-single-select" />
-                            </div>
+                            <x-forms.select label="{{ trans('global.budget.fields.fiscal_year_id') }}"
+                                name="fiscal_year_id" id="fiscal_year_id" :options="collect($fiscalYears)
+                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                    ->values()
+                                    ->all()" :selected="old('fiscal_year_id')"
+                                placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('fiscal_year_id')"
+                                class="js-single-select" />
 
-                            <div class="col-span-full">
-                                <x-forms.input label="Internal Budget" name="internal_budget" type="number"
-                                    step="0.01" min="0" :value="old('internal_budget', '')" :error="$errors->first('internal_budget')"
-                                    class="budget-component" placeholder="0.00" />
-                            </div>
+                            <x-forms.input label="{{ trans('global.budget.fields.internal_budget') }}"
+                                name="internal_budget" type="number" step="0.01" min="0" :value="old('internal_budget', '')"
+                                :error="$errors->first('internal_budget')" class="budget-component" placeholder="0.00" />
 
-                            <div class="col-span-full">
-                                <x-forms.input label="Foreign Loan Budget" name="foreign_loan_budget" type="number"
-                                    step="0.01" min="0" :value="old('foreign_loan_budget', '')" :error="$errors->first('foreign_loan_budget')"
-                                    class="budget-component" placeholder="0.00" />
-                            </div>
+                            <x-forms.input label="{{ trans('global.budget.fields.foreign_loan_budget') }}"
+                                name="foreign_loan_budget" type="number" step="0.01" min="0"
+                                :value="old('foreign_loan_budget', '')" :error="$errors->first('foreign_loan_budget')" class="budget-component" placeholder="0.00" />
 
-                            <div class="col-span-full">
-                                <x-forms.input label="Foreign Subsidy Budget" name="foreign_subsidy_budget"
-                                    type="number" step="0.01" min="0" :value="old('foreign_subsidy_budget', '')" :error="$errors->first('foreign_subsidy_budget')"
-                                    class="budget-component" placeholder="0.00" />
-                            </div>
+                            <x-forms.input label="{{ trans('global.budget.fields.foreign_subsidy_budget') }}"
+                                name="foreign_subsidy_budget" type="number" step="0.01" min="0"
+                                :value="old('foreign_subsidy_budget', '')" :error="$errors->first('foreign_subsidy_budget')" class="budget-component" placeholder="0.00" />
 
-                            <div class="col-span-full">
-                                <x-forms.input label="Total Budget" name="total_budget" type="number" step="0.01"
-                                    min="0" :value="old('total_budget', '')" :error="$errors->first('total_budget')" readonly="true"
-                                    class="bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-700 dark:text-gray-300" />
-                            </div>
+                            <x-forms.input label="{{ trans('global.budget.fields.total_budget') }}" name="total_budget"
+                                type="number" step="0.01" min="0" :value="old('total_budget', '')" :error="$errors->first('total_budget')"
+                                readonly="true"
+                                class="bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-700 dark:text-gray-300" />
                         </div>
                     </div>
+                </div>
 
-                    <div class="col-span-full mt-8 flex">
-                        <x-buttons.primary>{{ __('Save Budget') }}</x-buttons.primary>
-                        <a href="{{ route('admin.project.index') }}"
-                            class="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
-                            {{ __('Back to Projects') }}
-                        </a>
+                <div class="space-y-6">
+                    <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <h3
+                            class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                            {{ trans('global.details') }}
+                        </h3>
+                        <div class="space-y-6">
+                            <x-forms.date-input label="{{ trans('global.budget.fields.decision_date') }}"
+                                name="decision_date" type="text" :value="old('decision_date', '')" :error="$errors->first('decision_date')"
+                                class="bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-700 dark:text-gray-300" />
+
+                            <x-forms.text-area label="{{ trans('global.budget.fields.remarks') }}" name="remarks"
+                                :value="old('remarks')" :error="$errors->first('remarks')" />
+
+                            <x-forms.file-input label="{{ trans('global.budget.fields.upload_documents') }}"
+                                name="files" multiple accept=".pdf,.png,.jpg" maxSize="2MB" />
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <div class="col-span-full mt-8 flex">
+                <x-buttons.primary>
+                    {{ trans('global.save') }}
+                </x-buttons.primary>
+                <a href="{{ route('admin.budget.index') }}"
+                    class="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
+                    {{ trans('global.back_to_list') }}
+                </a>
+            </div>
+        </form>
     </div>
 
     <style>

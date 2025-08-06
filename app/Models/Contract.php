@@ -11,10 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class Contract extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'directorate_id',
@@ -73,6 +76,37 @@ class Contract extends Model
     public function files(): MorphMany
     {
         return $this->morphMany(File::class, 'fileable');
+    }
+
+    public function calculateProgress(): float
+    {
+        $tasks = $this->tasks()->get();
+        if ($tasks->isNotEmpty()) {
+            $totalWeight = $tasks->sum('estimated_hours') ?: $tasks->count();
+            if ($totalWeight == 0) {
+                return round($tasks->avg('progress'), 2);
+            }
+            $weightedProgress = $tasks->sum(fn($task) => $task->progress * $task->estimated_hours);
+            return round($weightedProgress / $totalWeight, 2);
+        }
+        return 0.0;
+    }
+
+    public function updateProgress(): void
+    {
+        $this->update(['progress' => $this->calculateProgress()]);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('contract')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return "Contract {$eventName} by {$user}";
+            });
     }
 
     public function newEloquentBuilder($query): ModelBuilder

@@ -14,6 +14,7 @@ return new class extends Migration
             $table->id();
             $table->text('content');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->nullableMorphs('commentable');
             $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade');
             $table->timestamps();

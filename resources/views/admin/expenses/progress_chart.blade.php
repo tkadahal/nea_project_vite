@@ -1,5 +1,4 @@
 <x-layouts.app>
-    <!-- Breadcrumb -->
     <nav class="mb-6 flex items-center text-sm text-gray-600 dark:text-gray-400" aria-label="Breadcrumb">
         <a href="{{ route('admin.project.index') }}"
             class="hover:text-blue-500 dark:hover:text-blue-400">{{ __('Projects') }}</a>

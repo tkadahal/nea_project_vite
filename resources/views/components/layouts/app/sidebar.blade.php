@@ -8,7 +8,7 @@
             <ul class="space-y-1 px-2">
                 <!-- Dashboard -->
                 <x-layouts.sidebar-link href="{{ route('dashboard') }}" icon="fas-house" :active="request()->routeIs('dashboard*')">
-                    Dashboard
+                    {{ trans('global.dashboard') }}
                 </x-layouts.sidebar-link>
 
                 <li class="js-collapsible-menu">
@@ -21,7 +21,7 @@
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                             <span class="js-submenu-label transition-opacity duration-300 opacity-100">
-                                Analytics
+                                {{ trans('global.analytics.title') }}
                             </span>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -33,7 +33,7 @@
 
                     <div
                         class="js-submenu mt-1 ml-6 space-y-1 hidden border-l-2 border-gray-300 dark:border-gray-600 pl-2">
-                        <a href="{{ route('admin.tasks.analytics') }}"
+                        <a href="{{ route('admin.analytics.task') }}"
                             class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
@@ -41,11 +41,13 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                 </svg>
-                                <span>Tasks</span>
+                                <span>
+                                    {{ trans('global.analytics.task.title') }}
+                                </span>
                             </div>
                         </a>
 
-                        <a href="{{ route('admin.projects.analytics') }}"
+                        <a href="{{ route('admin.analytics.project') }}"
                             class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
@@ -53,7 +55,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                 </svg>
-                                <span>Projects</span>
+                                <span>
+                                    {{ trans('global.analytics.project.title') }}
+                                </span>
                             </div>
                         </a>
                     </div>
@@ -69,8 +73,10 @@
                                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
                                     clip-rule="evenodd"></path>
                             </svg>
-                            <span class="ml-2 font-semibold text-lg transition-opacity duration-300"
-                                :class="{ 'opacity-0': !sidebarOpen }">Admin Menu</span>
+                            <span class="ml-2 font-semibold transition-opacity duration-300"
+                                :class="{ 'opacity-0': !sidebarOpen }">
+                                {{ trans('global.adminMenu.title') }}
+                            </span>
                         </div>
                     </div>
 
@@ -85,7 +91,7 @@
                                             d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                     </svg>
                                     <span class="js-submenu-label transition-opacity duration-300 opacity-100">
-                                        User Management
+                                        {{ trans('global.userManagement.title') }}
                                     </span>
                                 </div>
                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -106,7 +112,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                             </svg>
-                                            <span>Permissions</span>
+                                            <span>{{ trans('global.permission.title') }}</span>
                                         </div>
                                     </a>
                                 @endcan
@@ -120,7 +126,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
                                             </svg>
-                                            <span>Roles</span>
+                                            <span>{{ trans('global.role.title') }}</span>
                                         </div>
                                     </a>
                                 @endcan
@@ -134,12 +140,83 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                             </svg>
-                                            <span>Users</span>
+                                            <span>{{ trans('global.user.title') }}</span>
                                         </div>
                                     </a>
                                 @endcan
                             </div>
                         </li>
+                    @endcan
+
+                    @can('setting_access')
+                        <li class="js-collapsible-menu">
+                            <button
+                                class="js-toggle-submenu flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="js-submenu-label transition-opacity duration-300 opacity-100">
+                                        {{ trans('global.settingManagement.title') }}
+                                    </span>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="js-chevron h-4 w-4 transition-transform opacity-100" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+
+                            <div
+                                class="js-submenu mt-1 ml-6 space-y-1 hidden border-l-2 border-gray-300 dark:border-gray-600 pl-2">
+
+                                @can('status_access')
+                                    <a href="{{ route('admin.status.index') }}"
+                                        class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                                        <div class="flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span>{{ trans('global.status.title') }}</span>
+                                        </div>
+                                    </a>
+                                @endcan
+
+                                @can('priority_access')
+                                    <a href="{{ route('admin.priority.index') }}"
+                                        class="block px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                                        <div class="flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 21v-7m0 0V7a2 2 0 012-2h3m10 9V7a2 2 0 00-2-2h-3m-5 16a2 2 0 002-2v-3a2 2 0 00-2-2H5a2 2 0 00-2 2v3a2 2 0 002 2h3z" />
+                                            </svg>
+                                            <span>{{ trans('global.priority.title') }}</span>
+                                        </div>
+                                    </a>
+                                @endcan
+                            </div>
+                        </li>
+                    @endcan
+
+                    @can('directorate_access')
+                        <x-layouts.sidebar-link href="{{ route('admin.directorate.index') }}" icon="fas-building"
+                            :active="request()->routeIs('admin.directorate*')">
+                            {{ trans('global.directorate.title') }}
+                        </x-layouts.sidebar-link>
+                    @endcan
+
+                    @can('department_access')
+                        <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-bars"
+                            :active="request()->routeIs('admin.department*')">
+                            {{ trans('global.department.title') }}
+                        </x-layouts.sidebar-link>
                     @endcan
                 @endcan
 
@@ -158,7 +235,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                 </svg>
-                                <span class="js-submenu-label transition-opacity duration-300 opacity-100">Projects</span>
+                                <span class="js-submenu-label transition-opacity duration-300 opacity-100">
+                                    {{ trans('global.project.title') }}
+                                </span>
                             </div>
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="js-chevron h-4 w-4 transition-transform opacity-100" fill="none"
@@ -179,7 +258,9 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                         </svg>
-                                        <span>Projects</span>
+                                        <span>
+                                            {{ trans('global.project.title') }}
+                                        </span>
                                     </div>
                                 </a>
                             @endcan
@@ -193,7 +274,9 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <span>Project Budget</span>
+                                        <span>
+                                            {{ trans('global.budget.title') }}
+                                        </span>
                                     </div>
                                 </a>
                             @endcan
@@ -207,7 +290,9 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        <span>Expenses</span>
+                                        <span>
+                                            {{ trans('global.expense.title') }}
+                                        </span>
                                     </div>
                                 </a>
                             @endcan
@@ -216,53 +301,29 @@
                     </li>
                 @endcan
 
-                @can('directorate_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.directorate.index') }}" icon="fas-building"
-                        :active="request()->routeIs('admin.directorate*')">
-                        Directorate
-                    </x-layouts.sidebar-link>
-                @endcan
-
-                @can('department_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.department.index') }}" icon="fas-bars"
-                        :active="request()->routeIs('admin.department*')">
-                        Department
-                    </x-layouts.sidebar-link>
-                @endcan
-
                 @can('contract_access')
                     <x-layouts.sidebar-link href="{{ route('admin.contract.index') }}" icon="fas-list" :active="request()->routeIs('admin.contract*')">
-                        Contracts
+                        {{ trans('global.contract.title') }}
                     </x-layouts.sidebar-link>
                 @endcan
 
                 @can('task_access')
                     <x-layouts.sidebar-link href="{{ route('admin.task.index') }}" icon="fas-pen-to-square"
                         :active="request()->routeIs('admin.task*')">
-                        Tasks
+                        {{ trans('global.task.title') }}
                     </x-layouts.sidebar-link>
                 @endcan
 
-                <x-layouts.sidebar-link href="{{ route('admin.file.index') }}" icon="fas-folder" :active="request()->routeIs('admin.file*')">
-                    Files
-                </x-layouts.sidebar-link>
+                @can('file_access')
+                    <x-layouts.sidebar-link href="{{ route('admin.file.index') }}" icon="fas-folder" :active="request()->routeIs('admin.file*')">
+                        {{ trans('global.file.title') }}
+                    </x-layouts.sidebar-link>
+                @endcan
 
                 @can('event_access')
                     <x-layouts.sidebar-link href="{{ route('admin.event.index') }}" icon="fas-pen-to-square"
                         :active="request()->routeIs('admin.event*')">
-                        Events
-                    </x-layouts.sidebar-link>
-                @endcan
-
-                @can('status_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.status.index') }}" icon="fas-cog" :active="request()->routeIs('admin.status*')">
-                        Status
-                    </x-layouts.sidebar-link>
-                @endcan
-
-                @can('priority_access')
-                    <x-layouts.sidebar-link href="{{ route('admin.priority.index') }}" icon="fas-fire" :active="request()->routeIs('admin.priority*')">
-                        Priority
+                        {{ trans('global.event.title') }}
                     </x-layouts.sidebar-link>
                 @endcan
 

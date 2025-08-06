@@ -73,6 +73,12 @@ class PermissionsTableSeeder extends Seeder
                 'deleted_at' => null,
             ],
             [
+                'title' => 'role_show',
+                'created_at' => '2022-01-24 18:00:13',
+                'updated_at' => '2022-01-24 18:00:13',
+                'deleted_at' => null,
+            ],
+            [
                 'title' => 'role_delete',
                 'created_at' => '2022-01-24 18:00:13',
                 'updated_at' => '2022-01-24 18:00:13',

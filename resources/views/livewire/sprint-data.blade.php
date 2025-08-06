@@ -1,7 +1,9 @@
 <div
     class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700 mb-4 sm:mb-6">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">Tasks Overview</h2>
+        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">
+            {{ trans('global.taskOverview') }}
+        </h2>
         <div class="space-x-1 sm:space-x-2">
             <button
                 class="px-1 py-1 sm:px-2 sm:py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm">ALL</button>

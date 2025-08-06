@@ -23,9 +23,9 @@ class Task extends Model
         'start_date',
         'due_date',
         'completion_date',
-        'status_id',
+        //'status_id',
         'priority_id',
-        'progress',
+        //'progress',
     ];
 
     protected $casts = [
@@ -35,7 +35,7 @@ class Task extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
-        'progress' => 'integer',
+        // 'progress' => 'integer',
     ];
 
     public function directorate(): BelongsTo
@@ -43,10 +43,10 @@ class Task extends Model
         return $this->belongsTo(Directorate::class);
     }
 
-    public function status(): BelongsTo
-    {
-        return $this->belongsTo(Status::class);
-    }
+    // public function status(): BelongsTo
+    // {
+    //     return $this->belongsTo(Status::class);
+    // }
 
     public function priority(): BelongsTo
     {
@@ -55,7 +55,9 @@ class Task extends Model
 
     public function projects(): BelongsToMany
     {
-        return $this->belongsToMany(Project::class, 'project_task');
+        return $this->belongsToMany(Project::class, 'project_task')
+            ->withPivot('status_id', 'progress')
+            ->withTimestamps();
     }
 
     public function comments(): MorphMany

@@ -1,60 +1,83 @@
 <x-layouts.app>
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Permission Details</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Details for: <span
-                    class="font-semibold">{{ $permission->title }}</span></p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {{ trans('global.permission.title_singular') }} {{ trans('global.details') }}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.details_for') }} :
+                <span class="font-semibold">
+                    {{ $permission->title }}
+                </span>
+            </p>
         </div>
-        <a href="{{ route('admin.permission.index') }}"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
+
+        @can('permission_access')
+            <a href="{{ route('admin.permission.index') }}"
+                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
                   focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
                   dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
-            Back to Permissions
-        </a>
+                {{ trans('global.back_to_list') }}
+            </a>
+        @endcan
+
     </div>
 
     <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {{-- Permission Name --}}
             <div>
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Title:</p>
-                <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $permission->title }}</p>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ trans('global.permission.fields.title') }} :
+                </p>
+                <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {{ $permission->title }}
+                </p>
             </div>
 
-            {{-- Created At --}}
             <div>
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Created At:</p>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ trans('global.permission.fields.created_at') }} :
+                </p>
                 <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                    {{ $permission->created_at->format('M d, Y H:i A') }}</p>
+                    {{ $permission->created_at->format('M d, Y H:i A') }}
+                </p>
             </div>
 
-            {{-- Updated At --}}
             <div>
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated At:</p>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ trans('global.permission.fields.updated_at') }} :
+                </p>
                 <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                    {{ $permission->updated_at->format('M d, Y H:i A') }}</p>
+                    {{ $permission->updated_at->format('M d, Y H:i A') }}
+                </p>
             </div>
         </div>
 
         <div class="mt-6 flex space-x-3">
-            <a href="{{ route('admin.permission.edit', $permission) }}"
-                class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600
+
+            @can('permission_edit')
+                <a href="{{ route('admin.permission.edit', $permission) }}"
+                    class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600
                       focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2
                       dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-offset-gray-900">
-                Edit Permission
-            </a>
+                    {{ trans('global.edit') }} {{ trans('global.permission.title_singular') }}
+                </a>
+            @endcan
 
-            <form action="{{ route('admin.permission.destroy', $permission) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this permission? This action cannot be undone.');">
-                @csrf
-                @method('DELETE')
-                <button type="submit"
-                    class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600
+            @can('permission_delete')
+                <form action="{{ route('admin.permission.destroy', $permission) }}" method="POST"
+                    onsubmit="return confirm('Are you sure you want to delete this permission? This action cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600
                                focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2
                                dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-offset-gray-900">
-                    Delete Permission
-                </button>
-            </form>
+                        {{ trans('global.delete') }} {{ trans('global.permission.title_singular') }}
+                    </button>
+                </form>
+            @endcan
+
         </div>
     </div>
 </x-layouts.app>

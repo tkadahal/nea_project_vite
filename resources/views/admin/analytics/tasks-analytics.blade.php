@@ -1,11 +1,10 @@
 <x-layouts.app>
-    {{-- Page Title --}}
     <div class="mb-6 px-4 sm:px-6 lg:px-8">
         <h1 class="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-800 dark:text-gray-200">
-            {{ __('Task Analytics') }}
+            {{ trans('global.analytics.task.title') }}
         </h1>
         <p class="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-400 mt-1">
-            {{ __('Analyze task statuses, progress, and distribution') }}
+            {{ trans('global.analytics.task.headerInfo') }}
         </p>
     </div>
 
@@ -15,40 +14,40 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 @if (auth()->user()->hasRole(\App\Models\Role::SUPERADMIN))
                     <div class="w-full">
-                        <x-forms.select label="Directorate" name="directorate_id" :options="collect($directorates)
-                            ->map(
-                                fn($directorate) => [
-                                    'value' => (string) $directorate->id,
-                                    'label' => $directorate->title,
-                                ],
-                            )
-                            ->values()
-                            ->all()" :selected="request()->input('directorate_id')
-                            ? (string) request()->input('directorate_id')
-                            : null"
-                            placeholder="Select a Directorate..." />
+                        <x-forms.select label="{{ trans('global.directorate.title') }}" name="directorate_id"
+                            :options="collect($directorates)
+                                ->map(
+                                    fn($directorate) => [
+                                        'value' => (string) $directorate->id,
+                                        'label' => $directorate->title,
+                                    ],
+                                )
+                                ->values()
+                                ->all()" :selected="request()->input('directorate_id')
+                                ? (string) request()->input('directorate_id')
+                                : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                     </div>
                 @endif
                 <div class="w-full">
-                    <x-forms.select label="Project" name="project_id" :options="collect($projects)
+                    <x-forms.select label="{{ trans('global.project.title') }}" name="project_id" :options="collect($projects)
                         ->map(fn($project) => ['value' => (string) $project->id, 'label' => $project->title])
                         ->values()
-                        ->all()" :selected="request()->input('project_id') ? (string) request()->input('project_id') : null"
-                        placeholder="Select a Project..." />
+                        ->all()"
+                        :selected="request()->input('project_id') ? (string) request()->input('project_id') : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                 </div>
                 <div class="w-full">
-                    <x-forms.select label="Status" name="status_id" :options="collect($statuses)
+                    <x-forms.select label="{{ trans('global.status.title') }}" name="status_id" :options="collect($statuses)
                         ->map(fn($status) => ['value' => (string) $status->id, 'label' => $status->title])
                         ->values()
-                        ->all()" :selected="request()->input('status_id') ? (string) request()->input('status_id') : null"
-                        placeholder="Select a Status..." />
+                        ->all()"
+                        :selected="request()->input('status_id') ? (string) request()->input('status_id') : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                 </div>
                 <div class="w-full">
-                    <x-forms.select label="Priority" name="priority_id" :options="collect($priorities)
+                    <x-forms.select label="{{ trans('global.priority.title') }}" name="priority_id" :options="collect($priorities)
                         ->map(fn($priority) => ['value' => (string) $priority->id, 'label' => $priority->title])
                         ->values()
-                        ->all()" :selected="request()->input('priority_id') ? (string) request()->input('priority_id') : null"
-                        placeholder="Select a Priority..." />
+                        ->all()"
+                        :selected="request()->input('priority_id') ? (string) request()->input('priority_id') : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                 </div>
             </div>
         </div>
@@ -57,26 +56,35 @@
     {{-- Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 px-4 sm:px-6 lg:px-8">
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Total Tasks</h3>
-            <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">{{ $summary['total_tasks'] }}</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Completed Tasks
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.task.fields.total_task') }}
             </h3>
-            <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">{{ $summary['completed_tasks'] }}
+            <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
+                {{ $summary['total_tasks'] }}
             </p>
         </div>
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Overdue Tasks
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.task.fields.completed_task') }}
+            </h3>
+            <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
+                {{ $summary['completed_tasks'] }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.task.fields.overdue_task') }}
             </h3>
             <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">{{ $summary['overdue_tasks'] }}
             </p>
         </div>
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Avg. Progress
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.task.fields.avg_progress') }}
             </h3>
             <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
-                {{ $summary['average_progress'] }}%</p>
+                {{ $summary['average_progress'] }}%
+            </p>
         </div>
     </div>
 
@@ -86,8 +94,9 @@
         <div class="md:col-span-4 lg:col-span-1">
             <div class="space-y-6">
                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
-                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Task
-                        Status Distribution</h3>
+                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                        {{ trans('global.analytics.task.fields.task_status_distribution') }}
+                    </h3>
                     <div class="relative w-full max-w-[160px] sm:max-w-[200px] aspect-square mx-auto">
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="text-center">
@@ -95,14 +104,16 @@
                                     id="statusPercentage">
                                     {{ round(array_sum($charts['status']['data']) ? ($charts['status']['data'][0] / array_sum($charts['status']['data'])) * 100 : 0) }}%
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Main Status</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    Main Status
+                                </p>
                             </div>
                         </div>
                         <canvas id="statusChart" class="w-full h-full"></canvas>
                     </div>
                     <div class="flex justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
                         <div class="text-center">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#10b981] rounded-full inline-block mr-1 sm:mr-2">
+                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#ef4444] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
                             <span>Not Started</span>
                         </div>
@@ -112,15 +123,16 @@
                             <span>In Progress</span>
                         </div>
                         <div class="text-center">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#ef4444] rounded-full inline-block mr-1 sm:mr-2">
+                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#10b981] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
                             <span>Completed</span>
                         </div>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
-                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Task
-                        Priority Distribution</h3>
+                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                        {{ trans('global.analytics.task.fields.task_priority_distribution') }}
+                    </h3>
                     <div class="relative w-full max-w-[160px] sm:max-w-[200px] aspect-square mx-auto">
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="text-center">
@@ -128,29 +140,31 @@
                                     id="priorityPercentage">
                                     {{ round(array_sum($charts['priority']['data']) ? ($charts['priority']['data'][0] / array_sum($charts['priority']['data'])) * 100 : 0) }}%
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Main Priority</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    Main Priority
+                                </p>
                             </div>
                         </div>
                         <canvas id="priorityChart" class="w-full h-full"></canvas>
                     </div>
                     <div class="flex justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
                         <div class="text-center">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#10b981] rounded-full inline-block mr-1 sm:mr-2">
+                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#EF4444] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
                             <span>Urgent</span>
                         </div>
                         <div class="text-center">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#8b5cf6] rounded-full inline-block mr-1 sm:mr-2">
+                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#F59E0B] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
                             <span>High</span>
                         </div>
                         <div class="text-center">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#ef4444] rounded-full inline-block mr-1 sm:mr-2">
+                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#10B981] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
                             <span>Medium</span>
                         </div>
                         <div class="text-center">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#10b981] rounded-full inline-block mr-1 sm:mr-2">
+                            <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#6B7280] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
                             <span>Low</span>
                         </div>
@@ -163,8 +177,9 @@
         <div class="md:col-span-4 lg:col-span-3">
             <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Task
-                        Details</h3>
+                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                        {{ trans('global.analytics.task.fields.task_details') }}
+                    </h3>
                     <a href="{{ route('admin.tasks.analytics.export') }}"
                         class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm sm:text-base">
                         Export to CSV
@@ -176,31 +191,31 @@
                             <tr>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Title
+                                    {{ trans('global.task.fields.title') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
-                                    Project
+                                    {{ trans('global.task.fields.project_id') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Status
+                                    {{ trans('global.task.fields.status_id') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                                    Priority
+                                    {{ trans('global.task.fields.priority_id') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                                    Progress
+                                    {{ trans('global.task.fields.progress') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
-                                    Due Date
+                                    {{ trans('global.task.fields.due_date') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                                    Assigned Users
+                                    {{ trans('global.task.fields.user_id') }}
                                 </th>
                             </tr>
                         </thead>
@@ -208,15 +223,29 @@
                             @foreach ($tasks as $task)
                                 <tr>
                                     <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                        {{ $task->title }}</td>
+                                        {{ $task->title }}
+                                    </td>
                                     <td
                                         class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden sm:table-cell">
-                                        @foreach ($task->projects as $project)
-                                            {{ $project->title }}<br>
-                                        @endforeach
+                                        <p class="mt-1 text-lg text-gray-900 dark:text-gray-100 space-y-2">
+                                            @if ($task->projects->isNotEmpty())
+                                                @foreach ($task->projects as $project)
+                                                    <span
+                                                        class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs w-fit"
+                                                        title="{{ $project->title }}">
+                                                        {{ $project->title }}
+                                                    </span>
+                                                @endforeach
+                                            @else
+                                                <span class="text-gray-500 dark:text-gray-400 text-xs w-fit">
+                                                    {{ trans('global.noRecords') }}
+                                                </span>
+                                            @endif
+                                        </p>
                                     </td>
                                     <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                        {{ $task->status->title }}</td>
+                                        {{ $task->status->title }}
+                                    </td>
                                     <td
                                         class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
                                         {{ $task->priority->title }}
@@ -231,12 +260,15 @@
                                     </td>
                                     <td
                                         class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden xl:table-cell">
-                                        @foreach ($task->users as $user)
+                                        @if ($task->users->isNotEmpty())
                                             <span
-                                                class="inline-block bg-gray-200 dark:bg-gray-600 rounded-full px-2 py-1 text-xs mr-1">
-                                                {{ $user->initials() }}
+                                                class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs"
+                                                title="{{ $task->users->pluck('name')->implode(', ') }}">
+                                                {{ $task->users->map(fn($user) => $user->initials())->implode(', ') }}
                                             </span>
-                                        @endforeach
+                                        @else
+                                            {{ trans('global.noRecords') }}
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -259,7 +291,7 @@
                 const statusData = {
                     datasets: [{
                         data: @json($charts['status']['data']),
-                        backgroundColor: ['#10b981', '#8b5cf6', '#ef4444'],
+                        backgroundColor: ['#ef4444', '#8b5cf6', '#10b981'],
                         borderWidth: 0,
                     }],
                     labels: @json($charts['status']['labels'])
@@ -287,7 +319,7 @@
                 const priorityData = {
                     datasets: [{
                         data: @json($charts['priority']['data']),
-                        backgroundColor: ['#10b981', '#8b5cf6', '#ef4444'],
+                        backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#6B7280'],
                         borderWidth: 0,
                     }],
                     labels: @json($charts['priority']['labels'])
@@ -322,7 +354,7 @@
                         const statusId = document.querySelector('input[name="status_id"]')?.value || '';
                         const priorityId = document.querySelector('input[name="priority_id"]')?.value || '';
 
-                        const url = new URL('{{ route('admin.tasks.analytics') }}', window.location.origin);
+                        const url = new URL('{{ route('admin.analytics.task') }}', window.location.origin);
                         if (directorateId) url.searchParams.set('directorate_id', directorateId);
                         if (projectId) url.searchParams.set('project_id', projectId);
                         if (statusId) url.searchParams.set('status_id', statusId);
@@ -369,7 +401,7 @@
                             const statusId = jQuery('input[name="status_id"]').val() || '';
                             const priorityId = jQuery('input[name="priority_id"]').val() || '';
 
-                            const url = new URL('{{ route('admin.tasks.analytics') }}', window.location.origin);
+                            const url = new URL('{{ route('admin.analytics.task') }}', window.location.origin);
                             if (directorateId) url.searchParams.set('directorate_id', directorateId);
                             if (projectId) url.searchParams.set('project_id', projectId);
                             if (statusId) url.searchParams.set('status_id', statusId);

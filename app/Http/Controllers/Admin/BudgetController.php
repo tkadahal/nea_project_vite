@@ -24,7 +24,16 @@ class BudgetController extends Controller
 
         $budgets = Budget::with(['fiscalYear', 'project'])->latest()->get();
 
-        $headers = ['ID', 'Fiscal Year', 'Project', 'Total Budget', 'Internal Budget', 'Foreign Loan Budget', 'Foreign Subsidy Budget', 'Budget Revision'];
+        $headers = [
+            trans('global.budget.fields.id'),
+            trans('global.budget.fields.fiscal_year_id'),
+            trans('global.budget.fields.project_id'),
+            trans('global.budget.fields.total_budget'),
+            trans('global.budget.fields.internal_budget'),
+            trans('global.budget.fields.foreign_loan_budget'),
+            trans('global.budget.fields.foreign_subsidy_budget'),
+            trans('global.budget.fields.budget_revision'),
+        ];
 
         $data = $budgets->map(function ($budget) {
             return [
@@ -82,11 +91,13 @@ class BudgetController extends Controller
                 'total_budget' => $existingBudget->total_budget + $validatedData['total_budget'],
             ]);
 
-            $existingBudget->revisions()->create([
+            $revision = $existingBudget->revisions()->create([
                 'internal_budget' => $validatedData['internal_budget'],
                 'foreign_loan_budget' => $validatedData['foreign_loan_budget'],
                 'foreign_subsidy_budget' => $validatedData['foreign_subsidy_budget'],
                 'total_budget' => $validatedData['total_budget'],
+                'decision_date' => $validatedData['decision_date'],
+                'remarks' => $validatedData['remarks'],
             ]);
         } else {
             $budget = $project->budgets()->create([
@@ -98,12 +109,31 @@ class BudgetController extends Controller
                 'budget_revision' => 1,
             ]);
 
-            $budget->revisions()->create([
+            $revision = $budget->revisions()->create([
                 'internal_budget' => $validatedData['internal_budget'],
                 'foreign_loan_budget' => $validatedData['foreign_loan_budget'],
                 'foreign_subsidy_budget' => $validatedData['foreign_subsidy_budget'],
                 'total_budget' => $validatedData['total_budget'],
+                'decision_date' => $validatedData['decision_date'],
+                'remarks' => $validatedData['remarks'],
             ]);
+        }
+
+        /** @var \Illuminate\Http\Request $request */
+
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                if ($file->isValid()) {
+                    $path = $file->store('revisions', 'public');
+                    $revision->files()->create([
+                        'filename' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'file_type' => $file->extension(),
+                        'file_size' => $file->getSize(),
+                        'user_id' => Auth::id(),
+                    ]);
+                }
+            }
         }
 
         return redirect()->route('admin.budget.index')->with('success', 'Budget saved successfully.');

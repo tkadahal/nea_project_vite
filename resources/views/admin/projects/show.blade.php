@@ -1,21 +1,32 @@
 <x-layouts.app>
-    <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+    <div class="mb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Project Details') }}</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Details for:') }} <span
-                    class="font-semibold">{{ $project->title }}</span></p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {{ trans('global.project.title_singular') }} {{ trans('global.details') }}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.details_for') }} :
+                <span class="font-semibold">
+                    {{ $project->title }}
+                </span>
+            </p>
         </div>
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('admin.expense.index') }}"
-                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                aria-label="{{ __('View Expenses') }}">
-                {{ __('View Expenses') }}
-            </a>
-            <a href="{{ route('admin.project.index') }}"
-                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 text-sm"
-                aria-label="{{ __('Back to Projects') }}">
-                {{ __('Back') }}
-            </a>
+            @can('expense_access')
+                <a href="{{ route('admin.expense.index') }}"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
+                    aria-label="{{ trans('global.show') }}  {{ trans('global.expense.title') }}">
+                    {{ trans('global.show') }} {{ trans('global.expense.title') }}
+                </a>
+            @endcan
+
+            @can('project_access')
+                <a href="{{ route('admin.project.index') }}"
+                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 text-sm"
+                    aria-label="{{ trans('global.back_to_list') }}">
+                    {{ trans('global.back_to_list') }}
+                </a>
+            @endcan
         </div>
     </div>
 
@@ -24,65 +35,86 @@
             class="md:col-span-2 bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-grow">
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Title:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.title') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        {{ $project->title }}</p>
+                        {{ $project->title }}
+                    </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Directorate:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.directorate_id') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->directorate->title ?? 'N/A' }}
                     </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Department:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.departments') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->department->title ?? 'N/A' }}
                     </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Project Manager:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.project_manager') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
-                        {{ $project->projectManager->name ?? 'N/A' }}</p>
+                        {{ $project->projectManager->name ?? 'N/A' }}
+                    </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Status:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.status_id') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->status->title ?? 'N/A' }}
                     </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Priority:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.priority_id') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->priority->title ?? 'N/A' }}
                     </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Physical Progress:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.physical_progress') }}
+                    </p>
                     <div class="mt-1 flex items-center" role="progressbar" aria-valuenow="{{ $project->progress }}"
                         aria-valuemin="0" aria-valuemax="100">
                         <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                             <div class="bg-blue-500 h-2.5 rounded-full" style="width: {{ $project->progress }}%"></div>
                         </div>
-                        <p class="ml-2 text-base text-gray-900 dark:text-gray-100">{{ $project->progress }}%</p>
+                        <p class="ml-2 text-base text-gray-900 dark:text-gray-100">
+                            {{ $project->progress }}%
+                        </p>
                     </div>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Financial Progress:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.financial_progress') }}
+                    </p>
                     <div class="mt-1 flex items-center" role="progressbar"
                         aria-valuenow="{{ $project->financial_progress }}" aria-valuemin="0" aria-valuemax="100">
                         <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                             <div class="bg-green-500 h-2.5 rounded-full"
                                 style="width: {{ $project->financial_progress }}%"></div>
                         </div>
-                        <p class="ml-2 text-base text-gray-900 dark:text-gray-100">{{ $project->financial_progress }}%
+                        <p class="ml-2 text-base text-gray-900 dark:text-gray-100">
+                            {{ $project->financial_progress }}%
                         </p>
                     </div>
                 </div>
@@ -90,8 +122,8 @@
                 <div class="col-span-full">
                     <a href="{{ route('admin.projects.progress.chart', $project) }}"
                         class="inline-block px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                        aria-label="{{ __('View Progress Chart') }}">
-                        {{ __('Show in Chart') }}
+                        aria-label="{{ trans('global.project.headers.view_in_chart') }}">
+                        {{ trans('global.project.headers.view_in_chart') }}
                     </a>
                 </div>
 
@@ -101,7 +133,9 @@
                             class="flex items-center w-full text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none"
                             onclick="toggleSection('contracts-section')" aria-expanded="true"
                             aria-controls="contracts-section">
-                            <span class="mr-2">{{ __('Contracts') }}</span>
+                            <span class="mr-2">
+                                {{ trans('global.contract.title') }}
+                            </span>
                             <svg class="w-5 h-5 transform transition-transform" id="contracts-icon" fill="none"
                                 stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -115,32 +149,40 @@
                                     <tr>
                                         <th
                                             class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {{ __('Title') }}</th>
+                                            {{ trans('global.contract.fields.title') }}
+                                        </th>
                                         <th
                                             class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {{ __('Progress') }}</th>
+                                            {{ trans('global.contract.fields.progress') }}
+                                        </th>
                                         <th
                                             class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {{ __('Contract Amount') }}</th>
+                                            {{ trans('global.contract.fields.contract_amount') }}
+                                        </th>
                                         <th
                                             class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {{ __('Actions') }}</th>
+                                            {{ trans('global.action') }}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                     @foreach ($project->contracts as $contract)
                                         <tr>
                                             <td class="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                                {{ $contract->title }}</td>
+                                                {{ $contract->title }}
+                                            </td>
                                             <td class="px-3 py-2">
                                                 <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                                                     <div class="bg-blue-500 h-2.5 rounded-full"
                                                         style="width: {{ $contract->progress }}%"></div>
                                                 </div>
-                                                <span class="text-xs sm:text-sm">{{ $contract->progress }}%</span>
+                                                <span class="text-xs sm:text-sm">
+                                                    {{ $contract->progress }}%
+                                                </span>
                                             </td>
                                             <td class="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                                {{ number_format($contract->contract_amount, 2) }}</td>
+                                                {{ number_format($contract->contract_amount, 2) }}
+                                            </td>
                                             <td class="px-3 py-2 text-gray-900 dark:text-gray-100">
                                                 <a href="{{ route('admin.contract.show', $contract) }}"
                                                     class="inline-flex items-center px-2 py-1 bg-indigo-500 text-white text-xs rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
@@ -152,7 +194,7 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round"
                                                             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
-                                                    {{ __('View') }}
+                                                    {{ trans('global.view') }}
                                                 </a>
                                             </td>
                                         </tr>
@@ -164,61 +206,93 @@
                 @endif
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Start Date:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.start_date') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}
                     </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('End Date:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.end_date') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->end_date ? $project->end_date->format('M d, Y') : 'N/A' }}
                     </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Total Budget (Latest):') }}
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.latest_budget') }}
                     </p>
-                    <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
-                        {{ number_format($project->total_budget, 2) }}</p>
+                    <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100 flex items-center space-x-2">
+                        <span>{{ number_format($totalBudget, 2) }}</span>
+                        @if ($latestBudgetId)
+                            <a href="{{ route('admin.budget.show', $latestBudgetId) }}"
+                                class="text-xs sm:text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center">
+                                {{ trans('global.view_details') }}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 sm:h-4 sm:w-4 ml-1"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </a>
+                        @endif
+                    </p>
                 </div>
 
                 <div class="col-span-full">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Description:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.description') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
-                        {{ $project->description ?? 'N/A' }}</p>
+                        {{ $project->description ?? 'N/A' }}
+                    </p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.created_at') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
                         {{ $project->created_at->format('M d, Y H:i A') }}</p>
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Last Updated At:') }}</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.project.fields.updated_at') }}
+                    </p>
                     <p class="mt-1 text-base sm:text-lg text-gray-900 dark:text-gray-100">
-                        {{ $project->updated_at->format('M d, Y H:i A') }}</p>
+                        {{ $project->updated_at->format('M d, Y H:i A') }}
+                    </p>
                 </div>
             </div>
 
-            <div class="mt-6 flex flex-wrap gap-3">
-                <a href="{{ route('admin.project.edit', $project) }}"
-                    class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                    aria-label="{{ __('Edit Project') }}">
-                    {{ __('Edit Project') }}
-                </a>
-                <form action="{{ route('admin.project.destroy', $project) }}" method="POST"
-                    onsubmit="return confirm('{{ __('Are you sure you want to delete this project? This action cannot be undone.') }}');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit"
-                        class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                        aria-label="{{ __('Delete Project') }}">
-                        {{ __('Delete Project') }}
-                    </button>
-                </form>
+            <div class="mt-6 flex space-x-3">
+                @can('project_edit')
+                    <a href="{{ route('admin.project.edit', $project) }}"
+                        class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600
+                      focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2
+                      dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-offset-gray-900">
+                        {{ trans('global.edit') }} {{ trans('global.project.title_singular') }}
+                    </a>
+                @endcan
+
+                @can('delete_project')
+                    <form action="{{ route('admin.project.destroy', $project) }}" method="POST"
+                        onsubmit="return confirm('Are you sure you want to delete this project? This action cannot be undone.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                            class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600
+                               focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2
+                               dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-offset-gray-900">
+                            {{ trans('global.delete') }} {{ trans('global.project.title_singular') }}
+                        </button>
+                    </form>
+                @endcan
             </div>
         </div>
 

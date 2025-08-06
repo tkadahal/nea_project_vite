@@ -14,10 +14,13 @@ use Illuminate\Http\Request;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'directorate_id',
@@ -128,5 +131,18 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logExcept(['password']) // Exclude sensitive password field
+            ->logOnlyDirty()
+            ->useLogName('user')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return "User {$eventName} by {$user}";
+            });
     }
 }

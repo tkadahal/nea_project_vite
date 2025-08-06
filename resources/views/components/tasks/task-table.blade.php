@@ -5,13 +5,27 @@
                 <table class="w-full border-collapse border border-gray-300 dark:border-gray-600">
                     <thead class="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Title</th>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Project</th>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Status</th>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Priority</th>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Start Date</th>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Due Date</th>
-                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">Completion Date</th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.title') }}
+                            </th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.project_id') }}
+                            </th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.status_id') }}
+                            </th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.priority_id') }}
+                            </th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.start_date') }}
+                            </th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.due_date') }}
+                            </th>
+                            <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300">
+                                {{ trans('global.task.fields.completion_date') }}
+                            </th>
                             <th class="px-4 py-2 text-left text-gray-700 dark:text-gray-300"></th>
                         </tr>
                     </thead>
@@ -47,13 +61,13 @@
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">
                                     {{ ucfirst($task->priority) ?? 'N/A' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {{ $task->start_date ? (new DateTime($task->start_date))->format('M d, Y') : 'N/A' }}
+                                    {{ $task->start_date ? new DateTime($task->start_date)->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {{ $task->due_date ? (new DateTime($task->due_date))->format('M d, Y') : 'N/A' }}
+                                    {{ $task->due_date ? new DateTime($task->due_date)->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {{ $task->completion_date ? (new DateTime($task->completion_date))->format('M d, Y') : 'N/A' }}
+                                    {{ $task->completion_date ? new DateTime($task->completion_date)->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td class="px-4 py-2">
                                     <a href="{{ route('admin.task.show', $task->id) }}"
@@ -67,7 +81,9 @@
                 </table>
             </div>
         @else
-            <p class="text-center p-3 text-muted">Table will load here after filtering or view switch.</p>
+            <p class="text-center p-3 text-muted">
+                {{ trans('global.noRecords') }}
+            </p>
         @endif
     </div>
 </div>

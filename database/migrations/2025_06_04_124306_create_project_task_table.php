@@ -13,6 +13,10 @@ return new class extends Migration
         Schema::create('project_task', function (Blueprint $table) {
             $table->foreignId('project_id')->constrained();
             $table->foreignId('task_id')->constrained();
+            $table->foreignId('status_id')->constrained()->index();
+            $table->string('progress')->nullable();
+            $table->primary(['project_id', 'task_id']);
+            $table->timestamps();
         });
     }
 };

@@ -15,7 +15,7 @@ class TaskStatus extends Component
 {
     public Collection $tasks;
 
-    public ?int $directorateFilter = null; // Default: no directorate filter
+    public ?int $directorateFilter = null;
 
     public array $availableDirectorates = [];
 
@@ -27,7 +27,7 @@ class TaskStatus extends Component
 
     public function updatedDirectorateFilter()
     {
-        Log::debug('Directorate filter updated to: '.$this->directorateFilter);
+        Log::debug('Directorate filter updated to: ' . $this->directorateFilter);
         $this->updateTasks();
     }
 
@@ -37,10 +37,8 @@ class TaskStatus extends Component
         $roles = $user->roles->pluck('id')->toArray();
 
         if (in_array(1, $roles)) {
-            // Admin can see all directorates
             $this->availableDirectorates = Directorate::pluck('title', 'id')->toArray();
         } elseif (in_array(3, $roles) && $user->directorate_id) {
-            // Directorate user can only see their own directorate
             $this->availableDirectorates = Directorate::where('id', $user->directorate_id)
                 ->pluck('title', 'id')
                 ->toArray();
@@ -56,13 +54,10 @@ class TaskStatus extends Component
         $userProjectIds = in_array(4, $roles) ? $user->projects()->pluck('id') : collect([]);
 
         if (in_array(1, $roles)) {
-            // Admin role
             $this->tasks = $this->getTasks($this->directorateFilter);
         } elseif (in_array(3, $roles)) {
-            // Directorate user role
             $this->tasks = $directorateId ? $this->getTasks($directorateId) : collect([]);
         } elseif (in_array(4, $roles)) {
-            // Project user role
             $this->tasks = $userProjectIds->isNotEmpty() ? $this->getTasks(null, $userProjectIds) : collect([]);
         }
     }
@@ -71,9 +66,9 @@ class TaskStatus extends Component
     {
         $query = Task::with(['status', 'users']);
         if ($directorateId) {
-            $query->whereHas('projects', fn ($q) => $q->where('directorate_id', $directorateId));
+            $query->whereHas('projects', fn($q) => $q->where('directorate_id', $directorateId));
         } elseif ($projectIds) {
-            $query->whereHas('projects', fn ($q) => $q->whereIn('id', $projectIds));
+            $query->whereHas('projects', fn($q) => $q->whereIn('id', $projectIds));
         }
 
         return $query->latest()->take(5)->get()->map(function ($task) {
@@ -81,18 +76,22 @@ class TaskStatus extends Component
                 'id' => $task->id,
                 'name' => $task->title ?? 'Unnamed Task',
                 'status' => $task->status,
-                'assigned_to' => $task->users->first()?->name ?? 'Unassigned',
-                'total_time_spent' => $this->generateRandomTime(),
+                'assigned_to' => $task->users->isNotEmpty()
+                    ? $task->users->map->initials()->implode(', ')
+                    : 'Unassigned',
+                'total_time_spent' => $this->calculateTimeSinceCreation($task->created_at),
             ];
         });
     }
 
-    private function generateRandomTime(): string
+    private function calculateTimeSinceCreation($createdAt): string
     {
-        $hours = rand(1, 100);
-        $minutes = rand(0, 59);
+        $now = now();
+        $created = $createdAt instanceof \Carbon\Carbon ? $createdAt : \Carbon\Carbon::parse($createdAt);
+        $diffInHours = floor($created->diffInHours($now));
+        $diffInMinutes = $created->diffInMinutes($now) % 60;
 
-        return "{$hours}h {$minutes}min";
+        return "{$diffInHours} " . 'hr' . " {$diffInMinutes} " . 'min';
     }
 
     public function render()

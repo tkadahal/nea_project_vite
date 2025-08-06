@@ -2,12 +2,13 @@
     <div class="mb-6 flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                {{ __('Contracts') }}
+                {{ trans('global.contract.title') }}
             </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Manage contracts') }}</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.manage') }} {{ trans('global.contract.title') }}
+            </p>
         </div>
         <div class="flex items-center space-x-4">
-            <!-- View Switcher -->
             <div class="flex items-center space-x-2">
                 <button id="listViewButton"
                     class="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-500 focus:outline-none">
@@ -26,14 +27,16 @@
                     </svg>
                 </button>
             </div>
+
             @can('contract_create')
                 <a href="{{ route('admin.contract.create') }}"
                     class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
                           dark:bg-blue-700 dark:hover:bg-blue-800 dark:focus:ring-offset-gray-900">
-                    {{ __('Add New') }}
+                    {{ trans('global.add') }} {{ trans('global.new') }}
                 </a>
             @endcan
+
         </div>
     </div>
 
@@ -59,13 +62,13 @@
                         @if (in_array('view', $actions) && Gate::allows('contract_view'))
                             <a href="{{ route($routePrefix . '.show', $item['id']) }}"
                                 class="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-                                {{ __('View') }}
+                                {{ trans('global.view') }}
                             </a>
                         @endif
                         @if (in_array('edit', $actions) && Gate::allows('contract_edit'))
                             <a href="{{ route($routePrefix . '.edit', $item['id']) }}"
                                 class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                {{ __('Edit') }}
+                                {{ trans('global.edit') }}
                             </a>
                         @endif
                         @if (in_array('delete', $actions) && Gate::allows('contract_delete'))
@@ -75,7 +78,7 @@
                                 @method('DELETE')
                                 <button type="submit"
                                     class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
-                                    {{ __('Delete') }}
+                                    {{ trans('global.delete') }}
                                 </button>
                             </form>
                         @endif

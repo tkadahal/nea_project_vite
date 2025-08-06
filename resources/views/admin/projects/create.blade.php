@@ -1,7 +1,11 @@
 <x-layouts.app>
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Project') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Create new project') }}</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {{ trans('global.project.title') }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">
+            {{ trans('global.create') }} {{ trans('global.project.title') }}
+        </p>
     </div>
 
     <div
@@ -37,41 +41,43 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Project Information') }}
+                            {{ trans('global.project.title_singular') }} {{ trans('global.information') }}
                         </h3>
                         <div class="grid grid-cols-1 gap-6">
                             <div class="col-span-full">
-                                <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
-                                    :options="collect($directorates)
+                                <x-forms.select label="{{ trans('global.project.fields.directorate_id') }}"
+                                    name="directorate_id" id="directorate_id" :options="collect($directorates)
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                         ->values()
-                                        ->all()" :selected="old('directorate_id')" placeholder="Select directorate"
-                                    :error="$errors->first('directorate_id')" class="js-single-select" />
-                            </div>
-
-                            <div class="col-span-full">
-                                <x-forms.select label="Department" name="department_id" id="department_select"
-                                    :options="[]" :selected="old('department_id')" placeholder="Select department"
-                                    allow-clear="true" data-selected="{{ old('department_id') }}" :error="$errors->first('department_id')"
+                                        ->all()" :selected="old('directorate_id')"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('directorate_id')"
                                     class="js-single-select" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.select label="Project Manager" name="project_manager"
-                                    id="project_manager_select" :options="[]" :selected="old('project_manager')"
-                                    placeholder="Select project manager" allow-clear="true"
-                                    data-selected="{{ old('project_manager') }}" :error="$errors->first('project_manager')"
+                                <x-forms.select label="{{ trans('global.project.fields.departments') }}"
+                                    name="department_id" id="department_select" :options="[]" :selected="old('department_id')"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" allow-clear="true"
+                                    data-selected="{{ old('department_id') }}" :error="$errors->first('department_id')"
                                     class="js-single-select" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.input label="Title" name="title" type="text" :value="old('title')"
-                                    :error="$errors->first('title')" />
+                                <x-forms.select label="{{ trans('global.project.fields.project_manager') }}"
+                                    name="project_manager" id="project_manager_select" :options="[]"
+                                    :selected="old('project_manager')" placeholder="{{ trans('global.pleaseSelect') }}"
+                                    allow-clear="true" data-selected="{{ old('project_manager') }}" :error="$errors->first('project_manager')"
+                                    class="js-single-select" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.text-area label="Description" name="description" :value="old('description')"
-                                    :error="$errors->first('description')" />
+                                <x-forms.input label="{{ trans('global.project.fields.title') }}" name="title"
+                                    type="text" :value="old('title')" :error="$errors->first('title')" />
+                            </div>
+
+                            <div class="col-span-full">
+                                <x-forms.text-area label="{{ trans('global.project.fields.description') }}"
+                                    name="description" :value="old('description')" :error="$errors->first('description')" />
                             </div>
                         </div>
                     </div>
@@ -81,16 +87,16 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Dates & Progress') }}
+                            {{ trans('global.project.headers.date_progress') }}
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <x-forms.date-input label="Start Date" name="start_date" :value="old('start_date')"
-                                    :error="$errors->first('start_date')" />
+                                <x-forms.date-input label="{{ trans('global.project.fields.start_date') }}"
+                                    name="start_date" :value="old('start_date')" :error="$errors->first('start_date')" />
                             </div>
                             <div>
-                                <x-forms.date-input label="End Date" name="end_date" :value="old('end_date')"
-                                    :error="$errors->first('end_date')" />
+                                <x-forms.date-input label="{{ trans('global.project.fields.end_date') }}"
+                                    name="end_date" :value="old('end_date')" :error="$errors->first('end_date')" />
                             </div>
                         </div>
                     </div>
@@ -98,23 +104,25 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Status & Priority') }}
+                            {{ trans('global.project.headers.status_priority') }}
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('status_id')" placeholder="Select status" :error="$errors->first('status_id')"
+                                <x-forms.select label="{{ trans('global.project.fields.status_id') }}" name="status_id"
+                                    id="status_id" :options="collect($statuses)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()" :selected="old('status_id')"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('status_id')"
                                     class="js-single-select" />
                             </div>
                             <div>
-                                <x-forms.select label="Priority" name="priority_id" id="priority_id" :options="collect($priorities)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('priority_id')" placeholder="Select priority" :error="$errors->first('priority_id')"
+                                <x-forms.select label="{{ trans('global.project.fields.priority_id') }}"
+                                    name="priority_id" id="priority_id" :options="collect($priorities)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()" :selected="old('priority_id')"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('priority_id')"
                                     class="js-single-select" />
                             </div>
                         </div>
@@ -123,31 +131,15 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Attachments') }}
+                            {{ trans('global.project.headers.attachments') }}
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="col-span-full">
                                 <div class="space-y-4">
                                     <div>
-                                        <input type="file" name="files[]" multiple
-                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
-                                            class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            aria-describedby="files-error" onchange="updateFileNameList(event)">
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            {{ __('Supported formats: PDF, DOC, XLS, PNG, JPG, ZIP. Max size: 10MB each.') }}
-                                        </p>
-                                        @error('files.*')
-                                            <p class="text-red-500 text-sm mt-1" id="files-error">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                    <div id="selected-files-preview" class="space-y-2">
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 hidden"
-                                            id="selected-files-title">
-                                            {{ __('Selected Files:') }}
-                                        </p>
-                                        <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300"
-                                            id="file-list">
-                                        </ul>
+                                        <x-forms.file-input
+                                            label="{{ trans('global.project.fields.upload_documents') }}"
+                                            name="files" multiple accept=".pdf,.png,.jpg" maxSize="10MB" />
                                     </div>
                                 </div>
                             </div>
@@ -156,8 +148,10 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+            <div class="mt-8">
+                <x-buttons.primary>
+                    {{ trans('global.save') }}
+                </x-buttons.primary>
             </div>
         </form>
     </div>
@@ -189,24 +183,6 @@
 
         waitForJQuery(function() {
             const $ = jQuery;
-
-            window.updateFileNameList = function(event) {
-                const input = event.target;
-                const fileListContainer = document.getElementById('file-list');
-                const selectedFilesTitle = document.getElementById('selected-files-title');
-                fileListContainer.innerHTML = '';
-                if (input.files.length > 0) {
-                    selectedFilesTitle.classList.remove('hidden');
-                    for (let i = 0; i < input.files.length; i++) {
-                        const file = input.files[i];
-                        const listItem = document.createElement('li');
-                        listItem.textContent = file.name;
-                        fileListContainer.appendChild(listItem);
-                    }
-                } else {
-                    selectedFilesTitle.classList.add('hidden');
-                }
-            };
 
             $(".js-single-select").each(function() {
                 const $container = $(this);
@@ -410,7 +386,7 @@
                             .empty()
                             .append(
                                 '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load departments</div>'
-                                );
+                            );
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text("Failed to load departments: " + (xhr.responseJSON
                             ?.message || "Unknown error"));
@@ -460,7 +436,7 @@
                             .empty()
                             .append(
                                 '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load users</div>'
-                                );
+                            );
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text("Failed to load users: " + (xhr.responseJSON?.message ||
                             "Unknown error"));

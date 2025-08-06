@@ -8,7 +8,6 @@ export default defineConfig({
             input: [
                 "resources/css/app.css",
                 "resources/css/toastr.css",
-                // "resources/css/fullcalendar.css",
                 "resources/js/app.js",
                 "resources/js/taskCalendar.js",
                 "resources/js/departmentLoader.js",

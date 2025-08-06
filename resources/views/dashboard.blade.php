@@ -1,7 +1,11 @@
 <x-layouts.app>
     <div class="mb-4 sm:mb-6">
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">Dashboard</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">Welcome to the dashboard</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {{ trans('global.dashboard') }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">
+            {{ trans('global.welcomeToDashboard') }}
+        </p>
     </div>
 
     <!-- Number Blocks Section -->
@@ -11,7 +15,8 @@
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">{{ $block['title'] }}
+                        <p class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            {{ $block['title'] }}
                         </p>
                         <p class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mt-1">
                             {{ $block['number'] }}</p>
@@ -22,7 +27,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
-                            View Details
+                            {{ trans('global.view_details') }}
                         </a>
                     </div>
                     <div
@@ -69,7 +74,9 @@
         <div
             class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700 col-span-12 lg:col-span-4">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">Activity Logs</h2>
+                <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">
+                    {{ trans('global.activityLog.title') }}
+                </h2>
                 <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
@@ -88,16 +95,22 @@
                         </svg>
                         <div>
                             <p class="font-medium text-gray-800 dark:text-gray-100 text-xs sm:text-sm">
-                                {{ $log->description }}</p>
+                                {{ $log->description }}
+                            </p>
                             @if ($log->subject_type && $log->subject_id)
-                                <p class="text-xs">{{ class_basename($log->subject_type) }} ID: {{ $log->subject_id }}
+                                <p class="text-xs">
+                                    {{ class_basename($log->subject_type) }} ID: {{ $log->subject_id }}
                                 </p>
                             @endif
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $log->created_at }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $log->created_at }}
+                            </p>
                         </div>
                     </div>
                 @empty
-                    <p>No recent activities.</p>
+                    <p>
+                        {{ trans('global.noRecords') }}
+                    </p>
                 @endforelse
             </div>
         </div>

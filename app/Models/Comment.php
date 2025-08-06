@@ -9,10 +9,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class Comment extends Model
 {
-    protected $fillable = ['content', 'user_id', 'parent_id'];
+    use LogsActivity;
+
+    protected $fillable = [
+        'content',
+        'user_id',
+        'project_id',
+        'parent_id',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     public function commentable(): MorphTo
     {
@@ -22,6 +37,11 @@ class Comment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function parent(): BelongsTo
@@ -39,5 +59,24 @@ class Comment extends Model
         return $this->belongsToMany(User::class, 'comment_user')
             ->withPivot('read_at')
             ->withTimestamps();
+    }
+
+    public function scopeForTaskProject($query, $taskId, $projectId)
+    {
+        return $query->where('commentable_type', Task::class)
+            ->where('commentable_id', $taskId)
+            ->where('project_id', $projectId);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('comment')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return "Comment {$eventName} by {$user}";
+            });
     }
 }

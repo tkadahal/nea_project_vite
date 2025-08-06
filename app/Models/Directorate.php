@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class Directorate extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $dates = [
         'created_at',
@@ -28,6 +30,12 @@ class Directorate extends Model
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function departments(): BelongsToMany
@@ -45,10 +53,20 @@ class Directorate extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('directorate')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return "Directorate {$eventName} by {$user}";
+            });
+    }
+
     public function newEloquentBuilder($query): ModelBuilder
     {
-        return new ModelBuilder(
-            $query,
-        );
+        return new ModelBuilder($query);
     }
 }

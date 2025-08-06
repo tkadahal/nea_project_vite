@@ -16,12 +16,10 @@
 
 #gantt-target {
     min-width: 1200px;
-    /* Minimum width to prevent shrinking */
     width: auto !important;
-    /* Allow expansion */
 }
 
-/* Existing Gantt styles remain the same */
+/* Gantt styles */
 .gantt .grid {
     background-color: #1e293b;
     border-bottom: 1px solid #334155;
@@ -57,7 +55,7 @@
         "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
         "Noto Color Emoji";
-    --sidebar-background: hsl(var(--sidebar-wbackground));
+    --sidebar-background: hsl(var(--sidebar-background));
     --sidebar-foreground: hsl(var(--sidebar-foreground));
     --sidebar-accent: hsl(var(--sidebar-accent));
     --sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
@@ -171,34 +169,3 @@
 .dark .custom-file-input:active::before {
     background: #4b5563;
 }
-
-#toast-container {
-    position: fixed;
-    z-index: 999999;
-    pointer-events: none;
-}
-
-/* ... Paste the full contents of node_modules/toastr/build/toastr.min.css here ... */
-/* Example excerpt (replace with actual minified CSS) */
-#toast-container>* {
-    -moz-box-shadow: 0 0 12px #999;
-    -webkit-box-shadow: 0 0 12px #999;
-    box-shadow: 0 0 12px #999;
-    opacity: .9;
-}
-
-.toast {
-    z-index: 999999 !important;
-    position: fixed !important;
-    top: 20px !important;
-    right: 20px !important;
-    display: block !important;
-    opacity: 1 !important;
-}
-
-#toast-container>.toast-success {
-    background-color: #28a745 !important;
-    color: #fff !important;
-}
-
-

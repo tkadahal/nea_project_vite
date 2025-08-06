@@ -63,7 +63,7 @@ class SprintData extends Component
                 }
             }
 
-            $sprints['Sprint '.($i + 1)] = $sprintData;
+            $sprints['Sprint ' . ($i + 1)] = $sprintData;
         }
 
         return $sprints;

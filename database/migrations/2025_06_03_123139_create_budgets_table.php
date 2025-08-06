@@ -14,6 +14,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->index()->constrained();
             $table->foreignId('fiscal_year_id')->index()->constrained();
+
             $table->decimal('total_budget', 15, 2)->nullable();
             $table->decimal('internal_budget', 15, 2)->nullable();
             $table->decimal('foreign_loan_budget', 15, 2)->nullable();

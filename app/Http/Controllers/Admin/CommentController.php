@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Project;
 use App\Models\Task;
 use App\Models\Comment;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Project;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Model;
 
 class CommentController extends Controller
 {
@@ -25,9 +25,35 @@ class CommentController extends Controller
     /**
      * Store a comment for a task.
      */
-    public function storeForTask(Request $request, Task $task)
+    public function storeForTask(Request $request, Task $task, Project $project)
     {
-        return $this->storeComment($request, $task, 'admin.task.show');
+        $request->validate([
+            'content' => ['required', 'string', 'max:5000'],
+            'parent_id' => ['nullable', 'exists:comments,id'],
+            'project_id' => ['required', 'exists:projects,id'],
+        ]);
+
+        if ($request->input('project_id') != $project->id) {
+            return redirect()->back()->withErrors(['project_id' => 'Project ID mismatch']);
+        }
+
+        if (!$task->projects()->where('project_id', $project->id)->exists()) {
+            return redirect()->back()->withErrors(['project_id' => 'Task not associated with this project']);
+        }
+
+        $comment = Comment::create([
+            'content' => $request->input('content'),
+            'user_id' => Auth::id(),
+            'commentable_id' => $task->id,
+            'commentable_type' => Task::class,
+            'project_id' => $project->id,
+            'parent_id' => $request->input('parent_id'),
+        ]);
+
+        // Notify relevant users
+        $this->notifyUsers($comment, $task);
+
+        return redirect()->route('admin.task.show', [$task, $project])->with('success', 'Comment added.');
     }
 
     /**
@@ -52,6 +78,9 @@ class CommentController extends Controller
         return redirect()->route($redirectRoute, $commentable)->with('success', 'Comment added.');
     }
 
+    /**
+     * Notify users about a new comment.
+     */
     protected function notifyUsers(Comment $comment, Model $commentable)
     {
         $commentAuthor = Auth::user();

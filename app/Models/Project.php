@@ -83,7 +83,9 @@ class Project extends Model
 
     public function tasks(): BelongsToMany
     {
-        return $this->belongsToMany(Task::class, 'project_task');
+        return $this->belongsToMany(Task::class, 'project_task')
+            ->withPivot('status_id', 'progress')
+            ->withTimestamps();
     }
 
     public function calculatePhysicalProgress(): float

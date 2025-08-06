@@ -105,7 +105,7 @@ class ContractController extends Controller
         $headers = [
             trans('global.contract.fields.id'),
             trans('global.contract.fields.title'),
-            'Informations',
+            trans('global.details'),
         ];
 
         $tableData = $contracts->map(function ($contract) use ($priorityColors) {

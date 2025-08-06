@@ -92,9 +92,9 @@ class ProjectController extends Controller
             $fieldsForTable = [];
             $fieldsForTable[] = ['title' => trans('global.project.fields.start_date') . ': ' . ($project->start_date?->format('Y-m-d') ?? 'N/A'), 'color' => 'gray'];
             $fieldsForTable[] = ['title' => trans('global.project.fields.end_date') . ': ' . ($project->end_date?->format('Y-m-d') ?? 'N/A'), 'color' => 'gray'];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.budget') . ': ' . (is_numeric($project->budget) ? number_format((float) $project->budget, 2) : 'N/A'), 'color' => $budgetColor];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.latest_budget') . ': ' . (is_numeric($project->budget) ? number_format((float) $project->budget, 2) : 'N/A'), 'color' => $budgetColor];
             $fieldsForTable[] = ['title' => trans('global.project.fields.priority_id') . ': ' . $priorityValue, 'color' => $priorityDisplayColor];
-            $fieldsForTable[] = ['title' => trans('global.project.fields.progress') . ': ' . (is_numeric($project->progress) ? $project->progress . '%' : 'N/A'), 'color' => $progressColor];
+            $fieldsForTable[] = ['title' => trans('global.project.fields.physical_progress') . ': ' . (is_numeric($project->progress) ? $project->progress . '%' : 'N/A'), 'color' => $progressColor];
             $fieldsForTable[] = ['title' => trans('global.project.fields.project_manager') . ': ' . ($project->projectManager->name ?? 'N/A'), 'color' => 'gray'];
 
             return [
@@ -115,16 +115,16 @@ class ProjectController extends Controller
             $fields = [
                 ['label' => trans('global.project.fields.start_date'), 'key' => 'start_date', 'value' => $project->start_date?->format('Y-m-d') ?? 'N/A'],
                 ['label' => trans('global.project.fields.end_date'), 'key' => 'end_date', 'value' => $project->end_date?->format('Y-m-d') ?? 'N/A'],
-                ['label' => trans('global.project.fields.budget'), 'key' => 'budget', 'value' => is_numeric($project->total_budget) ? number_format((float) $project->total_budget, 2) : 'N/A'],
+                ['label' => trans('global.project.fields.latest_budget'), 'key' => 'budget', 'value' => is_numeric($project->total_budget) ? number_format((float) $project->total_budget, 2) : 'N/A'],
                 ['label' => trans('global.project.fields.priority_id'), 'key' => 'priority', 'value' => $priorityValue, 'color' => $priorityColor],
-                ['label' => trans('global.project.fields.progress'), 'key' => 'progress', 'value' => is_numeric($project->progress) ? $project->progress . '%' : 'N/A'],
+                ['label' => trans('global.project.fields.physical_progress'), 'key' => 'progress', 'value' => is_numeric($project->progress) ? $project->progress . '%' : 'N/A'],
                 ['label' => trans('global.project.fields.project_manager'), 'key' => 'project_manager', 'value' => $project->projectManager->name ?? 'N/A'],
             ];
 
             return [
                 'id' => $project->id,
                 'title' => $project->title,
-                'description' => $project->description ?? 'No description available',
+                'description' => $project->description ?? trans('global.noRecords'),
                 'directorate' => ['title' => $directorateTitle, 'id' => $directorateId],
                 'fields' => $fields,
             ];
@@ -134,6 +134,7 @@ class ProjectController extends Controller
             trans('global.project.fields.id'),
             trans('global.project.fields.title'),
             trans('global.project.fields.directorate_id'),
+            trans('global.details'),
         ];
 
         return view('admin.projects.index', [
@@ -189,7 +190,7 @@ class ProjectController extends Controller
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('files', 'public');
+                    $path = $file->store('projects', 'public');
                     $project->files()->create([
                         'filename' => $file->getClientOriginalName(),
                         'path' => $path,
@@ -242,7 +243,12 @@ class ProjectController extends Controller
             $user->comments()->updateExistingPivot($commentId, ['read_at' => now()]);
         }
 
-        return view('admin.projects.show', compact('project'));
+        // Calculate total_budget and get latest budget ID
+        $latestBudget = $project->budgets->sortByDesc('id')->first();
+        $totalBudget = $latestBudget ? (float) $latestBudget->total_budget : 0.0;
+        $latestBudgetId = $latestBudget ? $latestBudget->id : null;
+
+        return view('admin.projects.show', compact('project', 'totalBudget', 'latestBudgetId'));
     }
 
     public function edit(Project $project): View
@@ -296,7 +302,7 @@ class ProjectController extends Controller
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('files', 'public');
+                    $path = $file->store('projects', 'public');
                     $project->files()->create([
                         'filename' => $file->getClientOriginalName(),
                         'path' => $path,

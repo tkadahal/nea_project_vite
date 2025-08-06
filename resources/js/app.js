@@ -3,11 +3,10 @@ import $ from "jquery";
 import { Editor, EditorContent } from "@tiptap/vue-3";
 import StarterKit from "@tiptap/starter-kit";
 import toastr from "toastr";
+import Gantt from "frappe-gantt";
 
 window.jQuery = window.$ = $;
 window.toastr = toastr;
-
-import Gantt from "frappe-gantt";
 window.Gantt = Gantt;
 
 $(document).ready(function () {
@@ -16,14 +15,23 @@ $(document).ready(function () {
     // Set Toastr options
     toastr.options = {
         closeButton: true,
+        tapToDismiss: true,
+        timeOut: 5000,
+        extendedTimeOut: 1000,
         progressBar: true,
         positionClass: "toast-top-right",
-        timeOut: 5000,
+        preventDuplicates: true,
+        newestOnTop: true,
+        showEasing: "swing",
+        hideEasing: "linear",
+        showMethod: "fadeIn",
+        hideMethod: "fadeOut",
+        showDuration: 300,
+        hideDuration: 300,
     };
-
     console.log("Toastr initialized:", toastr);
 
-    // Initialize Tiptap editor (unchanged)
+    // Initialize Tiptap editor
     $("[data-tiptap-editor]").each(function () {
         const $container = $(this);
         const $editorContent = $container.find('[ref="editorContent"]');
@@ -47,25 +55,38 @@ $(document).ready(function () {
         });
     });
 
-    // Profile dropdown (unchanged)
-    $(".js-profile-dropdown").each(function () {
-        const $container = $(this);
-        const $dropdown = $container.find(".js-dropdown-menu");
+    // Dropdown handling for Profile, Language, and Add New
+    $(".js-profile-dropdown, .js-language-dropdown, .js-add-new-dropdown").each(
+        function () {
+            const $container = $(this);
+            const $dropdown = $container.find(".js-dropdown-menu");
 
-        $container.find(".js-toggle-dropdown").on("click", function (e) {
-            e.preventDefault();
-            $dropdown.toggleClass("hidden");
-        });
-
-        $(document).on("click", function (e) {
-            if (
-                !$container.is(e.target) &&
-                $container.has(e.target).length === 0
-            ) {
-                $dropdown.addClass("hidden");
+            if (!$dropdown.length) {
+                console.error(
+                    "Dropdown menu not found in:",
+                    $container.attr("class"),
+                );
+                return;
             }
-        });
-    });
+
+            $container.find(".js-toggle-dropdown").on("click", function (e) {
+                e.preventDefault();
+                console.log("Toggling dropdown:", $container.attr("class"));
+                $dropdown.toggleClass("hidden");
+                // Close other dropdowns
+                $(".js-dropdown-menu").not($dropdown).addClass("hidden");
+            });
+
+            $(document).on("click", function (e) {
+                if (
+                    !$container.is(e.target) &&
+                    $container.has(e.target).length === 0
+                ) {
+                    $dropdown.addClass("hidden");
+                }
+            });
+        },
+    );
 
     // Sidebar functionality
     function updateSidebarState(isOpen) {
@@ -77,26 +98,29 @@ $(document).ready(function () {
             $sidebar.removeClass("hidden").addClass("w-full md:w-64");
             $labels.removeClass("opacity-0").addClass("opacity-100");
             $chevrons.removeClass("opacity-0").addClass("opacity-100");
-            // Restore previously open submenus
             $(".js-submenu").filter(":visible").show();
         } else {
+            // Remove transition temporarily to hide instantly
+            $sidebar.css("transition", "none");
             $sidebar.addClass("hidden").removeClass("w-full md:w-64");
             $labels.removeClass("opacity-100").addClass("opacity-0");
             $chevrons.removeClass("opacity-100").addClass("opacity-0");
             $(".js-submenu").addClass("hidden");
             $(".js-chevron").removeClass("rotate-90");
+            // Restore transition after hiding
+            setTimeout(() => {
+                $sidebar.css("transition", "");
+            }, 0);
         }
 
         $sidebar.attr("data-open", isOpen);
         localStorage.setItem("sidebarState", isOpen ? "open" : "closed");
         console.log("Sidebar state:", isOpen ? "open" : "closed");
 
-        // Dispatch sidebarToggle event
         const event = new Event("sidebarToggle");
         document.body.dispatchEvent(event);
     }
 
-    // Initialize sidebar state
     const savedSidebarState = localStorage.getItem("sidebarState");
     if (savedSidebarState === "open") {
         updateSidebarState(true);
@@ -104,14 +128,29 @@ $(document).ready(function () {
         updateSidebarState(false);
     }
 
-    // Toggle sidebar
     $(".js-toggle-sidebar").on("click", function (e) {
         e.preventDefault();
         const isOpen = $(".js-sidebar").attr("data-open") === "true";
         updateSidebarState(!isOpen);
     });
 
-    // Collapsible menu
+    // Hide sidebar instantly after clicking a menu item in mobile view
+    $(".js-sidebar ul a:not([href='#'])").on("click", function (e) {
+        if (window.innerWidth < 768) {
+            e.preventDefault(); // Prevent navigation until sidebar is hidden
+            const href = $(this).attr("href");
+            console.log(
+                "Menu item clicked in mobile view, closing sidebar to:",
+                href,
+            );
+            updateSidebarState(false);
+            // Navigate after a brief delay to ensure sidebar hides
+            setTimeout(() => {
+                window.location.href = href;
+            }, 0);
+        }
+    });
+
     $(".js-collapsible-menu").each(function () {
         const $menu = $(this);
         const $toggle = $menu.find(".js-toggle-submenu");
@@ -122,13 +161,11 @@ $(document).ready(function () {
             e.preventDefault();
             const isSidebarOpen = $(".js-sidebar").attr("data-open") === "true";
             if (!isSidebarOpen) {
-                // Open sidebar and submenu
                 updateSidebarState(true);
                 $submenu.removeClass("hidden");
                 $chevron.addClass("rotate-90");
                 console.log("Sidebar expanded and submenu opened");
             } else {
-                // Toggle submenu
                 $submenu.toggleClass("hidden");
                 $chevron.toggleClass("rotate-90");
                 console.log(
@@ -139,7 +176,6 @@ $(document).ready(function () {
         });
     });
 
-    // Handle window resize
     $(window).on("resize", function () {
         const isOpen = $(".js-sidebar").attr("data-open") === "true";
         if (window.innerWidth < 768 && isOpen) {
@@ -149,7 +185,6 @@ $(document).ready(function () {
         }
     });
 
-    // Dropdown and accordion logic (unchanged)
     const emailInput = $('input[name="email"]').val();
     console.log("Email input value on load:", emailInput);
 

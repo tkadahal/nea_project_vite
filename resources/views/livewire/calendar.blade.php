@@ -1,7 +1,9 @@
 <div class="w-full">
     <!-- Header with Three-Dot Menu -->
     <div class="flex justify-between items-center mb-4 sm:mb-6">
-        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">Your Events</h2>
+        <h2 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100">
+            {{ trans('global.event.title') }}
+        </h2>
         <div class="relative">
             <button id="dropdownButton"
                 class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
@@ -11,13 +13,15 @@
                         d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                 </svg>
             </button>
-            <div id="dropdownMenu"
-                class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                <a href="{{ route('admin.event.create') }}"
-                    class="block px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Add Event
-                </a>
-            </div>
+            @can('event_create')
+                <div id="dropdownMenu"
+                    class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                    <a href="{{ route('admin.event.create') }}"
+                        class="block px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        {{ trans('global.add') }} {{ trans('global.event.title_singular') }}
+                    </a>
+                </div>
+            @endcan
         </div>
     </div>
 
@@ -76,7 +80,9 @@
                         <div class="ml-5 truncate">{{ $event['description'] ?? 'No description' }}</div>
                     </div>
                 @empty
-                    <p>No events for this date.</p>
+                    <p>
+                        {{ trans('global.noRecords') }}
+                    </p>
                 @endforelse
             </div>
         </div>

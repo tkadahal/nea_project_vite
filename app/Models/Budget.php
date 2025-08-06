@@ -10,10 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class Budget extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $dates = [
         'created_at',
@@ -40,6 +43,9 @@ class Budget extends Model
         'foreign_loan_budget' => 'decimal:2',
         'foreign_subsidy_budget' => 'decimal:2',
         'budget_revision' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function project(): BelongsTo
@@ -57,15 +63,15 @@ class Budget extends Model
         return $this->hasMany(ProjectBudgetRevision::class);
     }
 
-    // public function getRemainingBudgetAttribute(): float
-    // {
-    //     $totalSpent = $this->project->expenses()
-    //         ->where('fiscal_year_id', $this->fiscal_year_id)
-    //         ->whereIn('budget_type', ['internal', 'foreign_loan', 'foreign_subsidy'])
-    //         ->sum('amount');
+    public function getRemainingBudgetAttribute(): float
+    {
+        $totalSpent = $this->project->expenses()
+            ->where('fiscal_year_id', $this->fiscal_year_id)
+            ->whereIn('budget_type', ['internal', 'foreign_loan', 'foreign_subsidy'])
+            ->sum('amount');
 
-    //     return max(0, (float) $this->total_budget - (float) $totalSpent);
-    // }
+        return max(0, (float) $this->total_budget - (float) $totalSpent);
+    }
 
     public static function getCumulativeBudget(Project $project, FiscalYear $fiscalYear): float
     {
@@ -79,6 +85,18 @@ class Budget extends Model
         }
 
         return round($cumulative, 2);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('budget')
+            ->setDescriptionForEvent(function (string $eventName) {
+                $user = Auth::user()?->name ?? 'System';
+                return "Budget {$eventName} by {$user}";
+            });
     }
 
     public function newEloquentBuilder($query): ModelBuilder

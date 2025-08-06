@@ -26,6 +26,9 @@ class StoreBudgetRequest extends FormRequest
             'foreign_loan_budget' => 'required|numeric|min:0',
             'foreign_subsidy_budget' => 'required|numeric|min:0',
             'total_budget' => 'required|numeric|min:0',
+            'decision_date' => 'nullable|date',
+            'remarks' => 'nullable|string|max:255',
+            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ];
     }
 }

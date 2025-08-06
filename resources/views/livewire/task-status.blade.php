@@ -2,10 +2,18 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700 col-span-12 lg:col-span-8"
         id="task-status-component">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-base sm:text-sm font-semibold text-gray-800 dark:text-white">Tasks</h2>
+            <h2 class="text-base sm:text-sm font-semibold text-gray-800 dark:text-white">
+                {{ trans('global.task.title') }} {{ trans('global.status.title') }}
+            </h2>
             <div class="flex items-center space-x-4">
                 <a class="px-1 py-1 sm:px-2 sm:py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
-                    href="{{ route('admin.tasks.ganttChart') }}">CHART</a>
+                    href="{{ route('admin.tasks.ganttChart') }}">
+                    {{ trans('global.chart') }}
+                </a>
+                <a class="px-1 py-1 sm:px-2 sm:py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
+                    href="{{ route('admin.task.index') }}">
+                    {{ trans('global.viewAll') }}
+                </a>
                 <div class="relative" wire:ignore>
                     <button
                         class="dropdown-toggle-task text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white">
@@ -24,22 +32,26 @@
                                         class="w-full text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
                                         placeholder="Search directorates...">
                                 </div>
-                                <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Filter by
-                                    Directorate
+                                <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                                    {{ trans('global.filterDirectorate') }}
                                 </h3>
                                 <div class="max-h-40 overflow-y-auto custom-scroll">
                                     <button wire:click="$set('directorateFilter', null)"
                                         class="directorate-option-task block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
-                                        data-filter="all" data-name="All Directorates">All Directorates</button>
+                                        data-filter="all" data-name="All Directorates">
+                                        {{ trans('global.allDirectorate') }}
+                                    </button>
                                     @foreach ($availableDirectorates as $id => $name)
                                         <button wire:click="$set('directorateFilter', {{ $id }})"
                                             class="directorate-option-task block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
-                                            data-filter="{{ $id }}"
-                                            data-name="{{ $name }}">{{ $name }}</button>
+                                            data-filter="{{ $id }}" data-name="{{ $name }}">
+                                            {{ $name }}
+                                        </button>
                                     @endforeach
                                 </div>
                                 <div id="task-no-results" class="hidden px-3 text-sm text-gray-500 dark:text-gray-400">
-                                    No results found</div>
+                                    {{ trans('global.noRecords') }}
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -49,42 +61,63 @@
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" id="task-summary">
             {{ $tasks->where('status.title', 'Completed')->count() }} Tasks completed out of {{ $tasks->count() }}
         </p>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-gray-700 dark:text-gray-300">
+        <div class="relative overflow-x-auto">
+            <table class="w-full text-sm text-gray-700 dark:text-gray-300 min-w-[600px]">
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                        <th class="py-2 px-4 text-left">Task Name</th>
-                        <th class="py-2 px-4 text-left hidden sm:table-cell">Status</th>
-                        <th class="py-2 px-4 text-left hidden md:table-cell">Assigned to</th>
-                        <th class="py-2 px-4 text-left hidden lg:table-cell">Total time</th>
-                        <th class="py-2 px-4 text-left">Actions</th>
+                        <th class="py-2 px-4 text-left">
+                            {{ trans('global.task.fields.title') }}
+                        </th>
+                        <th class="py-2 px-4 text-left hidden sm:table-cell">
+                            {{ trans('global.task.fields.status_id') }}
+                        </th>
+                        <th class="py-2 px-4 text-left hidden md:table-cell">
+                            {{ trans('global.task.fields.user_id') }}
+                        </th>
+                        <th class="py-2 px-4 text-left hidden lg:table-cell">
+                            {{ trans('global.task.fields.total_time') }}
+                        </th>
+                        <th class="py-2 px-4 text-left">
+                            {{ trans('global.action') }}
+                        </th>
                     </tr>
                 </thead>
                 <tbody id="task-table">
                     @foreach ($tasks as $task)
                         <tr class="border-t dark:border-gray-600">
-                            <td class="py-2 px-4">
-                                {{ $task->name }}
+                            <td class="py-2 px-4 whitespace-nowrap">
+                                {{ Str::limit($task->name, 50) }}
                                 <div class="sm:hidden text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     <span
                                         class="{{ $task->status->title == 'Completed' ? 'text-green-500' : ($task->status->title == 'In-progress' ? 'text-purple-500' : 'text-red-500') }}">
                                         {{ $task->status->title }}
                                     </span>
                                     <br>
-                                    Assigned: {{ $task->assigned_to }}
+                                    Assigned:
+                                    <span
+                                        class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">
+                                        {{ $task->assigned_to }}
+                                    </span>
                                     <br>
                                     Time: {{ $task->total_time_spent }}
                                 </div>
                             </td>
-                            <td class="py-2 px-4 hidden sm:table-cell">
+                            <td class="py-2 px-4 hidden sm:table-cell whitespace-nowrap">
                                 <span
                                     class="{{ $task->status->title == 'Completed' ? 'text-green-500' : ($task->status->title == 'In-progress' ? 'text-purple-500' : 'text-red-500') }}">
                                     {{ $task->status->title }}
                                 </span>
                             </td>
-                            <td class="py-2 px-4 hidden md:table-cell">{{ $task->assigned_to }}</td>
-                            <td class="py-2 px-4 hidden lg:table-cell">{{ $task->total_time_spent }}</td>
-                            <td class="py-2 px-4">
+                            <td class="py-2 px-4 hidden md:table-cell whitespace-nowrap">
+                                <span
+                                    class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">
+                                    {{ $task->assigned_to }}
+                                </span>
+                            </td>
+                            <td class="py-2 px-4 hidden lg:table-cell whitespace-nowrap">
+                                {{ $task->total_time_spent }}
+                            </td>
+                            <td class="py-2 px-4 whitespace-nowrap">
                                 <div class="flex space-x-2">
                                     <a href="{{ route('admin.task.edit', ['task' => $task->id]) }}"
                                         class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
@@ -123,47 +156,38 @@
 
         .custom-scroll::-webkit-scrollbar-track {
             background: #e5e7eb;
-            /* gray-200 */
             border-radius: 4px;
         }
 
         .custom-scroll::-webkit-scrollbar-thumb {
             background: #9ca3af;
-            /* gray-400 */
             border-radius: 4px;
         }
 
         .custom-scroll::-webkit-scrollbar-thumb:hover {
             background: #6b7280;
-            /* gray-500 */
         }
 
         .dark .custom-scroll::-webkit-scrollbar-track {
             background: #1f2937;
-            /* gray-800 */
         }
 
         .dark .custom-scroll::-webkit-scrollbar-thumb {
             background: #4b5563;
-            /* gray-600 */
             border-radius: 4px;
         }
 
         .dark .custom-scroll::-webkit-scrollbar-thumb:hover {
             background: #374151;
-            /* gray-700 */
         }
 
-        /* Firefox */
         .custom-scroll {
             scrollbar-width: thin;
             scrollbar-color: #9ca3af #e5e7eb;
-            /* thumb: gray-400, track: gray-200 */
         }
 
         .dark .custom-scroll {
             scrollbar-color: #4b5563 #1f2937;
-            /* thumb: gray-600, track: gray-800 */
         }
     </style>
 
@@ -201,7 +225,7 @@
             $taskContainer.find('.directorate-option-task').on('click', function() {
                 const filterValue = $(this).data('filter');
                 const $dropdown = $taskContainer.find('.dropdown-menu-task');
-                $dropdown.addClass('hidden'); // Close dropdown after selection
+                $dropdown.addClass('hidden');
                 console.log('Task filter clicked:', filterValue, 'Dropdown closed');
             });
 

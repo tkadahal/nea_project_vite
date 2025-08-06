@@ -10,7 +10,7 @@
 
 <div class="overflow-x-auto">
     <div class="mb-4">
-        <input type="text" id="searchInput" placeholder="{{ __('Search...') }}"
+        <input type="text" id="searchInput" placeholder="{{ trans('global.search') }}"
             class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
@@ -54,11 +54,15 @@
                         <div class="flex space-x-2">
                             @if (in_array('view', $actions))
                                 <a href="{{ route($routePrefix . '.show', $row['id']) }}"
-                                    class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-sm">View</a>
+                                    class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-sm">
+                                    {{ trans('global.view') }}
+                                </a>
                             @endif
                             @if (in_array('edit', $actions))
                                 <a href="{{ route($routePrefix . '.edit', $row['id']) }}"
-                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm">Edit</a>
+                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm">
+                                    {{ trans('global.edit') }}
+                                </a>
                             @endif
                             @if (in_array('delete', $actions))
                                 <form action="{{ route($routePrefix . '.destroy', $row['id']) }}" method="POST"
@@ -66,7 +70,9 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                        class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-sm">Delete</button>
+                                        class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-sm">
+                                        {{ trans('global.delete') }}
+                                    </button>
                                 </form>
                             @endif
                         </div>

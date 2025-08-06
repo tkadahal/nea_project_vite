@@ -1,21 +1,25 @@
 <x-layouts.app>
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('User') }}</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Update User') }}</p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {{ trans('global.user.title') }}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.edit') }} {{ trans('global.user.title_singular') }}
+            </p>
         </div>
         <a href="{{ route('admin.user.index') }}"
             class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
                   focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
                   dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
-            Back to Users
+            {{ trans('global.back_to_list') }}
         </a>
     </div>
 
     <div class="flex flex-col md:flex-row gap-6">
         <div class="flex-1">
             <div
-                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 p-6">
+                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 p-6">
                 <form class="max-w-3xl mx-auto" action="{{ route('admin.user.update', $user) }}" method="POST">
                     @csrf
                     @method('PUT')
@@ -42,49 +46,49 @@
                         </button>
                     </div>
 
-                    <!-- User Information Section -->
                     <div
                         class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('User Information') }}
+                            {{ trans('global.user.title_singular') }} {{ trans('global.information') }}
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <x-forms.input label="Employee Id" name="employee_id" type="number" :value="old('employee_id', $user->employee_id)"
-                                    :error="$errors->first('employee_id')" />
+                                <x-forms.input label="{{ trans('global.user.fields.employee_id') }}" name="employee_id"
+                                    type="number" :value="old('employee_id', $user->employee_id)" :error="$errors->first('employee_id')" />
                             </div>
                             <div>
-                                <x-forms.input label="Name" name="name" type="text" :value="old('name', $user->name)"
-                                    :error="$errors->first('name')" />
+                                <x-forms.input label="{{ trans('global.user.fields.name') }}" name="name"
+                                    type="text" :value="old('name', $user->name)" :error="$errors->first('name')" />
                             </div>
                             <div>
-                                <x-forms.input label="Mobile Number" name="mobile_number" type="number"
-                                    :value="old('mobile_number', $user->mobile_number)" :error="$errors->first('mobile_number')" />
+                                <x-forms.input label="{{ trans('global.user.fields.mobile_number') }}"
+                                    name="mobile_number" type="number" :value="old('mobile_number', $user->mobile_number)" :error="$errors->first('mobile_number')" />
                             </div>
                             <div>
-                                <x-forms.input label="Email" name="email" type="email" :value="old('email', $user->email)"
-                                    :error="$errors->first('email')" />
+                                <x-forms.input label="{{ trans('global.user.fields.email') }}" name="email"
+                                    type="email" :value="old('email', $user->email)" :error="$errors->first('email')" />
                             </div>
                             <div>
-                                <x-forms.input label="Password" name="password" type="password" :error="$errors->first('password')" />
+                                <x-forms.input label="{{ trans('global.user.fields.password') }}" name="password"
+                                    type="password" :error="$errors->first('password')" />
                             </div>
                             @if (!$isDirectorateOrProjectUser)
                                 <div>
-                                    <x-forms.multi-select label="Role" name="roles[]" id="roles" :options="collect($roles)
-                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                        ->values()
-                                        ->all()"
-                                        :selected="old(
+                                    <x-forms.multi-select label="{{ trans('global.user.fields.roles') }}"
+                                        name="roles[]" id="roles" :options="collect($roles)
+                                            ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                            ->values()
+                                            ->all()" :selected="old(
                                             'roles',
                                             $user->roles->pluck('id')->map(fn($id) => (string) $id)->toArray(),
-                                        )" placeholder="Select role" :error="$errors->first('roles')" />
+                                        )"
+                                        placeholder="Select role" :error="$errors->first('roles')" />
                                 </div>
                             @endif
                         </div>
                     </div>
 
-                    <!-- Assignment Section -->
                     <div
                         class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
@@ -94,33 +98,35 @@
                         <div class="grid grid-cols-1 gap-6">
                             @if (!$isDirectorateOrProjectUser)
                                 <div>
-                                    <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
-                                        :options="collect($directorates)
+                                    <x-forms.select label="{{ trans('global.user.fields.directorate_id') }}"
+                                        name="directorate_id" id="directorate_id" :options="collect($directorates)
                                             ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                             ->values()
-                                            ->all()" :selected="old('directorate_id', (string) $user->directorate_id)" placeholder="Select directorate"
-                                        :error="$errors->first('directorate_id')" />
+                                            ->all()" :selected="old('directorate_id', (string) $user->directorate_id)"
+                                        placeholder="Select directorate" :error="$errors->first('directorate_id')" />
                                 </div>
                             @endif
                             <div>
-                                <x-forms.multi-select label="Projects" name="projects[]" id="projects"
-                                    :options="collect($projects)
+                                <x-forms.multi-select label="{{ trans('global.user.fields.projects') }}"
+                                    name="projects[]" id="projects" :options="collect($projects)
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                         ->values()
                                         ->all()" :selected="old(
                                         'projects',
                                         $user->projects->pluck('id')->map(fn($id) => (string) $id)->toArray(),
-                                    )" placeholder="Select projects"
-                                    :error="$errors->first('projects')" />
+                                    )"
+                                    placeholder="Select projects" :error="$errors->first('projects')" />
                             </div>
                         </div>
                     </div>
 
                     <div class="flex space-x-2">
-                        <x-buttons.primary>{{ __('Update') }}</x-buttons.primary>
+                        <x-buttons.primary>
+                            {{ trans('global.save') }}
+                        </x-buttons.primary>
                         <a href="{{ route('admin.user.index') }}"
                             class="px-4 py-2 text-sm text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500">
-                            {{ __('Cancel') }}
+                            {{ trans('global.cancel') }}
                         </a>
                     </div>
                 </form>
@@ -150,23 +156,18 @@
             waitForJQuery(function() {
                 const $ = jQuery;
 
-                // Store projects data for debugging
                 window.debugProjectsData = [];
 
-                // Find the Projects multi-select by data-name
                 const $projectsContainer = $('.js-multi-select[data-name="projects"]');
                 console.log('Projects container found:', $projectsContainer.length, 'ID:', $projectsContainer.attr(
                     'id'));
 
-                // Get initial selected projects from user
                 const userProjects = @json($user->projects->pluck('id')->map(fn($id) => (string) $id)->toArray());
                 console.log('Initial user projects:', userProjects);
 
-                // Get initial options from Blade
                 const initialOptions = @json(collect($projects)->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])->values()->all());
                 console.log('Initial options:', initialOptions);
 
-                // Initialize projects dropdown with existing data
                 $projectsContainer
                     .data('options', initialOptions)
                     .data('selected', userProjects)
@@ -176,7 +177,6 @@
                     });
                 console.log('Initial projects set:', initialOptions, 'Selected:', userProjects);
 
-                // AJAX handler for projects (for non-directorate/project users)
                 @if (!$isDirectorateOrProjectUser)
                     $('input[name="directorate_id"].js-hidden-input').on('change', function() {
                         const directorateId = $(this).val();
@@ -198,7 +198,7 @@
                         const $optionsContainer = $projectsContainer.find('.js-options-container');
                         $optionsContainer.empty().append(
                             '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading...</div>'
-                            );
+                        );
 
                         const projectsUrl = '{{ route('admin.users.projects', ':directorateId') }}'.replace(
                             ':directorateId', encodeURIComponent(directorateId));
@@ -219,10 +219,9 @@
                                     data.map(project => ({
                                         value: String(project.value),
                                         label: String(project.label)
-                                    })).filter(opt => opt.value && opt.label) :
-                                    [];
+                                    })).filter(opt => opt.value && opt.label) : [];
                                 console.log('Formatted projects:', formattedData);
-                                window.debugProjectsData = formattedData; // Store for inspection
+                                window.debugProjectsData = formattedData;
                                 const validOldProjects = @json(old('projects', []))
                                     .length > 0 ?
                                     @json(old('projects', [])) :
@@ -267,7 +266,6 @@
                         });
                     });
 
-                    // Trigger initial change for pre-selected directorate
                     const preSelected = $('input[name="directorate_id"].js-hidden-input').val();
                     if (preSelected && !isNaN(preSelected) && preSelected > 0) {
                         console.log('Initial directorate:', preSelected);
@@ -279,7 +277,6 @@
                     }
                 @endif
 
-                // Close error message
                 $('#close-error').on('click', function() {
                     $('#error-message').addClass('hidden').find('#error-text').text('');
                 });

@@ -43,13 +43,13 @@
                 @if (in_array('view', $actions))
                     <a href="{{ route($routePrefix . '.show', $id) }}"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        {{ __('View') }}
+                        {{ trans('global.view') }}
                     </a>
                 @endif
                 @if (in_array('edit', $actions))
                     <a href="{{ route($routePrefix . '.edit', $id) }}"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        {{ __('Edit') }}
+                        {{ trans('global.edit') }}
                     </a>
                 @endif
                 @if (in_array('delete', $actions))
@@ -59,7 +59,7 @@
                         @method('DELETE')
                         <button type="submit"
                             class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            {{ __('Delete') }}
+                            {{ trans('global.delete') }}
                         </button>
                     </form>
                 @endif
@@ -86,12 +86,14 @@
     <div class="mt-4">
         <div class="flex justify-end">
             <button type="button"
-                class="accordion-toggle flex items-center px-3 py-1 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none"
+                class="accordion-toggle text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center mt-1"
                 data-accordion="{{ $accordionId }}" aria-expanded="false" aria-controls="{{ $accordionId }}">
-                <span class="text-sm">{{ __('More Details') }}</span>
-                <svg class="w-4 h-4 ml-2 transform transition-transform accordion-icon" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                <span class="text-sm">
+                    {{ trans('global.view_details') }} &nbsp;
+                </span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
             </button>
         </div>

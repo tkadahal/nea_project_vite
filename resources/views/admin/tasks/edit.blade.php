@@ -1,17 +1,23 @@
 <x-layouts.app>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Task') }}</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Update Task') }}</p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {{ trans('global.task.title') }}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {{ trans('global.edit') }} {{ trans('global.task.title') }}
+            </p>
         </div>
-        <a href="{{ route('admin.task.index') }}"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
+
+        @can('task_access')
+            <a href="{{ route('admin.task.index') }}"
+                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
                   focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
                   dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
-            Back to Tasks
-        </a>
+                {{ trans('global.back_to_list') }}
+            </a>
+        @endcan
     </div>
 
     <div
@@ -48,50 +54,55 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Task Information') }}
+                            {{ trans('global.task.title_singular') }} {{ trans('global.information') }}
                         </h3>
                         <div class="grid grid-cols-1 gap-6">
                             <div class="col-span-full">
-                                <x-forms.select label="Directorate" name="directorate_id" id="directorate_id"
-                                    :options="collect($directorates)
+                                <x-forms.select label="{{ trans('global.task.fields.directorate_id') }}"
+                                    name="directorate_id" id="directorate_id" :options="collect($directorates)
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                         ->values()
-                                        ->all()" :selected="old('directorate_id', (string) $task->directorate_id)" placeholder="Select directorate"
-                                    :error="$errors->first('directorate_id')" class="js-single-select" />
+                                        ->all()" :selected="old('directorate_id', (string) $task->directorate_id)"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('directorate_id')"
+                                    class="js-single-select" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.multi-select label="Projects" name="projects[]" id="projects"
-                                    :options="collect($projects)
+                                <x-forms.multi-select label="{{ trans('global.task.fields.project_id') }}"
+                                    name="projects[]" id="projects" :options="collect($projects)
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                         ->values()
                                         ->all()" :selected="old(
                                         'projects',
                                         $task->projects->pluck('id')->map(fn($id) => (string) $id)->toArray(),
-                                    )" placeholder="Select projects" :error="$errors->first('projects')"
+                                    )"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('projects')"
                                     class="js-multi-select" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.multi-select label="Assignees" name="users[]" id="users" :options="collect($users)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old(
+                                <x-forms.multi-select label="{{ trans('global.task.fields.user_id') }}" name="users[]"
+                                    id="users" :options="collect($users)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()" :selected="old(
                                         'users',
                                         $task->users->pluck('id')->map(fn($id) => (string) $id)->toArray(),
-                                    )" placeholder="Select assignees" :error="$errors->first('users')"
+                                    )"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('users')"
                                     class="js-multi-select" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.input label="Title" name="title" type="text" :value="old('title', $task->title)"
-                                    placeholder="Enter task title" :error="$errors->first('title')" />
+                                <x-forms.input label="{{ trans('global.task.fields.title') }}" name="title"
+                                    type="text" :value="old('title', $task->title)" placeholder="Enter task title"
+                                    :error="$errors->first('title')" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.text-area label="Description" name="description" :value="old('description', $task->description)"
-                                    placeholder="Enter task description" :error="$errors->first('description')" rows="5" />
+                                <x-forms.text-area label="{{ trans('global.task.fields.description') }}"
+                                    name="description" :value="old('description', $task->description)" placeholder="Enter task description"
+                                    :error="$errors->first('description')" rows="5" />
                             </div>
                         </div>
                     </div>
@@ -101,26 +112,26 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Dates') }}
+                            {{ trans('global.task.headers.date_progress') }}
                         </h3>
                         <div class="grid grid-cols-1 gap-6">
                             <div>
-                                <x-forms.date-input label="Start Date" name="start_date" :value="old(
-                                    'start_date',
-                                    $task->start_date ? $task->start_date->format('Y-m-d') : '',
-                                )"
-                                    :error="$errors->first('start_date')" />
+                                <x-forms.date-input label="{{ trans('global.task.fields.start_date') }}"
+                                    name="start_date" :value="old(
+                                        'start_date',
+                                        $task->start_date ? $task->start_date->format('Y-m-d') : '',
+                                    )" :error="$errors->first('start_date')" />
                             </div>
                             <div>
-                                <x-forms.date-input label="Due Date" name="due_date" :value="old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '')"
-                                    :error="$errors->first('due_date')" />
+                                <x-forms.date-input label="{{ trans('global.task.fields.due_date') }}" name="due_date"
+                                    :value="old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '')" :error="$errors->first('due_date')" />
                             </div>
                             <div>
-                                <x-forms.date-input label="Completion Date" name="completion_date" :value="old(
-                                    'completion_date',
-                                    $task->completion_date ? $task->completion_date->format('Y-m-d') : '',
-                                )"
-                                    :error="$errors->first('completion_date')" />
+                                <x-forms.date-input label="{{ trans('global.task.fields.completion_date') }}"
+                                    name="completion_date" :value="old(
+                                        'completion_date',
+                                        $task->completion_date ? $task->completion_date->format('Y-m-d') : '',
+                                    )" :error="$errors->first('completion_date')" />
                             </div>
                         </div>
                     </div>
@@ -128,23 +139,25 @@
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Status & Priority') }}
+                            {{ trans('global.task.headers.status_priority') }}
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <x-forms.select label="Status" name="status_id" id="status_id" :options="collect($statuses)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('status_id', (string) $task->status_id)" placeholder="Select status" :error="$errors->first('status_id')"
+                                <x-forms.select label="{{ trans('global.task.fields.status_id') }}" name="status_id"
+                                    id="status_id" :options="collect($statuses)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()" :selected="old('status_id', (string) $task->status_id)"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('status_id')"
                                     class="js-single-select" />
                             </div>
                             <div>
-                                <x-forms.select label="Priority" name="priority_id" id="priority_id" :options="collect($priorities)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                    ->values()
-                                    ->all()"
-                                    :selected="old('priority_id', (string) $task->priority_id)" placeholder="Select priority" :error="$errors->first('priority_id')"
+                                <x-forms.select label="{{ trans('global.task.fields.priority_id') }}"
+                                    name="priority_id" id="priority_id" :options="collect($priorities)
+                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                        ->values()
+                                        ->all()" :selected="old('priority_id', (string) $task->priority_id)"
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('priority_id')"
                                     class="js-single-select" />
                             </div>
                         </div>
@@ -152,11 +165,13 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end space-x-2">
-                <x-buttons.primary>{{ __('Update') }}</x-buttons.primary>
+            <div class="mt-8">
+                <x-buttons.primary>
+                    {{ trans('global.save') }}
+                </x-buttons.primary>
                 <a href="{{ route('admin.task.index') }}"
-                    class="px-4 py-2 text-sm text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500">
-                    {{ __('Cancel') }}
+                    class="px-4 py-2 text-sm text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 ml-2">
+                    {{ trans('global.cancel') }}
                 </a>
             </div>
         </form>

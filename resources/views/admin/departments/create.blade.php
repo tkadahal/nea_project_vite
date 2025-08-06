@@ -1,15 +1,17 @@
 <x-layouts.app>
-    <!-- Page Title -->
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ __('Department') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Create new department') }}</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {{ trans('global.department.title') }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">
+            {{ trans('global.create') }} {{ trans('global.department.title_singular') }}
+        </p>
     </div>
 
     <div class="flex flex-col md:flex-row gap-6">
         <div class="flex-1">
             <div
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 p-6">
-                {{-- Form container with max-width and auto margins for centering --}}
                 <form class="max-w-3xl mx-auto" action="{{ route('admin.department.store') }}" method="POST">
                     @csrf
 
@@ -23,7 +25,6 @@
                         </div>
                     @endif
 
-                    {{-- Error message display block (hidden by default) --}}
                     <div id="error-message"
                         class="mb-6 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative">
                         <span id="error-text"></span>
@@ -36,30 +37,30 @@
                         </button>
                     </div>
 
-                    {{-- Department Information Section --}}
                     <div
                         class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Department Information') }}
+                            {{ trans('global.department.title_singular') }} {{ trans('global.information') }}
                         </h3>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="col-span-full">
-                                <x-forms.input label="Title" name="title" type="text" :value="old('title')"
-                                    :error="$errors->first('title')" />
+                                <x-forms.input label="{{ trans('global.department.fields.title') }}" name="title"
+                                    type="text" :value="old('title')" :error="$errors->first('title')" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.text-area label="Description" name="description" :value="old('description')"
-                                    :error="$errors->first('description')" />
+                                <x-forms.text-area label="{{ trans('global.department.fields.description') }}"
+                                    name="description" :value="old('description')" :error="$errors->first('description')" />
                             </div>
                         </div>
                     </div>
-                    {{-- End Department Information Section --}}
 
                     <div class="mt-8">
-                        <x-buttons.primary>{{ __('Save') }}</x-buttons.primary>
+                        <x-buttons.primary>
+                            {{ trans('global.save') }}
+                        </x-buttons.primary>
                     </div>
                 </form>
             </div>

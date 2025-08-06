@@ -2,10 +2,10 @@
     {{-- Page Title --}}
     <div class="mb-6 px-4 sm:px-6 lg:px-8">
         <h1 class="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-800 dark:text-gray-200">
-            {{ __('Project Analytics') }}
+            {{ trans('global.analytics.project.title') }}
         </h1>
         <p class="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-400 mt-1">
-            {{ __('Analyze project progress, budgets, and resource allocation') }}
+            {{ trans('global.analytics.project.headerInfo') }}
         </p>
     </div>
 
@@ -15,40 +15,44 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 @if (auth()->user()->hasRole(\App\Models\Role::SUPERADMIN))
                     <div class="w-full">
-                        <x-forms.select label="Directorate" name="directorate_id" :options="collect($directorates)
-                            ->map(
-                                fn($directorate) => [
-                                    'value' => (string) $directorate->id,
-                                    'label' => $directorate->title,
-                                ],
-                            )
-                            ->values()
-                            ->all()" :selected="request()->input('directorate_id')
-                            ? (string) request()->input('directorate_id')
-                            : null"
-                            placeholder="Select a Directorate..." />
+                        <x-forms.select label="{{ trans('global.directorate.title') }}" name="directorate_id"
+                            :options="collect($directorates)
+                                ->map(
+                                    fn($directorate) => [
+                                        'value' => (string) $directorate->id,
+                                        'label' => $directorate->title,
+                                    ],
+                                )
+                                ->values()
+                                ->all()" :selected="request()->input('directorate_id')
+                                ? (string) request()->input('directorate_id')
+                                : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                     </div>
                 @endif
                 <div class="w-full">
-                    <x-forms.select label="Department" name="department_id" :options="collect($departments)
-                        ->map(fn($department) => ['value' => (string) $department->id, 'label' => $department->title])
-                        ->values()
-                        ->all()" :selected="request()->input('department_id') ? (string) request()->input('department_id') : null"
-                        placeholder="Select a Department..." />
+                    <x-forms.select label="{{ trans('global.department.title') }}" name="department_id"
+                        :options="collect($departments)
+                            ->map(
+                                fn($department) => ['value' => (string) $department->id, 'label' => $department->title],
+                            )
+                            ->values()
+                            ->all()" :selected="request()->input('department_id')
+                            ? (string) request()->input('department_id')
+                            : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                 </div>
                 <div class="w-full">
-                    <x-forms.select label="Status" name="status_id" :options="collect($statuses)
+                    <x-forms.select label="{{ trans('global.status.title') }}" name="status_id" :options="collect($statuses)
                         ->map(fn($status) => ['value' => (string) $status->id, 'label' => $status->title])
                         ->values()
-                        ->all()" :selected="request()->input('status_id') ? (string) request()->input('status_id') : null"
-                        placeholder="Select a Status..." />
+                        ->all()"
+                        :selected="request()->input('status_id') ? (string) request()->input('status_id') : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                 </div>
                 <div class="w-full">
-                    <x-forms.select label="Priority" name="priority_id" :options="collect($priorities)
+                    <x-forms.select label="{{ trans('global.priority.title') }}" name="priority_id" :options="collect($priorities)
                         ->map(fn($priority) => ['value' => (string) $priority->id, 'label' => $priority->title])
                         ->values()
-                        ->all()" :selected="request()->input('priority_id') ? (string) request()->input('priority_id') : null"
-                        placeholder="Select a Priority..." />
+                        ->all()"
+                        :selected="request()->input('priority_id') ? (string) request()->input('priority_id') : null" placeholder="{{ trans('global.pleaseSelect') }}" />
                 </div>
             </div>
         </div>
@@ -57,28 +61,35 @@
     {{-- Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 px-4 sm:px-6 lg:px-8">
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Total Projects
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.project.fields.total_project') }}
             </h3>
             <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">{{ $summary['total_projects'] }}
             </p>
         </div>
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Completed
-                Projects</h3>
-            <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
-                {{ $summary['completed_projects'] }}</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Overdue Projects
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.project.fields.completed_project') }}
             </h3>
             <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
-                {{ $summary['overdue_projects'] }}</p>
+                {{ $summary['completed_projects'] }}
+            </p>
         </div>
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Avg. Physical
-                Progress</h3>
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.project.fields.overdue_project') }}
+            </h3>
             <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
-                {{ $summary['average_progress'] }}%</p>
+                {{ $summary['overdue_projects'] }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {{ trans('global.analytics.project.fields.avg_physical_progress') }}
+            </h3>
+            <p class="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-400">
+                {{ $summary['average_progress'] }}%
+            </p>
         </div>
     </div>
 
@@ -89,14 +100,16 @@
             <div class="space-y-6">
                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-                        Progress Comparison</h3>
+                        {{ trans('global.analytics.project.fields.progress_comparision') }}
+                    </h3>
                     <div class="relative h-64 sm:h-80 lg:h-96">
                         <canvas id="progressChart"></canvas>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                     <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-                        Task/Contract Distribution</h3>
+                        {{ trans('global.analytics.project.fields.task_contract_distribution') }}
+                    </h3>
                     <div class="relative w-full max-w-[160px] sm:max-w-[200px] aspect-square mx-auto">
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="text-center">
@@ -104,7 +117,9 @@
                                     id="taskContractPercentage">
                                     {{ round(array_sum($charts['task_contract']['data']) ? ($charts['task_contract']['data'][0] / array_sum($charts['task_contract']['data'])) * 100 : 0) }}%
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Main Category</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    Main Category
+                                </p>
                             </div>
                         </div>
                         <canvas id="taskContractChart" class="w-full h-full"></canvas>
@@ -113,12 +128,16 @@
                         <div class="text-center">
                             <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#10b981] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
-                            <span>Tasks</span>
+                            <span>
+                                {{ trans('global.task.title') }}
+                            </span>
                         </div>
                         <div class="text-center">
                             <div class="w-2 h-2 sm:w-3 sm:h-3 bg-[#ef4444] rounded-full inline-block mr-1 sm:mr-2">
                             </div>
-                            <span>Contracts</span>
+                            <span>
+                                {{ trans('global.contract.title') }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -129,9 +148,10 @@
         <div class="md:col-span-4 lg:col-span-3">
             <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">Project
-                        Details</h3>
-                    <a href=""
+                    <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                        {{ trans('global.analytics.project.fields.project_details') }}
+                    </h3>
+                    <a href="{{ route('admin.projects.analytics.export') }}"
                         class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm sm:text-base">
                         Export to CSV
                     </a>
@@ -142,35 +162,35 @@
                             <tr>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Title
+                                    {{ trans('global.project.fields.title') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
-                                    Directorate
+                                    {{ trans('global.project.fields.directorate_id') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Status
+                                    {{ trans('global.project.fields.status_id') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                                    Priority
+                                    {{ trans('global.project.fields.priority_id') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                                    Physical Progress
+                                    {{ trans('global.project.fields.physical_progress') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
-                                    Financial Progress
+                                    {{ trans('global.project.fields.financial_progress') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                                    Remaining Budget
+                                    {{ trans('global.analytics.project.fields.remaining_budget') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                                    Days Remaining
+                                    {{ trans('global.analytics.project.fields.remaining_days') }}
                                 </th>
                             </tr>
                         </thead>
@@ -310,7 +330,7 @@
                         const statusId = document.querySelector('input[name="status_id"]')?.value || '';
                         const priorityId = document.querySelector('input[name="priority_id"]')?.value || '';
 
-                        const url = new URL('{{ route('admin.projects.analytics') }}', window.location.origin);
+                        const url = new URL('{{ route('admin.analytics.project') }}', window.location.origin);
                         if (directorateId) url.searchParams.set('directorate_id', directorateId);
                         if (departmentId) url.searchParams.set('department_id', departmentId);
                         if (statusId) url.searchParams.set('status_id', statusId);
@@ -357,7 +377,7 @@
                             const statusId = jQuery('input[name="status_id"]').val() || '';
                             const priorityId = jQuery('input[name="priority_id"]').val() || '';
 
-                            const url = new URL('{{ route('admin.projects.analytics') }}', window.location.origin);
+                            const url = new URL('{{ route('admin.analytics.project') }}', window.location.origin);
                             if (directorateId) url.searchParams.set('directorate_id', directorateId);
                             if (departmentId) url.searchParams.set('department_id', departmentId);
                             if (statusId) url.searchParams.set('status_id', statusId);
