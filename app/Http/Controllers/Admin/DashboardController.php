@@ -97,8 +97,8 @@ class DashboardController extends Controller
         return [
             ['title' => trans('global.user.title'), 'number' => User::where('directorate_id', $directorateId)->count(), 'url' => route('admin.user.index')],
             ['title' => trans('global.project.title'), 'number' => Project::where('directorate_id', $directorateId)->count(), 'url' => route('admin.project.index')],
-            ['title' => trans('global.contract.title'), 'number' => Contract::whereHas('project', fn ($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.contract.index')],
-            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn ($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.task.index')],
+            ['title' => trans('global.contract.title'), 'number' => Contract::whereHas('project', fn($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.contract.index')],
+            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn($q) => $q->where('directorate_id', $directorateId))->count(), 'url' => route('admin.task.index')],
         ];
     }
 
@@ -110,9 +110,9 @@ class DashboardController extends Controller
         $distinctUserCount = $projectIds->isEmpty()
             ? 0
             : DB::table('project_user')
-                ->whereIn('project_id', $projectIds)
-                ->distinct('user_id')
-                ->count('user_id');
+            ->whereIn('project_id', $projectIds)
+            ->distinct('user_id')
+            ->count('user_id');
 
         if ($projectIds->isEmpty()) {
             return [
@@ -127,7 +127,7 @@ class DashboardController extends Controller
             ['title' => trans('global.user.title'), 'number' => $distinctUserCount, 'url' => route('admin.user.index')],
             ['title' => trans('global.project.title'), 'number' => $projectIds->count(), 'url' => route('admin.project.index')],
             ['title' => trans('global.contract.title'), 'number' => Contract::whereIn('project_id', $projectIds)->count(), 'url' => route('admin.contract.index')],
-            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn ($q) => $q->whereIn('id', $projectIds))->count(), 'url' => route('admin.task.index')],
+            ['title' => trans('global.task.title'), 'number' => Task::whereHas('projects', fn($q) => $q->whereIn('id', $projectIds))->count(), 'url' => route('admin.task.index')],
         ];
     }
 

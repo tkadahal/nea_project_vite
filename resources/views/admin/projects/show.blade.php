@@ -12,14 +12,20 @@
             </p>
         </div>
         <div class="flex flex-wrap gap-3">
+            @can('budget_create')
+                <a href="{{ route('admin.budget.create') }}?project_id={{ $project->id }}"
+                    class="px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-500 dark:hover:text-white dark:focus:ring-offset-gray-900 text-sm"
+                    aria-label="{{ trans('global.add') }} {{ trans('global.budget.title_singular') }}">
+                    {{ trans('global.add') }} {{ trans('global.budget.title_singular') }}
+                </a>
+            @endcan
             @can('expense_access')
                 <a href="{{ route('admin.expense.index') }}"
                     class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
-                    aria-label="{{ trans('global.show') }}  {{ trans('global.expense.title') }}">
+                    aria-label="{{ trans('global.show') }} {{ trans('global.expense.title') }}">
                     {{ trans('global.show') }} {{ trans('global.expense.title') }}
                 </a>
             @endcan
-
             @can('project_access')
                 <a href="{{ route('admin.project.index') }}"
                     class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 text-sm"
@@ -32,7 +38,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-y-6 md:gap-6">
         <div
-            class="md:col-span-2 bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col">
+            class="md:col-span-2 bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-full flex flex-col">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-grow">
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -297,7 +303,7 @@
         </div>
 
         <div
-            class="md:col-span-1 bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col">
+            class="md:col-span-1 bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-full flex flex-col">
             <button type="button"
                 class="flex items-center w-full text-lg font-bold text-gray-800 dark:text-gray-100 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none mb-4"
                 onclick="toggleSection('comments-section')" aria-expanded="true" aria-controls="comments-section">
@@ -307,7 +313,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
-            <div id="comments-section" class="flex-grow overflow-y-auto pr-2" style="max-height: 300px;">
+            <div id="comments-section" class="flex-grow overflow-y-auto pr-2">
                 @if ($project->comments->isEmpty())
                     <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">
                         {{ __('No comments yet. Be the first to add one!') }}</p>

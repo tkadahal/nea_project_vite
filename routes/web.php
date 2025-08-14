@@ -24,6 +24,7 @@ use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\ContractExtensionController;
 
 // Route::get('/', function () {
 //     return redirect()->route('login');
@@ -82,16 +83,32 @@ Route::group(
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);
 
-        Route::get('/task/{task}/{project}', [TaskController::class, 'show'])->name('task.show');
+        Route::get('contract/{contract}/extensions/create', [ContractExtensionController::class, 'create'])->name('contract.extensions.create');
+        Route::post('contract/{contract}/extensions', [ContractExtensionController::class, 'store'])->name('contract.extensions.store');
+        Route::get('contract/{contract}/extensions/{extension}/edit', [ContractExtensionController::class, 'edit'])->name('contract.extensions.edit');
+        Route::put('contract/{contract}/extensions/{extension}', [ContractExtensionController::class, 'update'])->name('contract.extensions.update');
+        Route::delete('contract/{contract}/extensions/{extension}', [ContractExtensionController::class, 'destroy'])->name('contract.extensions.destroy');
+
+        Route::get('/task/{task}/{project?}', [TaskController::class, 'show'])
+            ->name('task.show')
+            ->where(['task' => '[0-9]+', 'project' => '[0-9]+']);
+        Route::get('/task/{task}/edit/{project?}', [TaskController::class, 'edit'])
+            ->name('task.edit')
+            ->where(['task' => '[0-9]+', 'project' => '[0-9]+']);
+        Route::put('/task/{task}/update/{project?}', [TaskController::class, 'update'])
+            ->name('task.update')
+            ->where(['task' => '[0-9]+', 'project' => '[0-9]+']);
         Route::post('/task/load-more', [TaskController::class, 'loadMore'])->name('task.loadMore');
         Route::post('/task/updateStatus', [TaskController::class, 'updateStatus'])->name('task.updateStatus');
         Route::post('/tasks/filter', [TaskController::class, 'filter'])->name('tasks.filter');
         Route::post('/tasks/set-view', [TaskController::class, 'setViewPreference'])->name('task.set-view');
         Route::get('/tasks/gantt-chart', [TaskController::class, 'getGanttChart'])->name('tasks.ganttChart');
         Route::get('/tasks/users-by-projects', [TaskController::class, 'getUsersByProjects'])->name('tasks.users_by_projects');
+        Route::get('/tasks/users-by-directorate-or-department', [TaskController::class, 'getUsersByDirectorateOrDepartment'])->name('tasks.users_by_directorate_or_department');
         Route::get('/tasks/projects/{directorate_id}', [TaskController::class, 'getProjects'])->name('tasks.projects');
-        Route::post('/tasks/{task}/{project}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
-        Route::resource('task', TaskController::class)->except(['show']);
+        Route::get('/tasks/departments/{directorate_id}', [TaskController::class, 'getDepartments'])->name('tasks.departments');
+        Route::post('/tasks/{task}/{project?}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
+        Route::resource('task', TaskController::class)->except(['show', 'edit', 'update']);
 
         Route::resource('event', EventController::class);
 

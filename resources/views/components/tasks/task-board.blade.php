@@ -1,4 +1,4 @@
-@props(['tasks', 'statuses', 'statusColors', 'priorityColors'])
+@props(['tasks', 'statuses', 'statusColors', 'priorityColors', 'directorates', 'departments'])
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     @foreach ($statuses as $status)
@@ -7,26 +7,29 @@
                 $columnHeaderColor = $statusColors[$status->id] ?? 'gray';
                 $statusTasks = ($tasks[$status->id] ?? collect())->values()->toArray();
                 $visibleTasks = array_slice($statusTasks, 0, 5);
-                \Illuminate\Support\Facades\Log::debug('Task count for status', [
-                    'status_id' => $status->id,
-                    'status_title' => $status->title,
-                    'task_count' => count($statusTasks),
+                \Log::debug("Status {$status->id} ({$status->title}) tasks:", [
+                    'count' => count($statusTasks),
                     'tasks' => $statusTasks,
                 ]);
             @endphp
             <div class="text-white p-3 rounded-t-md" style="background-color: {{ $columnHeaderColor }};">
-                <h4 class="font-bold m-0">{{ $status->title }} ({{ count($statusTasks) }})</h4>
+                <h4 class="font-bold m-0">{{ $status->title }} (<span class="task-count">{{ count($statusTasks) }}</span>)
+                </h4>
             </div>
             <div class="kanban-list bg-gray-50 dark:bg-gray-700 p-3 rounded-b-md" id="status_{{ $status->id }}"
                 data-status-id="{{ $status->id }}">
                 @foreach ($visibleTasks as $task)
                     <div class="card-item bg-white dark:bg-gray-800 p-4 rounded-md shadow-md mb-3 kanban-item"
-                        data-id="{{ $task['id'] }}" data-project-id="{{ $task['project_id'] }}"
-                        data-search="{{ strtolower($task['title'] . ' ' . ($task['description'] ?? '') . ' ' . ($task['priority']['title'] ?? '') . ' ' . ($task['status']['title'] ?? '')) }}"
-                        data-status-id="{{ $task['status_id'] ?? $status->id }}"
-                        data-priority-id="{{ $task['priority_id'] ?? '' }}">
+                        data-task-id="{{ $task['id'] }}" data-project-id="{{ $task['project_id'] ?? '' }}"
+                        data-directorate-id="{{ $task['directorate_id'] ?? '' }}"
+                        data-department-id="{{ $task['department_id'] ?? '' }}"
+                        data-priority-id="{{ $task['priority_id'] ?? '' }}"
+                        data-start-date="{{ $task['start_date'] ?? '' }}"
+                        data-due-date="{{ $task['due_date'] ?? '' }}" data-title="{{ $task['title'] }}"
+                        data-search="{{ strtolower($task['title'] . ' ' . ($task['description'] ?? '') . ' ' . ($task['priority']['title'] ?? '') . ' ' . ($task['status']['title'] ?? '') . ' ' . ($task['directorate_id'] ?? '') . ' ' . ($task['department_id'] ?? '')) }}"
+                        data-status-id="{{ $task['status_id'] ?? $status->id }}">
                         <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                            {{ $task['title'] }}
+                            {{ $task['title'] ?? 'Untitled Task' }}
                             @if ($task['priority'])
                                 <span class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full"
                                     style="background-color: {{ $task['priority']['color'] ?? 'gray' }};">
@@ -34,9 +37,20 @@
                                 </span>
                             @endif
                         </h5>
-                        <p class="text-gray-600 dark:text-gray-400 mt-1">{!! $task['description'] ?? '' !!}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Project:
-                            {{ $task['project_name'] ?? 'N/A' }}</p>
+                        <p class="text-gray-600 dark:text-gray-400 mt-1">{!! $task['description'] ?? 'No description' !!}</p>
+                        @if ($task['project_id'])
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Project:
+                                {{ $task['project_name'] ?? 'N/A' }}</p>
+                        @elseif ($task['directorate_id'] && !$task['department_id'] && !$task['project_id'])
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Directorate:
+                                {{ $directorates->find($task['directorate_id'])?->title ?? 'N/A' }}</p>
+                        @elseif ($task['directorate_id'] && $task['department_id'] && !$task['project_id'])
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Department:
+                                {{ $departments->find($task['department_id'])?->title ?? 'N/A' }}</p>
+                        @else
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No Project/Directorate/Department
+                            </p>
+                        @endif
                         <a href="{{ $task['view_url'] }}"
                             class="mt-2 inline-block px-3 py-1 text-white rounded hover:opacity-80"
                             style="background-color: {{ $task['status_color'] ?? 'gray' }}">
@@ -110,7 +124,6 @@
     @foreach ($statuses as $status)
         statusTitles[{{ $status->id }}] = '{{ $status->title }}';
     @endforeach
-
     const statusColors = @json($statusColors);
 
     function getCsrfToken() {
@@ -134,6 +147,14 @@
             const token = getCsrfToken();
             if (!token) return;
 
+            const payload = {
+                task_id: taskId,
+                status_id: newStatusId
+            };
+            if (projectId) {
+                payload.project_id = projectId;
+            }
+
             fetch("{{ route('admin.task.updateStatus') }}", {
                     method: 'POST',
                     headers: {
@@ -141,18 +162,14 @@
                         'X-CSRF-TOKEN': token,
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({
-                        task_id: taskId,
-                        project_id: projectId,
-                        status_id: newStatusId
-                    })
+                    body: JSON.stringify(payload)
                 })
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(err => {
                             throw new Error(
                                 `HTTP error! status: ${response.status}, message: ${err.message || JSON.stringify(err)}`
-                            );
+                                );
                         });
                     }
                     return response.json();
@@ -161,7 +178,7 @@
                     console.log('Task status updated:', data);
                     window.pendingCalendarUpdates = window.pendingCalendarUpdates || {};
                     window.pendingCalendarUpdates[taskId] = {
-                        status: statusTitles[newStatusId],
+                        status: statusTitles[newStatusId] || 'Unknown Status',
                         color: statusColors[newStatusId] || 'gray'
                     };
 
@@ -173,7 +190,7 @@
                     if (typeof taskCalendar !== 'undefined' && taskCalendar) {
                         const event = taskCalendar.getEventById(taskId);
                         if (event) {
-                            event.setExtendedProp('status', statusTitles[newStatusId]);
+                            event.setExtendedProp('status', statusTitles[newStatusId] || 'Unknown Status');
                             event.setProp('color', statusColors[newStatusId] || 'gray');
                             taskCalendar.render();
                             delete window.pendingCalendarUpdates[taskId];
@@ -209,8 +226,8 @@
                     const dropzone = evt.to;
 
                     if (evt.from !== dropzone) {
-                        const taskId = draggableElement.dataset.id;
-                        const projectId = draggableElement.dataset.projectId;
+                        const taskId = draggableElement.dataset.taskId;
+                        const projectId = draggableElement.dataset.projectId || null;
                         const newStatusId = statusIdMap[dropzone.id];
 
                         if (newStatusId === undefined) {
@@ -218,18 +235,10 @@
                             return;
                         }
 
-                        if (!projectId) {
-                            console.error('Project ID not found for task:', taskId);
-                            if (typeof toastr !== 'undefined') {
-                                toastr.error('Error: Project ID not found for this task.');
-                            }
-                            return;
-                        }
-
                         draggableElement.dataset.statusId = newStatusId;
                         console.log(
-                            `Moved task ${taskId} to status ${newStatusId} for project ${projectId}`
-                        );
+                            `Moved task ${taskId} to status ${newStatusId} ${projectId ? `for project ${projectId}` : 'without project'}`
+                            );
                         updateTaskStatus(taskId, projectId, newStatusId, draggableElement);
                     }
                 }
@@ -247,7 +256,14 @@
     function loadMoreTasks(button) {
         const statusId = button.getAttribute('data-status-id');
         const list = document.getElementById(`status_${statusId}`);
-        const offset = list.querySelectorAll('.kanban-item').length;
+        const offset = list.querySelectorAll('.card-item').length;
+
+        // Apply current filter values
+        const directorateId = document.getElementById('directorate_id')?.value || '';
+        const projectId = document.getElementById('project_id')?.value || '';
+        const priorityId = document.getElementById('priority_id')?.value || '';
+        const dateStart = document.getElementById('date_start')?.value || '';
+        const dateEnd = document.getElementById('date_end')?.value || '';
 
         // Show loading spinner
         const spinner = button.querySelector('.loading-spinner');
@@ -271,6 +287,11 @@
         console.log('Fetching more tasks', {
             statusId,
             offset,
+            directorateId,
+            projectId,
+            priorityId,
+            dateStart,
+            dateEnd,
             statusTitles
         });
 
@@ -283,7 +304,12 @@
                 },
                 body: JSON.stringify({
                     status_id: statusId,
-                    offset: offset
+                    offset: offset,
+                    directorate_id: directorateId,
+                    project_id: projectId,
+                    priority_id: priorityId,
+                    date_start: dateStart,
+                    date_end: dateEnd
                 })
             })
             .then(response => {
@@ -291,7 +317,7 @@
                     return response.json().then(err => {
                         throw new Error(
                             `HTTP error! status: ${response.status}, message: ${err.message || JSON.stringify(err)}`
-                        );
+                            );
                     });
                 }
                 return response.json();
@@ -302,20 +328,28 @@
                     const card = document.createElement('div');
                     card.className =
                         'card-item bg-white dark:bg-gray-800 p-4 rounded-md shadow-md mb-3 kanban-item';
-                    card.dataset.id = task.id;
-                    card.dataset.projectId = task.project_id;
+                    card.dataset.taskId = task.id;
+                    card.dataset.projectId = task.project_id || '';
+                    card.dataset.directorateId = task.directorate_id || '';
+                    card.dataset.departmentId = task.department_id || '';
+                    card.dataset.priorityId = task.priority_id || '';
+                    card.dataset.startDate = task.start_date || '';
+                    card.dataset.dueDate = task.due_date || '';
+                    card.dataset.title = task.title || 'Untitled Task';
                     card.dataset.search =
-                        `${task.title} ${task.description || ''} ${task.priority?.title || ''} ${statusTitles[task.status_id] || ''}`
+                        `${task.title || ''} ${task.description || ''} ${task.priority?.title || ''} ${statusTitles[task.status_id] || ''} ${task.directorate_id || ''} ${task.department_id || ''}`
                         .toLowerCase();
                     card.dataset.statusId = task.status_id;
-                    card.dataset.priorityId = task.priority?.title ? '1' : '';
                     card.innerHTML = `
                     <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                        ${task.title}
+                        ${task.title || 'Untitled Task'}
                         ${task.priority ? `<span class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full" style="background-color: ${task.priority.color};">${task.priority.title.charAt(0).toUpperCase() + task.priority.title.slice(1)}</span>` : ''}
                     </h5>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">${task.description || ''}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Project: ${task.project_name || 'N/A'}</p>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">${task.description || 'No description'}</p>
+                    ${task.project_id ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Project: ${task.project_name || 'N/A'}</p>` :
+                    task.directorate_id && !task.department_id && !task.project_id ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Directorate: ${task.directorate_name || 'N/A'}</p>` :
+                    task.directorate_id && task.department_id && !task.project_id ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Department: ${task.department_name || 'N/A'}</p>` :
+                    '<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No Project/Directorate/Department</p>'}
                     <a href="${task.view_url}" class="mt-2 inline-block px-3 py-1 text-white rounded hover:opacity-80" style="background-color: ${task.status_color}">
                         View
                     </a>

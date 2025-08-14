@@ -86,10 +86,16 @@
                     @foreach ($tasks as $task)
                         <tr class="border-t dark:border-gray-600">
                             <td class="py-2 px-4 whitespace-nowrap">
-                                {{ Str::limit($task->name, 50) }}
+                                <a href="{{ route('admin.task.show', [$task->id, $task->project_id]) }}"
+                                    class="text-blue-600 hover:text-blue-800">
+                                    {{ Str::limit($task->name, 50) }}
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        ({{ $task->project_name }})
+                                    </span>
+                                </a>
                                 <div class="sm:hidden text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    <span
-                                        class="{{ $task->status->title == 'Completed' ? 'text-green-500' : ($task->status->title == 'In-progress' ? 'text-purple-500' : 'text-red-500') }}">
+                                    <span class="inline-block px-2 py-1 rounded-full text-white"
+                                        style="background-color: {{ $task->status->color ?? 'gray' }};">
                                         {{ $task->status->title }}
                                     </span>
                                     <br>
@@ -103,8 +109,8 @@
                                 </div>
                             </td>
                             <td class="py-2 px-4 hidden sm:table-cell whitespace-nowrap">
-                                <span
-                                    class="{{ $task->status->title == 'Completed' ? 'text-green-500' : ($task->status->title == 'In-progress' ? 'text-purple-500' : 'text-red-500') }}">
+                                <span class="inline-block px-2 py-1 rounded-full text-white text-xs"
+                                    style="background-color: {{ $task->status->color ?? 'gray' }};">
                                     {{ $task->status->title }}
                                 </span>
                             </td>
@@ -119,7 +125,7 @@
                             </td>
                             <td class="py-2 px-4 whitespace-nowrap">
                                 <div class="flex space-x-2">
-                                    <a href="{{ route('admin.task.edit', ['task' => $task->id]) }}"
+                                    <a href="{{ route('admin.task.edit', [$task->id, $task->project_id]) }}"
                                         class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -127,7 +133,7 @@
                                                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                         </svg>
                                     </a>
-                                    <form action="{{ route('admin.task.destroy', ['task' => $task->id]) }}"
+                                    <form action="{{ route('admin.task.destroy', [$task->id, $task->project_id]) }}"
                                         method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')

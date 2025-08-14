@@ -8,6 +8,29 @@
         </p>
     </div>
 
+    @if ($project && $selectedDirectorate)
+        <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div class="flex flex-col space-y-2">
+                <div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ trans('global.project.fields.directorate_id') }}:
+                    </span>
+                    <span class="text-gray-600 dark:text-gray-400">
+                        {{ $selectedDirectorate->title ?? 'N/A' }}
+                    </span>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ trans('global.project.fields.title') }}:
+                    </span>
+                    <span class="text-gray-600 dark:text-gray-400">
+                        {{ $project->title ?? 'N/A' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
         <form class="w-full" action="{{ route('admin.contract.store') }}" method="POST" id="contract-form">
@@ -46,19 +69,19 @@
                         </h3>
 
                         <div class="grid grid-cols-1 gap-6">
-                            @if (Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN))
+                            @if (Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN) && !$project)
                                 <div class="col-span-full">
                                     <x-forms.select label="{{ trans('global.contract.fields.directorate_id') }}"
                                         name="directorate_id" id="directorate_id" :options="collect($directorates)
                                             ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                             ->values()
-                                            ->all()" :selected="old('directorate_id', '')"
+                                            ->all()" :selected="old('directorate_id', $selectedDirectorate->id ?? '')"
                                         placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('directorate_id')"
                                         class="js-single-select" />
                                 </div>
                             @else
                                 <input type="hidden" name="directorate_id"
-                                    value="{{ Auth::user()->directorate_id ?? '' }}">
+                                    value="{{ $selectedDirectorate->id ?? (Auth::user()->directorate_id ?? '') }}">
                             @endif
 
                             <div class="col-span-full">
@@ -73,16 +96,18 @@
                                             ],
                                         )
                                         ->values()
-                                        ->all()" :selected="old('project_id', '')"
+                                        ->all()" :selected="old('project_id', $project->id ?? '')"
                                     placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('project_id')"
-                                    :class="Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN)
+                                    :class="Auth::user()
+                                        ->roles->pluck('id')
+                                        ->contains(\App\Models\Role::SUPERADMIN) && !$project
                                         ? 'js-single-select'
                                         : ''" />
                                 <div id="project-budget"
                                     class="mt-2 text-sm text-gray-600 dark:text-gray-400 {{ $projects->isEmpty() ? 'hidden' : '' }}">
                                     {{ trans('global.contract.fields.available_budget') }} :
                                     <span id="budget-amount">
-                                        {{ $projects->isNotEmpty() ? $projects->firstWhere('id', old('project_id', ''))['remaining_budget'] ?? 'N/A' : 'N/A' }}
+                                        {{ $projects->isNotEmpty() ? $projects->firstWhere('id', old('project_id', $project->id ?? ''))['remaining_budget'] ?? 'N/A' : 'N/A' }}
                                     </span>
                                 </div>
                             </div>
@@ -197,7 +222,7 @@
     </div>
 
     @push('scripts')
-        @if (Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN))
+        @if (Auth::user()->roles->pluck('id')->contains(\App\Models\Role::SUPERADMIN) && !$project)
             <script>
                 (function waitForJQuery() {
                     if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.jquery !== 'undefined') {
@@ -488,7 +513,7 @@
                                 .val()) > remainingBudget);
                         });
 
-                        const initialProjectId = @json(old('project_id', ''));
+                        const initialProjectId = @json(old('project_id', $project->id ?? ''));
                         if (initialProjectId && projectContainer.length) {
                             console.log('Setting initial project:', initialProjectId);
                             projectInput.val(initialProjectId).trigger('change');

@@ -9,6 +9,7 @@
     'arrayColumnColor' => [],
     'uniqueId' => null,
     'id' => null,
+    'comment_count' => 0,
 ])
 
 @php
@@ -63,6 +64,12 @@
                         </button>
                     </form>
                 @endif
+                @can('budget_create')
+                    <a href="{{ route('admin.budget.create') }}?project_id={{ $id }}"
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        Add Budget
+                    </a>
+                @endcan
             </div>
         </div>
     </div>
@@ -82,20 +89,35 @@
         </div>
     @endif
 
-    <!-- Accordion for remaining fields -->
+    <!-- Buttons and Accordion -->
     <div class="mt-4">
-        <div class="flex justify-end">
+        <div class="flex justify-end items-center gap-2">
             <button type="button"
-                class="accordion-toggle text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center mt-1"
+                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white accordion-toggle"
                 data-accordion="{{ $accordionId }}" aria-expanded="false" aria-controls="{{ $accordionId }}">
-                <span class="text-sm">
-                    {{ trans('global.view_details') }} &nbsp;
-                </span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
+                {{ trans('global.view_details') }}
             </button>
+            <a href="{{ route('admin.task.create') }}?project_id={{ $id }}"
+                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
+                Add Task
+            </a>
+            <a href="{{ route('admin.contract.create') }}?project_id={{ $id }}"
+                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
+                Add Contract
+            </a>
+            <a href="{{ route($routePrefix . '.show', $id) }}"
+                class="relative text-blue-500 hover:text-blue-700 dark:hover:text-blue-300" title="Messages">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z">
+                    </path>
+                </svg>
+                <span
+                    class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center {{ $comment_count == 0 ? 'bg-gray-400' : 'bg-red-500' }}">
+                    {{ $comment_count }}
+                </span>
+            </a>
         </div>
         <div id="{{ $accordionId }}" class="hidden mt-2 grid grid-cols-1 gap-2">
             @foreach ($fields as $field)

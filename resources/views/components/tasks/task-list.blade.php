@@ -1,11 +1,15 @@
-<!-- resources/views/components/tasks/task-list.blade.php -->
 @props(['tasksFlat', 'priorityColors', 'statusColors'])
 
 <div id="taskListContainer">
     @if (isset($tasksFlat) && count($tasksFlat) > 0)
         @foreach ($tasksFlat as $task)
             <div class="list-item border border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-3"
-                data-search="{{ strtolower($task['title'] . ' ' . ($task['description'] ?? '') . ' ' . ($task['priority'] ?? '') . ' ' . ($task['status'] ?? '') . ' ' . ($task['projects'][0] ?? '')) }}">
+                data-task-id="{{ $task['id'] }}" data-directorate-id="{{ $task['directorate_id'] ?? '' }}"
+                data-department-id="{{ $task['department_id'] ?? '' }}"
+                data-priority-id="{{ $task['priority_id'] ?? '' }}" data-project-id="{{ $task['project_id'] ?? '' }}"
+                data-start-date="{{ $task['start_date'] ?? '' }}" data-due-date="{{ $task['due_date'] ?? '' }}"
+                data-title="{{ $task['title'] }}"
+                data-search="{{ strtolower($task['title'] . ' ' . ($task['description'] ?? '') . ' ' . ($task['priority'] ?? '') . ' ' . ($task['status'] ?? '') . ' ' . ($task['projects'][0] ?? '') . ' ' . ($task['directorate_id'] ?? '') . ' ' . ($task['department_id'] ?? '')) }}">
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">

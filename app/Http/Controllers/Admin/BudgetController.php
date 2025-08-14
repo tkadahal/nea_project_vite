@@ -9,9 +9,11 @@ use App\Http\Requests\Budget\StoreBudgetRequest;
 use App\Models\FiscalYear;
 use App\Models\Project;
 use App\Models\Budget;
+use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
@@ -58,15 +60,42 @@ class BudgetController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         abort_if(Gate::denies('budget_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $user = Auth::user();
-        $projects = Project::where('directorate_id', $user->directorate_id)->get();
+        $roleIds = $user->roles->pluck('id')->toArray();
+
+        // Initialize projects collection
+        $projects = collect();
+
+        // Fetch projects based on user role
+        if (in_array(Role::SUPERADMIN, $roleIds)) {
+            $projects = Project::pluck('title', 'id');
+        } elseif (in_array(Role::DIRECTORATE_USER, $roleIds)) {
+            if ($user->directorate_id) {
+                $projects = Project::where('directorate_id', $user->directorate_id)->pluck('title', 'id');
+            } else {
+                \Illuminate\Support\Facades\Log::warning('No directorate_id assigned to user', ['user_id' => $user->id]);
+                $projects = collect();
+            }
+        }
+
+        // Get project_id from query parameter only
+        $projectId = $request->query('project_id');
+
+        // Clear session project_id if no query parameter is provided
+        if (!$projectId) {
+            Session::forget('project_id');
+        } else {
+            // Store project_id in session for form repopulation if validation fails
+            Session::put('project_id', $projectId);
+        }
+
         $fiscalYears = FiscalYear::pluck('title', 'id')->toArray();
 
-        return view('admin.budgets.create', compact('projects', 'fiscalYears'));
+        return view('admin.budgets.create', compact('projects', 'fiscalYears', 'projectId'));
     }
 
     public function store(StoreBudgetRequest $request): RedirectResponse
@@ -135,6 +164,9 @@ class BudgetController extends Controller
                 }
             }
         }
+
+        // Clear project_id from session after successful submission
+        Session::forget('project_id');
 
         return redirect()->route('admin.budget.index')->with('success', 'Budget saved successfully.');
     }

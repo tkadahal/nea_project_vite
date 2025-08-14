@@ -21,9 +21,18 @@
                 {{ trans('global.task.title_singular') }} {{ trans('global.details') }}
             </h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
-                {{ trans('global.details_for') }} :
+                {{ trans('global.details_for') }}:
                 <span class="font-semibold">
-                    {{ $task['title'] ?? 'Unnamed Task' }} ({{ $task['project_name'] ?? 'No Project' }})
+                    {{ $task['title'] ?? 'Unnamed Task' }}
+                    @if ($task['project_id'] && is_numeric($task['project_id']))
+                        ({{ $task['project_name'] ?? 'No Project' }})
+                    @elseif ($task['department_id'])
+                        ({{ $task['department_name'] ?? 'No Department' }})
+                    @elseif ($task['directorate_id'])
+                        ({{ $task['directorate_name'] ?? 'No Directorate' }})
+                    @else
+                        (No Project/Directorate/Department)
+                    @endif
                 </span>
             </p>
         </div>
@@ -60,23 +69,17 @@
                                 {{ ucfirst($task['status']['title']) }}
                             </span>
                         @else
-                            None
+                            <span
+                                class="inline-block px-2 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 rounded-full bg-gray-200 dark:bg-gray-600">
+                                {{ trans('global.task.no_status') }}
+                            </span>
                         @endif
-                    </p>
-                </div>
-
-                <div class="col-span-full">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {{ trans('global.task.fields.description') }}
-                    </p>
-                    <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                        {{ $task['description'] ?? 'No description provided' }}
                     </p>
                 </div>
 
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {{ trans('global.task.fields.priority_id') }}
+                        {{ trans('global.task.fields.priority') }}
                     </p>
                     <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
                         @if ($task['priority'])
@@ -85,14 +88,44 @@
                                 {{ ucfirst($task['priority']['title']) }}
                             </span>
                         @else
-                            None
+                            <span
+                                class="inline-block px-2 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 rounded-full bg-gray-200 dark:bg-gray-600">
+                                {{ trans('global.task.no_priority') }}
+                            </span>
                         @endif
                     </p>
                 </div>
 
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {{ trans('global.task.fields.project_id') }}
+                        {{ trans('global.task.fields.progress') }}
+                    </p>
+                    <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
+                        {{ $task['progress'] ?? '0' }}%
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.task.fields.directorate') }}
+                    </p>
+                    <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
+                        {{ $task['directorate_name'] ?? 'N/A' }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.task.fields.department') }}
+                    </p>
+                    <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
+                        {{ $task['department_name'] ?? 'N/A' }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {{ trans('global.task.fields.project') }}
                     </p>
                     <p class="mt-1 text-lg text-gray-900 dark:text-gray-100 space-y-2">
                         @if (!empty($task['projects']))
@@ -116,28 +149,20 @@
 
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {{ trans('global.task.fields.progress') }}
+                        {{ trans('global.task.fields.users') }}
                     </p>
-                    <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                        {{ $task['progress'] ?? 0 }}%
-                    </p>
-                </div>
-
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {{ trans('global.task.fields.user_id') }}
-                    </p>
-                    <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                        @if (!empty($task['users']))
+                    <div class="mt-1 flex flex-wrap gap-2">
+                        @forelse ($task['users'] as $user)
                             <span
-                                class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs"
-                                title="{{ collect($task['users'])->pluck('name')->implode(', ') }}">
-                                {{ collect($task['users'])->pluck('initials')->implode(', ') }}
+                                class="inline-flex items-center px-2 py-1 text-sm font-medium text-gray-800 bg-gray-200 rounded-full dark:bg-gray-700 dark:text-gray-200">
+                                {{ $user['name'] }}
                             </span>
-                        @else
-                            {{ trans('global.noRecords') }}
-                        @endif
-                    </p>
+                        @empty
+                            <span class="text-gray-500 dark:text-gray-400">
+                                {{ trans('global.task.no_users') }}
+                            </span>
+                        @endforelse
+                    </div>
                 </div>
 
                 <div>
@@ -145,7 +170,7 @@
                         {{ trans('global.task.fields.start_date') }}
                     </p>
                     <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                        {{ $task['start_date'] ? \Carbon\Carbon::parse($task['start_date'])->format('M d, Y') : 'Not set' }}
+                        {{ $task['start_date'] ? \Carbon\Carbon::parse($task['start_date'])->format('M d, Y') : 'N/A' }}
                     </p>
                 </div>
 
@@ -154,7 +179,7 @@
                         {{ trans('global.task.fields.due_date') }}
                     </p>
                     <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                        {{ $task['due_date'] ? \Carbon\Carbon::parse($task['due_date'])->format('M d, Y') : 'Not set' }}
+                        {{ $task['due_date'] ? \Carbon\Carbon::parse($task['due_date'])->format('M d, Y') : 'N/A' }}
                     </p>
                 </div>
 
@@ -163,7 +188,7 @@
                         {{ trans('global.task.fields.completion_date') }}
                     </p>
                     <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
-                        {{ $task['completion_date'] ? \Carbon\Carbon::parse($task['completion_date'])->format('M d, Y') : 'Not completed' }}
+                        {{ $task['completion_date'] ? \Carbon\Carbon::parse($task['completion_date'])->format('M d, Y') : 'N/A' }}
                     </p>
                 </div>
 
@@ -186,22 +211,31 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex space-x-3">
+            <div class="mt-6">
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ trans('global.task.fields.description') }}
+                </p>
+                <p class="mt-1 text-gray-900 dark:text-gray-100">
+                    {!! nl2br(e($task['description'] ?? 'No description provided')) !!}
+                </p>
+            </div>
+
+            <div class="mt-6 flex space-x-4">
                 @can('task_edit')
-                    <a href="{{ route('admin.task.edit', $task['id']) }}"
-                        class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-offset-gray-900">
-                        {{ trans('global.edit') }} {{ trans('global.task.title_singular') }}
+                    <a href="{{ route('admin.task.edit', [$task['id'], $task['project_id'] && is_numeric($task['project_id']) ? $task['project_id'] : null]) }}"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        {{ trans('global.edit') }}
                     </a>
                 @endcan
-
                 @can('task_delete')
-                    <form action="{{ route('admin.task.destroy', $task['id']) }}" method="POST"
-                        onsubmit="return confirm('Are you sure you want to delete this task? This action cannot be undone.');">
+                    <form
+                        action="{{ route('admin.task.destroy', [$task['id'], $task['project_id'] && is_numeric($task['project_id']) ? $task['project_id'] : null]) }}"
+                        method="POST" onsubmit="return confirm('{{ trans('global.are_you_sure') }}');">
                         @csrf
                         @method('DELETE')
                         <button type="submit"
-                            class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-offset-gray-900">
-                            {{ trans('global.delete') }} {{ trans('global.task.title_singular') }}
+                            class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                            {{ trans('global.delete') }}
                         </button>
                     </form>
                 @endcan
@@ -219,63 +253,19 @@
                     </p>
                 @else
                     @foreach ($comments as $comment)
-                        <div class="border-b py-2">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $comment->user->name }} • {{ $comment->created_at->diffForHumans() }}
-                            </p>
-                            <p class="text-gray-700 dark:text-gray-300">{!! $comment->content !!}</p>
-                            @if ($comment->replies->count())
-                                <div class="ml-4 mt-2">
-                                    @foreach ($comment->replies as $reply)
-                                        <div class="border-l pl-4 py-1">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $reply->user->name }} • {{ $reply->created_at->diffForHumans() }}
-                                            </p>
-                                            <p class="text-gray-700 dark:text-gray-300">{!! $reply->content !!}</p>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                            <div class="mt-2">
-                                <button onclick="toggleReplyForm({{ $comment->id }})"
-                                    class="text-blue-600 hover:text-blue-800 text-sm">
-                                    {{ __('Reply') }}
-                                </button>
-                                <form id="reply-form-{{ $comment->id }}" class="hidden mt-2" method="POST"
-                                    action="{{ route('admin.tasks.comments.store', [$task['id'], $task['project_id']]) }}">
-                                    @csrf
-                                    <input type="hidden" name="parent_id" value="{{ $comment->id }}">
-                                    <input type="hidden" name="project_id" value="{{ $task['project_id'] }}">
-                                    <div class="flex items-start space-x-3">
-                                        <span
-                                            class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white font-medium">
-                                            {{ Auth::user()->initials() }}
-                                        </span>
-                                        <div class="flex-1">
-                                            <textarea name="content"
-                                                class="w-full p-3 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="{{ __('Reply to comment...') }}" rows="3" required></textarea>
-                                            @error('content')
-                                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-end mt-2">
-                                        <button type="submit"
-                                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                                            {{ __('Post Reply') }}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+                        @include('admin.comments.comment', [
+                            'comment' => $comment,
+                            'level' => 0,
+                            'commentable' => [$task['id'], $task['project_id'] ?? null],
+                            'routePrefix' => 'admin.tasks',
+                        ])
                     @endforeach
                 @endif
             </div>
 
             <div class="mt-6 flex-shrink-0">
                 <form method="POST"
-                    action="{{ route('admin.tasks.comments.store', [$task['id'], $task['project_id']]) }}"
+                    action="{{ route('admin.tasks.comments.store', [$task['id'], $task['project_id'] ?? null]) }}"
                     class="space-y-4">
                     @csrf
                     <input type="hidden" name="project_id" value="{{ $task['project_id'] }}">
@@ -304,14 +294,16 @@
         </div>
     </div>
 
-    <script>
-        function toggleReplyForm(commentId) {
-            const form = document.getElementById(`reply-form-${commentId}`);
-            if (form) {
-                form.classList.toggle('hidden');
-            } else {
-                console.error(`Reply form with ID reply-form-${commentId} not found.`);
+    @push('scripts')
+        <script>
+            function toggleReplyForm(commentId) {
+                const form = document.getElementById(`reply-form-${commentId}`);
+                if (form) {
+                    form.classList.toggle('hidden');
+                } else {
+                    console.error(`Reply form with ID reply-form-${commentId} not found.`);
+                }
             }
-        }
-    </script>
+        </script>
+    @endpush
 </x-layouts.app>

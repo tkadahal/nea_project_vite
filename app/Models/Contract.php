@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
 use App\Models\Builders\ModelBuilder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -107,6 +108,28 @@ class Contract extends Model
                 $user = Auth::user()?->name ?? 'System';
                 return "Contract {$eventName} by {$user}";
             });
+    }
+
+    public function extensions(): HasMany
+    {
+        return $this->hasMany(ContractExtension::class);
+    }
+
+    public function getEffectiveCompletionDateAttribute(): ?Carbon
+    {
+        if ($this->extensions->isEmpty()) {
+            return $this->agreement_completion_date;
+        }
+
+        $totalExtensionPeriod = $this->extensions->sum('extension_period');
+        return $this->agreement_completion_date?->addDays($totalExtensionPeriod);
+    }
+
+    protected static function booted(): void
+    {
+        static::updated(function (Contract $contract) {
+            $contract->updateProgress();
+        });
     }
 
     public function newEloquentBuilder($query): ModelBuilder

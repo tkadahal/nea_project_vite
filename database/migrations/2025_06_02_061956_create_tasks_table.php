@@ -13,6 +13,7 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('directorate_id')->constrained();
+            $table->foreignId('department_id')->nullable()->constrained();
 
             $table->string('title');
             $table->text('description')->nullable();
@@ -21,12 +22,14 @@ return new class extends Migration
             $table->date('due_date')->nullable();
             $table->date('completion_date')->nullable();
 
-            //$table->foreignId('status_id')->index()->constrained();
+            $table->foreignId('status_id')->index()->constrained();
             $table->foreignId('priority_id')->index()->constrained();
 
             // $table->string('progress')->nullable();
 
             $table->boolean('active')->default(0);
+
+            $table->foreignId('assigned_by')->nullable()->constrained('users')->onDelete('set null');
 
             $table->timestamps();
             $table->softDeletes();

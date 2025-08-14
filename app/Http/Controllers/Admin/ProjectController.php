@@ -4,27 +4,26 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Project\StoreProjectRequest;
-use App\Http\Requests\Project\UpdateProjectRequest;
-use App\Models\Department;
-use App\Models\Directorate;
-use App\Models\FiscalYear;
-use App\Models\Priority;
-use App\Models\Project;
 use App\Models\Role;
-use App\Models\Status;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Models\Status;
+use App\Models\Project;
+use App\Models\Priority;
+use Illuminate\View\View;
+use App\Models\Department;
+use App\Models\FiscalYear;
+use App\Models\Directorate;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Session;
-use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
+use App\Http\Requests\Project\StoreProjectRequest;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Http\Requests\Project\UpdateProjectRequest;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ProjectController extends Controller
 {
@@ -33,7 +32,9 @@ class ProjectController extends Controller
         abort_if(Gate::denies('project_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $user = Auth::user();
-        $projectQuery = Project::with(['directorate', 'priority', 'projectManager', 'status', 'budgets'])->latest();
+        $projectQuery = Project::with(['directorate', 'priority', 'projectManager', 'status', 'budgets', 'comments'])
+            ->withCount('comments')
+            ->latest();
 
         try {
             $roleIds = $user->roles->pluck('id')->toArray();
@@ -43,7 +44,6 @@ class ProjectController extends Controller
                     if ($user->directorate_id) {
                         $projectQuery->where('directorate_id', $user->directorate_id);
                     } else {
-                        Log::warning('No directorate_id assigned to user', ['user_id' => $user->id]);
                         $projectQuery->where('id', 0);
                     }
                 } else {
@@ -53,33 +53,15 @@ class ProjectController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error in project filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
             $data['error'] = 'Unable to load projects due to an error.';
         }
 
         $projects = $projectQuery->get();
 
-        $directorateColors = [
-            1 => 'red',
-            2 => 'green',
-            3 => 'blue',
-            4 => 'yellow',
-            5 => 'purple',
-            6 => 'pink',
-            7 => 'gray',
-            8 => 'teal',
-            9 => 'orange',
-        ];
-
-        $priorityColors = [
-            'Urgent' => '#EF4444',
-            'High' => '#F59E0B',
-            'Medium' => '#10B981',
-            'Low' => '#6B7280',
-        ];
-
-        $progressColor = 'green';
-        $budgetColor = 'blue';
+        $directorateColors = config('colors.directorate');
+        $priorityColors = config('colors.priority');
+        $progressColor = config('colors.progress');
+        $budgetColor = config('colors.budget');
 
         $tableData = $projects->map(function ($project) use ($directorateColors, $priorityColors, $progressColor, $budgetColor) {
             $directorateTitle = $project->directorate?->title ?? 'N/A';
@@ -127,6 +109,7 @@ class ProjectController extends Controller
                 'description' => $project->description ?? trans('global.noRecords'),
                 'directorate' => ['title' => $directorateTitle, 'id' => $directorateId],
                 'fields' => $fields,
+                'comment_count' => $project->comments_count ?? 0,
             ];
         })->all();
 
@@ -136,6 +119,9 @@ class ProjectController extends Controller
             trans('global.project.fields.directorate_id'),
             trans('global.details'),
         ];
+
+        // Fetch directorates for the dropdown
+        $directorates = Directorate::pluck('title', 'id');
 
         return view('admin.projects.index', [
             'data' => $cardData,
@@ -152,6 +138,7 @@ class ProjectController extends Controller
                 'priority' => $priorityColors,
             ],
             'tableHeaders' => $tableHeaders,
+            'directorates' => $directorates,
         ]);
     }
 
@@ -210,11 +197,6 @@ class ProjectController extends Controller
 
             return redirect()->route('admin.project.index')->with('message', 'Project created successfully.');
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to create project', [
-                'user_id' => \Illuminate\Support\Facades\Auth::id(),
-                'error' => $e->getMessage(),
-            ]);
-
             return redirect()->back()->withErrors(['error' => 'Failed to create project. Please try again.']);
         }
     }
@@ -315,12 +297,6 @@ class ProjectController extends Controller
 
             return redirect()->route('admin.project.index')->with('message', 'Project updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Failed to update project', [
-                'project_id' => $project->id,
-                'user_id' => Auth::id(),
-                'error' => $e->getMessage(),
-            ]);
-
             return redirect()->back()->withErrors(['error' => 'Failed to update project. Please try again.']);
         }
     }
@@ -335,8 +311,6 @@ class ProjectController extends Controller
         try {
             $directorate = Directorate::find($directorate_id);
             if (! $directorate) {
-                Log::info('Directorate not found, returning empty array: ' . $directorate_id);
-
                 return response()->json([]);
             }
             $departments = $directorate->departments->map(function ($department) {
@@ -346,12 +320,8 @@ class ProjectController extends Controller
                 ];
             })->toArray();
 
-            Log::info('Departments fetched for directorate_id: ' . $directorate_id, ['count' => count($departments)]);
-
             return response()->json($departments);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch departments: ' . $e->getMessage());
-
             return response()->json(['message' => 'Failed to fetch departments.'], 500);
         }
     }
@@ -369,12 +339,8 @@ class ProjectController extends Controller
                     ];
                 })->toArray();
 
-            Log::info('Users fetched for directorate_id: ' . $directorate_id, ['count' => count($users)]);
-
             return response()->json($users);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch users: ' . $e->getMessage());
-
             return response()->json(['message' => 'Failed to fetch users.'], 500);
         }
     }
@@ -383,103 +349,5 @@ class ProjectController extends Controller
     {
         $project->load(['tasks', 'contracts', 'expenses']);
         return view('admin.expenses.progress_chart', compact('project'));
-    }
-
-    public function analytics(Request $request)
-    {
-        try {
-            $directorates = Directorate::all();
-            $departments = Department::all();
-            $statuses = Status::all();
-            $priorities = Priority::all();
-
-            $query = Project::query()->with(['directorate', 'status', 'priority', 'tasks', 'contracts', 'expenses', 'budgets', 'users']);
-
-            $user = Auth::user();
-            if ($user && $user->roles->contains('id', 3)) {
-                $query->where('directorate_id', $user->directorate_id);
-            } elseif ($user && $user->roles->contains('id', 4)) {
-                $query->whereIn('id', function ($query) use ($user) {
-                    $query->select('project_id')
-                        ->from('project_user')
-                        ->where('user_id', $user->id);
-                });
-            }
-
-            if ($request->has('directorate_id')) {
-                $query->where('directorate_id', $request->directorate_id);
-            }
-            if ($request->has('department_id')) {
-                $query->where('department_id', $request->department_id);
-            }
-            if ($request->has('status_id')) {
-                $query->where('status_id', $request->status_id);
-            }
-            if ($request->has('priority_id')) {
-                $query->where('priority_id', $request->priority_id);
-            }
-
-            $projects = $query->paginate(10);
-
-            $projects->getCollection()->transform(function ($project) {
-                $totalBudget = $project->total_budget;
-                $project->remaining_budget = $totalBudget - ($project->expenses->sum('amount') + $project->contracts->sum('contract_amount'));
-                $project->days_remaining = $project->end_date ? max(0, $project->end_date->diffInDays(now()) * ($project->end_date > now() ? 1 : -1)) : 0;
-                return $project;
-            });
-
-            $completedStatusId = Status::where('title', 'Completed')->value('id');
-            $summary = [
-                'total_projects' => $query->count(),
-                'completed_projects' => $query->where('status_id', $completedStatusId)->count(),
-                'overdue_projects' => $query->where('end_date', '<', now())->where('status_id', '!=', $completedStatusId)->count(),
-                'average_progress' => round($query->avg('progress') ?? 0, 2),
-            ];
-
-            // Optional: Add average_users_per_project if needed
-            $userCounts = $query->get()->map(function ($project) {
-                return $project->users->count();
-            });
-            $summary['average_users_per_project'] = $userCounts->avg() ?? 0;
-
-            $chartProjects = $query->get()->take(5);
-            $charts = [
-                'progress' => [
-                    'labels' => $chartProjects->pluck('title'),
-                    'physical' => $chartProjects->pluck('progress'),
-                    'financial' => $chartProjects->pluck('financial_progress')->all() ?: array_fill(0, 5, 0),
-                ],
-                'task_contract' => [
-                    'labels' => ['Tasks', 'Contracts'],
-                    'data' => [
-                        $chartProjects->sum(fn($project) => $project->tasks->count()),
-                        $chartProjects->sum(fn($project) => $project->contracts->count()),
-                    ],
-                ],
-            ];
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'summary' => $summary,
-                    'charts' => $charts,
-                    'projects' => $projects->items(),
-                    'pagination' => [
-                        'current_page' => $projects->currentPage(),
-                        'last_page' => $projects->lastPage(),
-                        'per_page' => $projects->perPage(),
-                        'total' => $projects->total(),
-                    ],
-                ]);
-            }
-
-            return view('admin.analytics.project-analytics', compact('projects', 'summary', 'charts', 'directorates', 'departments', 'statuses', 'priorities'));
-        } catch (\Exception $e) {
-            Log::error('Error in ProjectController@analytics: ' . $e->getMessage());
-            if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'An error occurred. Please try again.'], 500);
-            }
-            return redirect()->back()->withErrors(['error' => 'An error occurred. Please check the logs.']);
-        }
     }
 }

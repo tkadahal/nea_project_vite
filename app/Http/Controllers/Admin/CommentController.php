@@ -27,55 +27,44 @@ class CommentController extends Controller
      */
     public function storeForTask(Request $request, Task $task, Project $project)
     {
+        // Validate project_id matches the provided project
         $request->validate([
-            'content' => ['required', 'string', 'max:5000'],
-            'parent_id' => ['nullable', 'exists:comments,id'],
-            'project_id' => ['required', 'exists:projects,id'],
+            'project_id' => ['required', 'exists:projects,id', 'in:' . $project->id],
         ]);
 
-        if ($request->input('project_id') != $project->id) {
-            return redirect()->back()->withErrors(['project_id' => 'Project ID mismatch']);
-        }
-
+        // Check if the task is associated with the project
         if (!$task->projects()->where('project_id', $project->id)->exists()) {
             return redirect()->back()->withErrors(['project_id' => 'Task not associated with this project']);
         }
 
-        $comment = Comment::create([
-            'content' => $request->input('content'),
-            'user_id' => Auth::id(),
-            'commentable_id' => $task->id,
-            'commentable_type' => Task::class,
-            'project_id' => $project->id,
-            'parent_id' => $request->input('parent_id'),
-        ]);
+        // Store the comment using shared logic
+        $comment = $this->storeComment($request, $task, 'admin.task.show', $project->id);
 
-        // Notify relevant users
-        $this->notifyUsers($comment, $task);
-
-        return redirect()->route('admin.task.show', [$task, $project])->with('success', 'Comment added.');
+        return $comment;
     }
 
     /**
      * Shared logic to store a comment for any commentable model.
      */
-    protected function storeComment(Request $request, Model $commentable, string $redirectRoute)
+    protected function storeComment(Request $request, Model $commentable, string $redirectRoute, ?int $projectId = null)
     {
         $request->validate([
-            'content' => 'required|string|max:1000',
-            'parent_id' => 'nullable|exists:comments,id',
+            'content' => ['required', 'string', 'max:1000'],
+            'parent_id' => ['nullable', 'exists:comments,id'],
         ]);
 
         $comment = $commentable->comments()->create([
-            'content' => $request->content,
+            'content' => $request->input('content'),
             'user_id' => Auth::id(),
-            'parent_id' => $request->parent_id,
+            'project_id' => $projectId ?? ($commentable instanceof Project ? $commentable->id : null),
+            'parent_id' => $request->input('parent_id'),
         ]);
 
         // Notify relevant users
         $this->notifyUsers($comment, $commentable);
 
-        return redirect()->route($redirectRoute, $commentable)->with('success', 'Comment added.');
+        return redirect()->route($redirectRoute, $commentable instanceof Task ? [$commentable, $projectId] : $commentable)
+            ->with('success', 'Comment added.');
     }
 
     /**

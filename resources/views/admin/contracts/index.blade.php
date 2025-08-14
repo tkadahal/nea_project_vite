@@ -59,6 +59,7 @@
                         </p>
                     @endforeach
                     <div class="mt-4 flex space-x-2">
+                        <a href="{{ route('admin.contract.extensions.create', $item['id']) }}">Add Extension</a>
                         @if (in_array('view', $actions) && Gate::allows('contract_view'))
                             <a href="{{ route($routePrefix . '.show', $item['id']) }}"
                                 class="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700">

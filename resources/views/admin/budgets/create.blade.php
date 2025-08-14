@@ -4,7 +4,7 @@
             {{ trans('global.budget.title') }}
         </h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
-            {{ trans('global.add') }} {{ trans('global.budget.title') }}
+            {{ trans('global.add') }} {{ trans('global.budget.title_singular') }}
         </p>
     </div>
 
@@ -31,7 +31,7 @@
                     <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20">
                         <path
-                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3-152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
                     </svg>
                 </button>
             </div>
@@ -47,19 +47,24 @@
                             <x-forms.select label="{{ trans('global.budget.fields.project_id') }}" name="project_id"
                                 id="project_id" :options="collect($projects)
                                     ->map(
-                                        fn($project) => [
-                                            'value' => (string) $project->id,
-                                            'label' => $project->title,
+                                        fn($label, $value) => [
+                                            'value' => (string) $value,
+                                            'label' => $label,
                                         ],
                                     )
                                     ->values()
-                                    ->all()" :selected="old('project_id', session('project_id'))"
+                                    ->all()" :selected="old('project_id', $projectId ?? '')"
                                 placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('project_id')"
                                 class="js-single-select" />
 
                             <x-forms.select label="{{ trans('global.budget.fields.fiscal_year_id') }}"
                                 name="fiscal_year_id" id="fiscal_year_id" :options="collect($fiscalYears)
-                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                    ->map(
+                                        fn($label, $value) => [
+                                            'value' => (string) $value,
+                                            'label' => $label,
+                                        ],
+                                    )
                                     ->values()
                                     ->all()" :selected="old('fiscal_year_id')"
                                 placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('fiscal_year_id')"
@@ -196,40 +201,6 @@
                 const $errorMessage = $('#error-message');
                 const $errorText = $('#error-text');
 
-                // Debug: Log input elements
-                console.log('Internal Budget Input:', {
-                    found: $internal.length,
-                    value: $internal.val(),
-                    name: $internal.attr('name'),
-                    class: $internal.attr('class'),
-                    hasBudgetComponent: $internal.hasClass('budget-component'),
-                    readonly: $internal.prop('readonly')
-                });
-                console.log('Foreign Loan Budget Input:', {
-                    found: $loan.length,
-                    value: $loan.val(),
-                    name: $loan.attr('name'),
-                    class: $loan.attr('class'),
-                    hasBudgetComponent: $loan.hasClass('budget-component'),
-                    readonly: $loan.prop('readonly')
-                });
-                console.log('Foreign Subsidy Budget Input:', {
-                    found: $subsidy.length,
-                    value: $subsidy.val(),
-                    name: $subsidy.attr('name'),
-                    class: $subsidy.attr('class'),
-                    hasBudgetComponent: $subsidy.hasClass('budget-component'),
-                    readonly: $subsidy.prop('readonly')
-                });
-                console.log('Total Budget Input:', {
-                    found: $total.length,
-                    value: $total.val(),
-                    name: $total.attr('name'),
-                    class: $total.attr('class'),
-                    hasBudgetComponent: $total.hasClass('budget-component'),
-                    readonly: $total.prop('readonly')
-                });
-
                 if (!$internal.length || !$loan.length || !$subsidy.length || !$total.length) {
                     $errorText.text('Error: One or more budget inputs not found in the DOM.');
                     $errorMessage.removeClass('hidden');
@@ -252,12 +223,10 @@
                 const subsidy = getValidNumber($subsidy.val());
 
                 const total = (internal + loan + subsidy).toFixed(2);
-                console.log('Calculated Total:', total);
                 $total.val(total).trigger('change').trigger('input');
                 $total[0].dispatchEvent(new Event('input', {
                     bubbles: true
                 }));
-                // Support for Livewire
                 if (window.Livewire) {
                     window.Livewire.dispatch('input', {
                         name: 'total_budget',
@@ -271,10 +240,6 @@
             function debounce(func, wait) {
                 let timeout;
                 return function() {
-                    console.log('Debounce triggered for:', {
-                        name: this.name,
-                        value: this.value
-                    });
                     clearTimeout(timeout);
                     timeout = setTimeout(func, wait);
                 };
@@ -282,12 +247,6 @@
 
             // Bind events by class with delegation
             $(document).on('input change keyup', '.budget-component', function(e) {
-                console.log('Class-based event fired:', {
-                    eventType: e.type,
-                    name: $(this).attr('name'),
-                    value: $(this).val(),
-                    hasBudgetComponent: $(this).hasClass('budget-component')
-                });
                 debounce(updateTotalBudget, 300).call(this);
             });
 
@@ -296,32 +255,13 @@
             inputNames.forEach(function(name) {
                 const $input = $(`input[name="${name}"]`);
                 if ($input.length) {
-                    console.log('Binding events to input:', name);
                     $input.on('input change keyup', function(e) {
-                        console.log('Name-based event fired:', {
-                            eventType: e.type,
-                            name: $(this).attr('name'),
-                            value: $(this).val(),
-                            hasBudgetComponent: $(this).hasClass('budget-component')
-                        });
                         debounce(updateTotalBudget, 300).call(this);
                     });
-                } else {
-                    console.error('Input not found for name:', name);
                 }
             });
 
-            // Debug: Log all budget-component inputs
-            const $budgetComponents = $('input.budget-component');
-            console.log('Found budget-component inputs:', {
-                count: $budgetComponents.length,
-                names: $budgetComponents.map(function() {
-                    return $(this).attr('name');
-                }).get()
-            });
-
             // Initialize total budget on page load
-            console.log('Initializing total budget on page load');
             updateTotalBudget();
 
             // Close error message
@@ -330,7 +270,7 @@
                 $("#error-text").text("");
             });
 
-            // Existing select dropdown logic (unchanged)
+            // Select dropdown logic
             $(".js-single-select").each(function() {
                 const $container = $(this);
                 const componentId = $container.attr("id");
@@ -443,17 +383,24 @@
                 renderOptions();
             });
 
-            // Pre-select project if project_id is in URL or session
-            const urlParams = new URLSearchParams(window.location.search);
-            const projectIdFromUrl = urlParams.get('project_id');
-            const projectIdFromSession = "{{ session('project_id') }}";
-            if (projectIdFromUrl || projectIdFromSession) {
+            // Pre-select project if project_id is provided
+            const projectId = "{{ $projectId ?? '' }}";
+            if (projectId) {
                 const projectSelectContainer = $('.js-single-select[data-name="project_id"]');
-                projectSelectContainer.data('selected', projectIdFromUrl || projectIdFromSession);
-                projectSelectContainer.attr('data-selected', projectIdFromUrl || projectIdFromSession);
+                projectSelectContainer.data('selected', projectId);
+                projectSelectContainer.attr('data-selected', projectId);
                 projectSelectContainer.trigger('options-updated', {
                     options: projectSelectContainer.data('options'),
-                    selected: projectIdFromUrl || projectIdFromSession,
+                    selected: projectId,
+                });
+            } else {
+                // Ensure project dropdown is reset to placeholder
+                const projectSelectContainer = $('.js-single-select[data-name="project_id"]');
+                projectSelectContainer.data('selected', '');
+                projectSelectContainer.attr('data-selected', '');
+                projectSelectContainer.trigger('options-updated', {
+                    options: projectSelectContainer.data('options'),
+                    selected: '',
                 });
             }
         });

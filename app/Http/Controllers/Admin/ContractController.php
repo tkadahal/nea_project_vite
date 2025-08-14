@@ -38,10 +38,6 @@ class ContractController extends Controller
                 if ($user->directorate_id) {
                     $query->where('directorate_id', $user->directorate_id);
                 } else {
-                    Log::warning('No directorate_id assigned to directorate user', [
-                        'user_id' => $user->id,
-                        'email' => $user->email
-                    ]);
                     $query->where('id', 0); // No contracts returned
                 }
             } else {
@@ -55,12 +51,6 @@ class ContractController extends Controller
         try {
             $contracts = $contractQuery->get();
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve contracts', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return view('admin.contracts.index', [
                 'data' => [],
                 'tableData' => [],
@@ -173,58 +163,99 @@ class ContractController extends Controller
 
         $user = Auth::user();
         $roleIds = $user->roles->pluck('id')->toArray();
+        $projectId = request()->query('project_id');
+        $project = null;
+        $selectedDirectorate = null;
 
         // Initialize directorates and projects based on user role
         if (in_array(Role::SUPERADMIN, $roleIds)) {
             // Superadmin: All directorates, projects fetched via AJAX
             $directorates = Directorate::pluck('title', 'id');
             $projects = collect();
+            if ($projectId) {
+                $project = Project::find($projectId);
+                if ($project) {
+                    $selectedDirectorate = Directorate::find($project->directorate_id);
+                    $projects = collect([
+                        [
+                            'id' => $project->id,
+                            'title' => $project->title,
+                            'total_budget' => number_format($project->total_budget, 2),
+                            'remaining_budget' => number_format(max(0, $project->total_budget - Contract::where('project_id', $project->id)->whereNull('deleted_at')->sum('contract_amount')), 2),
+                        ]
+                    ]);
+                }
+            }
         } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
             // Directorate User: Only their directorate, pre-fetch projects
             $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
-            $projects = Project::without(['tasks', 'expenses', 'contracts'])
+            $projectsQuery = Project::without(['tasks', 'expenses', 'contracts'])
                 ->where('directorate_id', $user->directorate_id)
-                ->whereNull('deleted_at')
-                ->get()
-                ->map(function ($project) {
-                    $existingContractsSum = Contract::where('project_id', $project->id)
-                        ->whereNull('deleted_at')
-                        ->sum('contract_amount');
-                    return [
-                        'id' => $project->id,
-                        'title' => $project->title,
-                        'total_budget' => number_format($project->total_budget, 2),
-                        'remaining_budget' => number_format(max(0, $project->total_budget - $existingContractsSum), 2),
-                    ];
-                });
+                ->whereNull('deleted_at');
+            if ($projectId) {
+                $project = Project::find($projectId);
+                if ($project && $project->directorate_id == $user->directorate_id) {
+                    $selectedDirectorate = Directorate::find($project->directorate_id);
+                    $projectsQuery->where('id', $projectId);
+                }
+            }
+            $projects = $projectsQuery->get()->map(function ($project) {
+                $existingContractsSum = Contract::where('project_id', $project->id)
+                    ->whereNull('deleted_at')
+                    ->sum('contract_amount');
+                return [
+                    'id' => $project->id,
+                    'title' => $project->title,
+                    'total_budget' => number_format($project->total_budget, 2),
+                    'remaining_budget' => number_format(max(0, $project->total_budget - $existingContractsSum), 2),
+                ];
+            });
         } elseif (in_array(Role::PROJECT_USER, $roleIds) && $user->directorate_id) {
             // Project User: Only their directorate, only their assigned projects
             $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
-            $projects = $user->projects()
-                ->whereNull('deleted_at')
-                ->get()
-                ->map(function ($project) {
-                    $existingContractsSum = Contract::where('project_id', $project->id)
-                        ->whereNull('deleted_at')
-                        ->sum('contract_amount');
-                    return [
-                        'id' => $project->id,
-                        'title' => $project->title,
-                        'total_budget' => number_format($project->total_budget, 2),
-                        'remaining_budget' => number_format(max(0, $project->total_budget - $existingContractsSum), 2),
-                    ];
-                });
+            $projectsQuery = $user->projects()->whereNull('deleted_at');
+            if ($projectId) {
+                $project = Project::find($projectId);
+                if ($project && $user->projects()->where('projects.id', $projectId)->exists()) {
+                    $selectedDirectorate = Directorate::find($project->directorate_id);
+                    $projectsQuery->where('projects.id', $projectId);
+                }
+            }
+            $projects = $projectsQuery->get()->map(function ($project) {
+                $existingContractsSum = Contract::where('project_id', $project->id)
+                    ->whereNull('deleted_at')
+                    ->sum('contract_amount');
+                return [
+                    'id' => $project->id,
+                    'title' => $project->title,
+                    'total_budget' => number_format($project->total_budget, 2),
+                    'remaining_budget' => number_format(max(0, $project->total_budget - $existingContractsSum), 2),
+                ];
+            });
         } else {
             // Fallback: No directorate or projects if user has no valid role or directorate_id
             $directorates = collect();
             $projects = collect();
-            Log::warning('No valid role or directorate_id for user', ['user_id' => $user->id]);
+            if ($projectId) {
+                $project = Project::find($projectId);
+                if ($project) {
+                    $selectedDirectorate = Directorate::find($project->directorate_id);
+                    $projects = collect([
+                        [
+                            'id' => $project->id,
+                            'title' => $project->title,
+                            'total_budget' => number_format($project->total_budget, 2),
+                            'remaining_budget' => number_format(max(0, $project->total_budget - Contract::where('project_id', $project->id)->whereNull('deleted_at')->sum('contract_amount')), 2),
+                        ]
+                    ]);
+                }
+            }
         }
 
         $statuses = Status::pluck('title', 'id');
         $priorities = Priority::pluck('title', 'id');
 
-        return view('admin.contracts.create', compact('directorates', 'projects', 'statuses', 'priorities'));
+        return view('admin.contracts.create', compact('directorates', 'projects', 'statuses', 'priorities', 'project', 'selectedDirectorate'));
     }
 
     public function store(StoreContractRequest $request): RedirectResponse
@@ -238,6 +269,8 @@ class ContractController extends Controller
 
     public function show(Contract $contract): View
     {
+        abort_if(Gate::denies('contract_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $contract->load(['directorate', 'project', 'status', 'priority']);
 
         return view('admin.contracts.show', compact('contract'));
@@ -276,12 +309,6 @@ class ContractController extends Controller
                             'remaining_budget' => number_format(max(0, $project->total_budget - $existingContractsSum), 2),
                         ];
                     });
-                Log::info('Projects for directorate user (edit)', [
-                    'user_id' => $user->id,
-                    'directorate_id' => $user->directorate_id,
-                    'contract_id' => $contract->id,
-                    'project_count' => $projects->count(),
-                ]);
                 if ($projects->isEmpty() || $projects->every(fn($project) => $project['remaining_budget'] === '0.00')) {
                     Log::warning('No valid projects with remaining budget for directorate user (edit)', [
                         'user_id' => $user->id,
@@ -311,13 +338,7 @@ class ContractController extends Controller
                             'remaining_budget' => number_format(max(0, $project->total_budget - $existingContractsSum), 2),
                         ];
                     });
-                Log::info('Projects for project user (edit)', [
-                    'user_id' => $user->id,
-                    'directorate_id' => $user->directorate_id,
-                    'contract_id' => $contract->id,
-                    'project_count' => $projects->count(),
-                    'projects' => $projects->toArray(),
-                ]);
+
                 if ($projects->isEmpty() || $projects->every(fn($project) => $project['remaining_budget'] === '0.00')) {
                     Log::warning('No valid projects with remaining budget for project user (edit)', [
                         'user_id' => $user->id,

@@ -33,22 +33,28 @@
         </div>
     </div>
 
-    <!-- Search Bar for Card View -->
+    <!-- Directorate Dropdown for Card View -->
     <div id="card-search" class="mb-4 hidden">
-        <input type="text" id="cardSearchInput" placeholder="{{ trans('global.search') }}"
+        <select id="directorateFilter"
             class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+            <option value="">All Directorates</option>
+            @foreach ($directorates as $id => $title)
+                <option value="{{ $id }}">{{ $title }}</option>
+            @endforeach
+        </select>
     </div>
 
     <!-- Card View -->
     <div id="card-view" class="mb-6 hidden">
         <div id="cardContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach ($data as $index => $item)
-                <div class="card-item" data-search="{{ collect($item)->flatten()->implode(' ') }}">
+                <div class="card-item" data-search="{{ collect($item)->flatten()->implode(' ') }}"
+                    data-directorate="{{ $item['directorate']['id'] }}">
                     <x-forms.project-card :title="$item['title']" :description="$item['description']" :directorate="$item['directorate']" :fields="$item['fields']"
                         :routePrefix="$routePrefix" :actions="$actions" :deleteConfirmationMessage="$deleteConfirmationMessage" :arrayColumnColor="$arrayColumnColor" :uniqueId="$index"
-                        :id="$item['id']" />
+                        :id="$item['id']" :comment_count="$item['comment_count']" />
                 </div>
             @endforeach
         </div>
@@ -98,15 +104,17 @@
                 listView.classList.remove('hidden');
                 cardSearch.classList.add('hidden');
                 cardPagination.classList.add('hidden');
-                // Datatable pagination is managed by its own component
             }
         }
 
         // Update card view pagination
         function updateCardView() {
-            const searchInput = document.getElementById('cardSearchInput').value.toLowerCase();
+            const directorateFilter = document.getElementById('directorateFilter').value;
             const cards = Array.from(document.querySelectorAll('#cardContainer .card-item'));
-            let filteredCards = cards.filter(card => card.getAttribute('data-search').toLowerCase().includes(searchInput));
+            let filteredCards = cards.filter(card => {
+                const directorateId = card.getAttribute('data-directorate');
+                return directorateFilter === '' || directorateId === directorateFilter;
+            });
 
             const totalPages = Math.ceil(filteredCards.length / cardRowsPerPage);
 
@@ -132,10 +140,12 @@
         }
 
         function changeCardPage(delta) {
-            const searchInput = document.getElementById('cardSearchInput').value.toLowerCase();
+            const directorateFilter = document.getElementById('directorateFilter').value;
             const cards = Array.from(document.querySelectorAll('#cardContainer .card-item'));
-            const filteredCards = cards.filter(card => card.getAttribute('data-search').toLowerCase().includes(
-                searchInput));
+            const filteredCards = cards.filter(card => {
+                const directorateId = card.getAttribute('data-directorate');
+                return directorateFilter === '' || directorateId === directorateFilter;
+            });
             const totalPages = Math.ceil(filteredCards.length / cardRowsPerPage);
 
             cardCurrentPage += delta;
@@ -205,8 +215,11 @@
             });
         });
 
-        // Attach event listener for card search
-        document.getElementById('cardSearchInput').addEventListener('input', updateCardView);
+        // Attach event listener for directorate filter
+        document.getElementById('directorateFilter').addEventListener('change', () => {
+            cardCurrentPage = 1; // Reset to first page on filter change
+            updateCardView();
+        });
 
         // Initialize with card view by default
         toggleView('card');

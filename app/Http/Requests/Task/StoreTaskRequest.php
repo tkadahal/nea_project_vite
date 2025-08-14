@@ -25,6 +25,11 @@ class StoreTaskRequest extends FormRequest
                 'integer',
                 'exists:directorates,id',
             ],
+            'department_id' => [
+                'nullable',
+                'integer',
+                'exists:departments,id',
+            ],
             'title' => [
                 'required',
                 'string',
@@ -60,7 +65,7 @@ class StoreTaskRequest extends FormRequest
                 'integer',
             ],
             'projects' => [
-                'required',
+                'nullable',
                 'array',
             ],
             'users.*' => [
