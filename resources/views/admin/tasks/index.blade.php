@@ -125,12 +125,12 @@
         <x-tasks.task-board :tasks="$tasks" :statuses="$statuses" :status-colors="$statusColors" :priority-colors="$priorityColors" :directorates="$directorates"
             :departments="$departments" />
     @elseif ($activeView === 'list')
-        <x-tasks.task-list :tasks-flat="$tasksFlat" />
+        <x-tasks.task-list :tasks-flat="$tasksFlat" :status-colors="$statusColors" :priority-colors="$priorityColors" />
     @elseif ($activeView === 'calendar')
         <x-tasks.task-calendar :events="$calendarData" />
     @elseif ($activeView === 'table')
-        <x-tasks.task-table :headers="$tableHeaders" :data="$tableData" :routePrefix="$routePrefix" :deleteConfirmationMessage="$deleteConfirmationMessage" :actions="$actions"
-            arrayColumnColor="gray" />
+        <x-tasks.task-table :headers="$tableHeaders" :data="$tableData" :routePrefix="$routePrefix" :deleteConfirmationMessage="$deleteConfirmationMessage"
+            :actions="$actions" arrayColumnColor="gray" />
     @endif
 
     <x-tasks.task-filter-drawer :statuses="$statuses" :priorities="$priorities" :projects-for-filter="$projectsForFilter" />
@@ -264,13 +264,14 @@
                     const taskDepartmentId = item.getAttribute('data-department-id') || '';
                     const taskStartDate = item.getAttribute('data-start-date') || '';
                     const taskDueDate = item.getAttribute('data-due-date') || '';
-                    const taskTitle = item.getAttribute('data-title')?.toLowerCase() || '';
+                    const taskSearchData = item.getAttribute('data-search') || '';
 
                     const matchesDirectorate = !directorateId || taskDirectorateId === directorateId;
                     const matchesProject = !projectId || (projectId === 'none' && !taskProjectId) ||
                         taskProjectId === projectId;
                     const matchesPriority = !priorityId || taskPriorityId === priorityId;
-                    const matchesSearch = !searchQuery || taskTitle.includes(searchQuery);
+                    const matchesSearch = !searchQuery || taskSearchData.toLowerCase().includes(
+                        searchQuery);
 
                     let matchesDate = true;
                     if (dateStart && dateEnd) {

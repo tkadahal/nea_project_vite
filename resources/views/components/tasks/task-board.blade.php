@@ -26,10 +26,14 @@
                         data-priority-id="{{ $task['priority_id'] ?? '' }}"
                         data-start-date="{{ $task['start_date'] ?? '' }}"
                         data-due-date="{{ $task['due_date'] ?? '' }}" data-title="{{ $task['title'] }}"
-                        data-search="{{ strtolower($task['title'] . ' ' . ($task['description'] ?? '') . ' ' . ($task['priority']['title'] ?? '') . ' ' . ($task['status']['title'] ?? '') . ' ' . ($task['directorate_id'] ?? '') . ' ' . ($task['department_id'] ?? '')) }}"
+                        data-search="{{ strtolower($task['title'] .' ' .($task['description'] ?? '') .' ' .($task['priority']['title'] ?? '') .' ' .($task['status']['title'] ?? '') .' ' .($task['directorate_id'] ?? '') .' ' .($task['department_id'] ?? '') .' ' .collect($task['sub_tasks'] ?? [])->pluck('title')->implode(' ')) }}"
                         data-status-id="{{ $task['status_id'] ?? $status->id }}">
                         <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
                             {{ $task['title'] ?? 'Untitled Task' }}
+                            @if ($task['parent_id'])
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Sub-task of:
+                                    {{ $task['parent_title'] }}</span>
+                            @endif
                             @if ($task['priority'])
                                 <span class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full"
                                     style="background-color: {{ $task['priority']['color'] ?? 'gray' }};">
@@ -51,11 +55,37 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No Project/Directorate/Department
                             </p>
                         @endif
-                        <a href="{{ $task['view_url'] }}"
-                            class="mt-2 inline-block px-3 py-1 text-white rounded hover:opacity-80"
-                            style="background-color: {{ $task['status_color'] ?? 'gray' }}">
-                            {{ trans('global.view') }}
-                        </a>
+                        <!-- Sub-tasks -->
+                        @if (!empty($task['sub_tasks']))
+                            <div class="mt-2">
+                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Sub-tasks:</p>
+                                <ul class="list-disc pl-5 text-sm text-gray-600 dark:text-gray-400">
+                                    @foreach ($task['sub_tasks'] as $subTask)
+                                        <li>
+                                            <a href="{{ $subTask['view_url'] }}"
+                                                class="hover:underline">{{ $subTask['title'] }}</a>
+                                            <span
+                                                class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full"
+                                                style="background-color: {{ $subTask['status']['color'] ?? 'gray' }};">
+                                                {{ $subTask['status']['title'] ?? 'N/A' }}
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        <div class="mt-2 flex space-x-2">
+                            <a href="{{ $task['view_url'] }}" class="px-3 py-1 text-white rounded hover:opacity-80"
+                                style="background-color: {{ $task['status_color'] ?? 'gray' }}">
+                                {{ trans('global.view') }}
+                            </a>
+                            @can('task_create')
+                                <a href="{{ route('admin.task.create', ['parent_id' => $task['id']]) }}"
+                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                    Add Sub-task
+                                </a>
+                            @endcan
+                        </div>
                     </div>
                 @endforeach
                 @if (count($statusTasks) > 5)
@@ -169,7 +199,7 @@
                         return response.json().then(err => {
                             throw new Error(
                                 `HTTP error! status: ${response.status}, message: ${err.message || JSON.stringify(err)}`
-                                );
+                            );
                         });
                     }
                     return response.json();
@@ -182,7 +212,7 @@
                         color: statusColors[newStatusId] || 'gray'
                     };
 
-                    const viewButton = draggableElement.querySelector('a');
+                    const viewButton = draggableElement.querySelector('a:not([href*="parent_id"])');
                     if (viewButton) {
                         viewButton.style.backgroundColor = statusColors[newStatusId] || 'gray';
                     }
@@ -238,7 +268,7 @@
                         draggableElement.dataset.statusId = newStatusId;
                         console.log(
                             `Moved task ${taskId} to status ${newStatusId} ${projectId ? `for project ${projectId}` : 'without project'}`
-                            );
+                        );
                         updateTaskStatus(taskId, projectId, newStatusId, draggableElement);
                     }
                 }
@@ -317,7 +347,7 @@
                     return response.json().then(err => {
                         throw new Error(
                             `HTTP error! status: ${response.status}, message: ${err.message || JSON.stringify(err)}`
-                            );
+                        );
                     });
                 }
                 return response.json();
@@ -337,12 +367,13 @@
                     card.dataset.dueDate = task.due_date || '';
                     card.dataset.title = task.title || 'Untitled Task';
                     card.dataset.search =
-                        `${task.title || ''} ${task.description || ''} ${task.priority?.title || ''} ${statusTitles[task.status_id] || ''} ${task.directorate_id || ''} ${task.department_id || ''}`
+                        `${task.title || ''} ${task.description || ''} ${task.priority?.title || ''} ${statusTitles[task.status_id] || ''} ${task.directorate_id || ''} ${task.department_id || ''} ${task.sub_tasks ? task.sub_tasks.map(st => st.title).join(' ') : ''}`
                         .toLowerCase();
                     card.dataset.statusId = task.status_id;
                     card.innerHTML = `
                     <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
                         ${task.title || 'Untitled Task'}
+                        ${task.parent_id ? `<span class="text-sm text-gray-500 dark:text-gray-400">Sub-task of: ${task.parent_title || 'N/A'}</span>` : ''}
                         ${task.priority ? `<span class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full" style="background-color: ${task.priority.color};">${task.priority.title.charAt(0).toUpperCase() + task.priority.title.slice(1)}</span>` : ''}
                     </h5>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">${task.description || 'No description'}</p>
@@ -350,9 +381,31 @@
                     task.directorate_id && !task.department_id && !task.project_id ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Directorate: ${task.directorate_name || 'N/A'}</p>` :
                     task.directorate_id && task.department_id && !task.project_id ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Department: ${task.department_name || 'N/A'}</p>` :
                     '<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No Project/Directorate/Department</p>'}
-                    <a href="${task.view_url}" class="mt-2 inline-block px-3 py-1 text-white rounded hover:opacity-80" style="background-color: ${task.status_color}">
-                        View
-                    </a>
+                    ${task.sub_tasks && task.sub_tasks.length ? `
+                        <div class="mt-2">
+                            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Sub-tasks:</p>
+                            <ul class="list-disc pl-5 text-sm text-gray-600 dark:text-gray-400">
+                                ${task.sub_tasks.map(st => `
+                                    <li>
+                                        <a href="${st.view_url}" class="hover:underline">${st.title}</a>
+                                        <span class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full" style="background-color: ${st.status.color || 'gray'};">
+                                            ${st.status.title || 'N/A'}
+                                        </span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    <div class="mt-2 flex space-x-2">
+                        <a href="${task.view_url}" class="px-3 py-1 text-white rounded hover:opacity-80" style="background-color: ${task.status_color}">
+                            View
+                        </a>
+                        ${task.can_create_subtask ? `
+                            <a href="{{ route('admin.task.create') }}?parent_id=${task.id}" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                Add Sub-task
+                            </a>
+                        ` : ''}
+                    </div>
                 `;
                     list.insertBefore(card, button);
                 });

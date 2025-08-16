@@ -38,8 +38,34 @@
                     data-due-date="{{ $row['details']['due_date'] ?? '' }}" data-title="{{ $row['title'] ?? '' }}"
                     data-search="{{ $row['search_data'] ??collect($row)->except(['project_id', 'search_data'])->flatten()->implode(' ') }}">
                     <td class="py-3 px-6 text-left">{{ $row['id'] }}</td>
-                    <td class="py-3 px-6 text-left">{{ $row['title'] }}</td>
+                    <td class="py-3 px-6 text-left">
+                        {{ $row['title'] }}
+                        @if ($row['parent_id'])
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Sub-task of:
+                                {{ $row['parent_id'] }}</span>
+                        @endif
+                        <!-- Sub-tasks -->
+                        @if (!empty($row['sub_tasks']))
+                            <div class="mt-2">
+                                <p class="text-sm font-semibold">Sub-tasks:</p>
+                                <ul class="list-disc pl-5 text-sm">
+                                    @foreach ($row['sub_tasks'] as $subTask)
+                                        <li>
+                                            <a href="{{ $subTask['view_url'] }}"
+                                                class="hover:underline">{{ $subTask['title'] }}</a>
+                                            <span
+                                                class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full"
+                                                style="background-color: {{ $subTask['status']['color'] ?? 'gray' }};">
+                                                {{ $subTask['status']['title'] ?? 'N/A' }}
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </td>
                     <td class="py-3 px-6 text-left">{{ $row['project'] }}</td>
+                    <td class="py-3 px-6 text-left">{{ $row['parent_id'] }}</td>
                     <td class="py-3 px-6 text-left">
                         <div class="flex flex-wrap gap-2">
                             @if (isset($row['details']['status']['title']))
@@ -91,6 +117,12 @@
                                     </button>
                                 </form>
                             @endif
+                            @can('task_create')
+                                <a href="{{ route($routePrefix . '.create', ['parent_id' => $row['id']]) }}"
+                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm">
+                                    Add Sub-task
+                                </a>
+                            @endcan
                         </div>
                     </td>
                 </tr>

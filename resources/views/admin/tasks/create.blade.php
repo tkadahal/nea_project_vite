@@ -37,6 +37,22 @@
                 </button>
             </div>
 
+            @php
+                $parentId = old('parent_id', request()->query('parent_id', $preselectedData['parent_id'] ?? null));
+                $parentTitle = $parentId && isset($tasks[$parentId]) ? $tasks[$parentId] : null;
+            @endphp
+
+            @if ($parentId && $parentTitle)
+                <div
+                    class="mb-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+                    <p class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        {{ trans('global.task.fields.subtask_of') }}: <span
+                            class="font-semibold">{{ $parentTitle }}</span>
+                    </p>
+                    <input type="hidden" name="parent_id" value="{{ $parentId }}">
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
@@ -51,8 +67,8 @@
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                         ->values()
                                         ->all()" :selected="old('directorate_id', $preselectedData['directorate_id'] ?? '')"
-                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('directorate_id')" :disabled="$preselectedData !== null"
-                                    class="js-single-select" />
+                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('directorate_id')"
+                                    :disabled="$preselectedData !== null" class="js-single-select" />
                             </div>
 
                             <div class="col-span-full">
@@ -683,11 +699,11 @@
                                         .value) === String(userId)));
                                 updateSelectOptions(usersContainer, formattedData, validOldUsers);
                                 if (formattedData.length === 0) {
-                                    $("#error-message").removeClass("hidden").find("#error-text")
-                                        .text(
-                                            "No users available for the selected " + (departmentId ?
-                                                "department" : "directorate") + "."
-                                        );
+                                    // $("#error-message").removeClass("hidden").find("#error-text")
+                                    //     .text(
+                                    //         "No users available for the selected " + (departmentId ?
+                                    //             "department" : "directorate") + "."
+                                    //     );
                                 }
                             },
                             error: function(xhr) {

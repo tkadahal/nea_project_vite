@@ -30,6 +30,10 @@ class StoreTaskRequest extends FormRequest
                 'integer',
                 'exists:departments,id',
             ],
+            'parent_id' => [
+                'nullable',
+                'exists:tasks,id'
+            ],
             'title' => [
                 'required',
                 'string',

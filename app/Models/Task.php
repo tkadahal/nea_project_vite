@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Task extends Model
 {
@@ -27,6 +28,7 @@ class Task extends Model
         'status_id',
         'priority_id',
         'assigned_by',
+        'parent_id',
     ];
 
     protected $casts = [
@@ -86,6 +88,16 @@ class Task extends Model
         return $this->morphMany(File::class, 'fileable');
     }
 
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'parent_id');
+    }
+
+    public function subTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'parent_id');
+    }
+
     public function getEstimatedHoursAttribute(): float
     {
         if (!$this->start_date || !$this->due_date) {
@@ -108,6 +120,7 @@ class Task extends Model
                 'priority_id',
                 'progress',
                 'assigned_by',
+                'parent_id',
             ])
             ->logOnlyDirty()
             ->useLogName('task')

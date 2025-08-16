@@ -107,7 +107,9 @@ Route::group(
         Route::get('/tasks/users-by-directorate-or-department', [TaskController::class, 'getUsersByDirectorateOrDepartment'])->name('tasks.users_by_directorate_or_department');
         Route::get('/tasks/projects/{directorate_id}', [TaskController::class, 'getProjects'])->name('tasks.projects');
         Route::get('/tasks/departments/{directorate_id}', [TaskController::class, 'getDepartments'])->name('tasks.departments');
-        Route::post('/tasks/{task}/{project?}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
+        Route::post('/tasks/{task}/comments', [CommentController::class, 'storeForTask'])
+            ->name('tasks.comments.store');
+        // Route::post('/tasks/{task}/{project?}/comments', [CommentController::class, 'storeForTask'])->name('tasks.comments.store');
         Route::resource('task', TaskController::class)->except(['show', 'edit', 'update']);
 
         Route::resource('event', EventController::class);

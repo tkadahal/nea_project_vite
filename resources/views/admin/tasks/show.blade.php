@@ -256,7 +256,12 @@
                         @include('admin.comments.comment', [
                             'comment' => $comment,
                             'level' => 0,
-                            'commentable' => [$task['id'], $task['project_id'] ?? null],
+                            'commentable' => [
+                                $task['id'],
+                                $task['project_id'] && is_numeric($task['project_id'])
+                                    ? $task['project_id']
+                                    : null,
+                            ],
                             'routePrefix' => 'admin.tasks',
                         ])
                     @endforeach
@@ -264,11 +269,10 @@
             </div>
 
             <div class="mt-6 flex-shrink-0">
-                <form method="POST"
-                    action="{{ route('admin.tasks.comments.store', [$task['id'], $task['project_id'] ?? null]) }}"
-                    class="space-y-4">
+                <form method="POST" action="{{ route('admin.tasks.comments.store', $task['id']) }}" class="space-y-4">
                     @csrf
-                    <input type="hidden" name="project_id" value="{{ $task['project_id'] }}">
+                    <input type="hidden" name="project_id"
+                        value="{{ $task['project_id'] && is_numeric($task['project_id']) ? $task['project_id'] : null }}">
                     <div class="flex items-start space-x-3">
                         <span
                             class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white font-medium">

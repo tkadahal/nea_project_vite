@@ -15,6 +15,8 @@ return new class extends Migration
             $table->foreignId('directorate_id')->constrained();
             $table->foreignId('department_id')->nullable()->constrained();
 
+            $table->foreignId('parent_id')->nullable()->constrained('tasks')->onDelete('cascade');
+
             $table->string('title');
             $table->text('description')->nullable();
 

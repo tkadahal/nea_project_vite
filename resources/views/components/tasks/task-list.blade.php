@@ -9,11 +9,15 @@
                 data-priority-id="{{ $task['priority_id'] ?? '' }}" data-project-id="{{ $task['project_id'] ?? '' }}"
                 data-start-date="{{ $task['start_date'] ?? '' }}" data-due-date="{{ $task['due_date'] ?? '' }}"
                 data-title="{{ $task['title'] }}"
-                data-search="{{ strtolower($task['title'] . ' ' . ($task['description'] ?? '') . ' ' . ($task['priority'] ?? '') . ' ' . ($task['status'] ?? '') . ' ' . ($task['projects'][0] ?? '') . ' ' . ($task['directorate_id'] ?? '') . ' ' . ($task['department_id'] ?? '')) }}">
+                data-search="{{ strtolower($task['title'] .' ' .($task['description'] ?? '') .' ' .($task['priority'] ?? '') .' ' .($task['status'] ?? '') .' ' .($task['projects'][0] ?? '') .' ' .($task['directorate_id'] ?? '') .' ' .($task['department_id'] ?? '') .' ' .collect($task['sub_tasks'] ?? [])->pluck('title')->implode(' ')) }}">
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
                             {{ $task['title'] }}
+                            @if ($task['parent_id'])
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Sub-task of:
+                                    {{ $task['parent_title'] }}</span>
+                            @endif
                             @php
                                 $priorityBadgeColor = $priorityColors[$task['priority'] ?? ''] ?? 'gray';
                             @endphp
@@ -43,11 +47,38 @@
                                 {{ $task['due_date'] ? \Carbon\Carbon::parse($task['due_date'])->format('M d, Y') : 'No Due Date' }}
                             </span>
                         </p>
+                        <!-- Sub-tasks -->
+                        @if (!empty($task['sub_tasks']))
+                            <div class="mt-2">
+                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Sub-tasks:</p>
+                                <ul class="list-disc pl-5 text-sm text-gray-600 dark:text-gray-400">
+                                    @foreach ($task['sub_tasks'] as $subTask)
+                                        <li>
+                                            <a href="{{ $subTask['view_url'] }}"
+                                                class="hover:underline">{{ $subTask['title'] }}</a>
+                                            <span
+                                                class="badge inline-block px-2 py-1 text-xs font-semibold text-white rounded-full"
+                                                style="background-color: {{ $subTask['status']['color'] ?? 'gray' }};">
+                                                {{ $subTask['status']['title'] ?? 'N/A' }}
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
-                    <a href="{{ $task['view_url'] }}"
-                        class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                        {{ trans('global.view') }}
-                    </a>
+                    <div class="flex space-x-2">
+                        <a href="{{ $task['view_url'] }}"
+                            class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            {{ trans('global.view') }}
+                        </a>
+                        @can('task_create')
+                            <a href="{{ route('admin.task.create', ['parent_id' => $task['id']]) }}"
+                                class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                Add Sub-task
+                            </a>
+                        @endcan
+                    </div>
                 </div>
             </div>
         @endforeach

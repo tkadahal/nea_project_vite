@@ -25,45 +25,49 @@ class CommentController extends Controller
     /**
      * Store a comment for a task.
      */
-    public function storeForTask(Request $request, Task $task, Project $project)
+    public function storeForTask(Request $request, Task $task)
     {
-        // Validate project_id matches the provided project
-        $request->validate([
-            'project_id' => ['required', 'exists:projects,id', 'in:' . $project->id],
-        ]);
-
-        // Check if the task is associated with the project
-        if (!$task->projects()->where('project_id', $project->id)->exists()) {
-            return redirect()->back()->withErrors(['project_id' => 'Task not associated with this project']);
-        }
-
-        // Store the comment using shared logic
-        $comment = $this->storeComment($request, $task, 'admin.task.show', $project->id);
-
-        return $comment;
+        return $this->storeComment($request, $task, 'admin.task.show');
     }
 
     /**
      * Shared logic to store a comment for any commentable model.
      */
-    protected function storeComment(Request $request, Model $commentable, string $redirectRoute, ?int $projectId = null)
+    protected function storeComment(Request $request, Model $commentable, string $redirectRoute)
     {
         $request->validate([
             'content' => ['required', 'string', 'max:1000'],
             'parent_id' => ['nullable', 'exists:comments,id'],
+            'project_id' => ['nullable', 'numeric', 'exists:projects,id'],
         ]);
+
+        $projectId = $request->input('project_id');
+
+        // Validate that task belongs to project (if applicable)
+        if ($commentable instanceof Task && $projectId !== null) {
+            if (!$commentable->projects()->where('project_id', $projectId)->exists()) {
+                return redirect()->back()->withErrors(['project_id' => 'Task not associated with this project']);
+            }
+        }
 
         $comment = $commentable->comments()->create([
             'content' => $request->input('content'),
             'user_id' => Auth::id(),
-            'project_id' => $projectId ?? ($commentable instanceof Project ? $commentable->id : null),
+            'project_id' => $projectId,
             'parent_id' => $request->input('parent_id'),
         ]);
 
         // Notify relevant users
         $this->notifyUsers($comment, $commentable);
 
-        return redirect()->route($redirectRoute, $commentable instanceof Task ? [$commentable, $projectId] : $commentable)
+        // Build redirect parameters dynamically
+        $routeParams = [$commentable->id];
+        if ($commentable instanceof Task && $projectId) {
+            $routeParams[] = $projectId;
+        }
+
+        return redirect()
+            ->route($redirectRoute, $routeParams)
             ->with('success', 'Comment added.');
     }
 
@@ -82,7 +86,6 @@ class CommentController extends Controller
 
         // Add thread participants (for replies)
         if ($comment->parent_id) {
-            $parentComment = Comment::find($comment->parent_id);
             $threadComments = Comment::where('parent_id', $comment->parent_id)
                 ->orWhere('id', $comment->parent_id)
                 ->with('user')
@@ -97,13 +100,13 @@ class CommentController extends Controller
         }
 
         // Exclude comment author
-        $recipients = $recipients->unique()->reject(function ($userId) use ($commentAuthor) {
-            return $userId == $commentAuthor->id;
-        });
+        $recipients = $recipients->unique()->reject(
+            fn($userId) => $userId == $commentAuthor->id
+        );
 
         // Attach users to comment with unread status
-        $comment->users()->syncWithoutDetaching($recipients->mapWithKeys(function ($userId) {
-            return [$userId => ['read_at' => null]];
-        }));
+        $comment->users()->syncWithoutDetaching(
+            $recipients->mapWithKeys(fn($userId) => [$userId => ['read_at' => null]])
+        );
     }
 }
