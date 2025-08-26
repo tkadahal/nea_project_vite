@@ -14,32 +14,22 @@
         {{-- View Mode Buttons --}}
         <div class="w-full md:w-1/3 bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden">
             <div class="flex flex-wrap items-center w-full">
-                <button onclick="setViewMode('Quarter Day')"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors duration-200 border-r border-gray-300 dark:border-gray-700 first:rounded-l-lg last:rounded-r-lg md:first:rounded-l-none md:last:rounded-r-none"
-                    id="quarter-day-btn">
-                    <span class="md:hidden">QD</span><span class="hidden md:inline">Quarter Day</span>
-                </button>
-                <button onclick="setViewMode('Half Day')"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors duration-200 border-r border-gray-300 dark:border-gray-700 first:rounded-l-lg last:rounded-r-lg md:first:rounded-l-none md:last:rounded-r-none"
-                    id="half-day-btn">
-                    <span class="md:hidden">HD</span><span class="hidden md:inline">Half Day</span>
-                </button>
-                <button onclick="setViewMode('Day')"
+                <button onclick="setViewMode('day')"
                     class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors duration-200 border-r border-gray-300 dark:border-gray-700 first:rounded-l-lg last:rounded-r-lg md:first:rounded-l-none md:last:rounded-r-none"
                     id="day-btn">
                     <span class="md:hidden">D</span><span class="hidden md:inline">Day</span>
                 </button>
-                <button onclick="setViewMode('Week')"
+                <button onclick="setViewMode('week')"
                     class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors duration-200 bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 border-r border-gray-300 dark:border-gray-700 first:rounded-l-lg last:rounded-r-lg md:first:rounded-l-none md:last:rounded-r-none"
                     id="week-btn">
                     <span class="md:hidden">W</span><span class="hidden md:inline">Week</span>
                 </button>
-                <button onclick="setViewMode('Month')"
+                <button onclick="setViewMode('month')"
                     class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors duration-200 border-r border-gray-300 dark:border-gray-700 first:rounded-l-lg last:rounded-r-lg md:first:rounded-l-none md:last:rounded-r-none"
                     id="month-btn">
                     <span class="md:hidden">M</span><span class="hidden md:inline">Month</span>
                 </button>
-                <button onclick="setViewMode('Year')"
+                <button onclick="setViewMode('year')"
                     class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors duration-200 border-l-0 border-gray-300 dark:border-gray-700 first:rounded-l-lg last:rounded-r-lg md:first:rounded-l-none md:last:rounded-r-none"
                     id="year-btn">
                     <span class="md:hidden">Y</span><span class="hidden md:inline">Year</span>
@@ -68,169 +58,204 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"
-        style="width: 100%; overflow-x: auto; min-height: 400px;">
-        <div id="gantt-container" class="dark:bg-gray-900" style="width: 100%; overflow-x: auto; min-height: 400px;">
-            <svg id="gantt-target" style="width: 100%; height: auto; min-width: 1000px;"></svg>
-        </div>
+    <div class="bg-gray-800 p-4 rounded-lg shadow" style="width: 100%; overflow-x: auto; min-height: 400px;">
+        <div id="gantt-container" style="width: 100%; height: 400px;"></div>
     </div>
 
     <style>
-        *,
-        ::after,
-        ::before,
-        ::backdrop,
-        ::file-selector-button {
-            z-index: 1;
+        #gantt-container .gantt_task_line {
+            background-color: #6b46c1;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
-        #gantt-container {
-            overflow-x: auto;
-            overflow-y: hidden;
-            min-height: 400px;
-            width: 100%;
-            position: relative;
-            /* Ensure child elements are contained */
+        #gantt-container .gantt_task_progress {
+            background-color: #8a4af3;
+            border-radius: 4px;
         }
 
-        #gantt-target {
-            width: 100%;
-            height: 400px;
-            /* Match container min-height */
-            min-width: 0;
+        #gantt-container .gantt_link_line {
+            stroke: #a0aec0;
+            stroke-width: 2;
+        }
+
+        #gantt-container .gantt_grid_data .gantt_row {
+            background-color: #2d3748;
+        }
+
+        #gantt-container .gantt_grid_head_cell {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        #gantt-container .gantt_scale_cell {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        #gantt-container .gantt_task_content {
+            color: #e2e8f0;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            z-index: 1001;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
         }
     </style>
 
     @push('scripts')
+        <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+        <link href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css" rel="stylesheet">
         <script>
             document.addEventListener("DOMContentLoaded", function() {
                 console.log('DOMContentLoaded fired');
-                console.log('Gantt library loaded:', typeof Gantt !== 'undefined');
                 const initialTasksData = @json($tasks);
+                const initialLinksData = @json($links);
                 console.log('Initial Tasks Data:', initialTasksData);
+                console.log('Initial Links Data:', initialLinksData);
 
-                const directorateTitlesMap = @json($availableDirectorates);
-                const priorityTitlesMap = @json($priorities);
-
-                let ganttInstance;
-                let currentViewMode = 'Week';
+                let currentViewMode = 'week';
+                let tooltipElement = null;
 
                 function formatTasksForGantt(tasksToFormat) {
                     return tasksToFormat.map(task => ({
                         id: task.id.toString(),
-                        name: task.title,
-                        start: task.start,
-                        end: task.end,
-                        progress: task.progress ?? 0,
-                        dependencies: '',
-                        custom_class: 'gantt-task',
-                        directorate_id: task.directorate_id,
-                        directorate_title: task.directorate || directorateTitlesMap[task.directorate_id] ||
-                            'N/A',
-                        priority_id: task.priority,
-                        priority_title: priorityTitlesMap[task.priority] || 'N/A'
+                        text: task.title,
+                        start_date: task.start,
+                        end_date: task.end,
+                        progress: 0,
+                        parent: task.parent_id ? task.parent_id.toString() : 0,
+                        open: true,
+                        project_name: task.project_name || 'N/A',
+                        directorate: task.directorate || 'N/A',
+                        assigned_user: task.assigned_user || 'N/A'
                     }));
                 }
 
-                function initializeGantt(tasksToRender, viewMode = 'Week') {
-                    console.log('Reinitializing Gantt with viewMode:', viewMode, 'tasks:', tasksToRender);
+                function initializeGantt(tasksToRender, linksToRender, viewMode = 'week') {
+                    console.log('Reinitializing Gantt with viewMode:', viewMode, 'tasks:', tasksToRender, 'links:',
+                        linksToRender);
                     const formattedTasks = formatTasksForGantt(tasksToRender);
-                    console.log('Formatted tasks:', formattedTasks);
 
-                    const svgContainer = document.querySelector('#gantt-target');
-                    if (svgContainer) {
-                        svgContainer.innerHTML = '';
-                        console.log('Cleared SVG container');
-                    }
+                    gantt.clearAll();
 
-                    if (ganttInstance) {
-                        console.log('Clearing existing Gantt instance');
-                        try {
-                            ganttInstance.clear();
-                        } catch (e) {
-                            console.warn('Error clearing Gantt instance:', e);
-                        }
-                        ganttInstance = null;
-                    }
+                    gantt.config.date_format = "%Y-%m-%d";
+                    gantt.config.scale_height = 50;
+                    gantt.config.row_height = 40;
+                    gantt.config.task_height = 20;
+                    gantt.config.link_line_width = 2;
+                    gantt.config.links = {
+                        finish_to_start: 0
+                    };
+                    gantt.config.columns = [];
 
-                    let column_width;
+                    // Migrate to new scales configuration
                     switch (viewMode) {
-                        case 'Quarter Day':
-                            column_width = 45 / 4;
+                        case 'day':
+                            gantt.config.scales = [{
+                                unit: "day",
+                                step: 1,
+                                format: "%d"
+                            }];
                             break;
-                        case 'Half Day':
-                            column_width = 45 / 2;
+                        case 'week':
+                            gantt.config.scales = [{
+                                unit: "week",
+                                step: 1,
+                                format: "Week #%W"
+                            }];
                             break;
-                        case 'Day':
-                            column_width = 45;
+                        case 'month':
+                            gantt.config.scales = [{
+                                unit: "month",
+                                step: 1,
+                                format: "%F"
+                            }];
                             break;
-                        case 'Week':
-                            column_width = 45 * 7;
+                        case 'year':
+                            gantt.config.scales = [{
+                                unit: "year",
+                                step: 1,
+                                format: "%Y"
+                            }];
                             break;
-                        case 'Month':
-                            column_width = 45 * 30;
-                            break;
-                        case 'Year':
-                            column_width = 45 * 365;
-                            break;
-                        default:
-                            column_width = 45;
                     }
 
-                    try {
-                        ganttInstance = new Gantt("#gantt-target", formattedTasks, {
-                            view_mode: viewMode,
-                            upper_header_height: 45,
-                            lower_header_height: 30,
-                            date_format: 'YYYY-MM-DD',
-                            snap_at: '1d',
-                            bar_height: 30,
-                            bar_corner_radius: 3,
-                            padding: 18,
-                            infinite_padding: true,
-                            container_height: 400, // Match container min-height in pixels
-                            popup_on: 'click',
-                            column_width: column_width,
-                            today_button: true,
-                            scroll_to: 'today',
-                            view_mode_select: true,
-                            custom_popup_html: function(task) {
-                                return `
-                                <div class="p-3 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-200 text-sm shadow">
-                                    <div class="font-semibold mb-1">${task.name}</div>
-                                    <div><strong>Start:</strong> ${task.start}</div>
-                                    <div><strong>End:</strong> ${task.end}</div>
-                                    <div><strong>Progress:</strong> ${task.progress}%</div>
-                                    <div><strong>Directorate:</strong> ${task.directorate_title || 'N/A'}</div>
-                                    <div><strong>Priority:</strong> ${task.priority_title || 'N/A'}</div>
-                                </div>
-                            `;
-                            }
-                        });
-                        console.log('Gantt instance initialized');
-                        currentViewMode = viewMode;
-                    } catch (e) {
-                        console.error('Error initializing Gantt:', e);
+                    // Custom scale for week number of month (approximate)
+                    if (viewMode === 'week') {
+                        gantt.templates.scale_cell = function(date) {
+                            var weekNum = Math.ceil((date.getDate() + new Date(date.getFullYear(), date.getMonth(),
+                                1).getDay()) / 7);
+                            return "Week " + weekNum;
+                        };
                     }
 
-                    document.querySelectorAll('.flex.space-x-0.items-center button').forEach(button => {
-                        const isActive = button.textContent.trim() === viewMode;
-                        button.classList.toggle('bg-blue-500', isActive);
-                        button.classList.toggle('text-white', isActive);
-                        button.classList.toggle('hover:bg-blue-600', isActive);
-                        button.classList.toggle('dark:bg-blue-600', isActive);
-                        button.classList.toggle('dark:hover:bg-blue-700', isActive);
-                        button.classList.toggle('bg-transparent', !isActive);
-                        button.classList.toggle('text-gray-700', !isActive);
-                        button.classList.toggle('dark:text-gray-300', !isActive);
-                        button.classList.toggle('hover:bg-gray-300', !isActive);
-                        button.classList.toggle('dark:hover:bg-gray-500', !isActive);
+                    gantt.init("gantt-container");
+                    gantt.parse({
+                        data: formattedTasks,
+                        links: linksToRender
                     });
+
+                    // Attach click listener immediately after parse
+                    const container = document.getElementById('gantt-container');
+                    if (container) {
+                        container.removeEventListener('click', handleTaskBarClick);
+                        container.addEventListener('click', handleTaskBarClick);
+                        console.log('Click event listener attached to gantt-container');
+                    } else {
+                        console.error('Gantt container not found');
+                    }
                 }
 
-                initializeGantt(initialTasksData);
+                function handleTaskBarClick(e) {
+                    console.log('Click event triggered', e);
+                    const bar = e.target.closest('.gantt_task_line');
+                    if (bar) {
+                        const id = bar.getAttribute('task_id');
+                        console.log('Clicked bar ID:', id);
+                        if (id) {
+                            var task = gantt.getTask(id);
+                            if (task) {
+                                var pos = gantt.getTaskPosition(task);
+                                if (pos) {
+                                    // Remove existing tooltip if it exists
+                                    if (tooltipElement && tooltipElement.parentNode) {
+                                        tooltipElement.parentNode.removeChild(tooltipElement);
+                                    }
+                                    // Create and display tooltip instantly
+                                    tooltipElement = document.createElement('div');
+                                    tooltipElement.className = 'custom-tooltip';
+                                    tooltipElement.innerHTML = `
+                                        <p><strong>Project:</strong> ${task.project_name}</p>
+                                        <p><strong>Directorate:</strong> ${task.directorate}</p>
+                                        <p><strong>Assigned User:</strong> ${task.assigned_user}</p>
+                                    `;
+                                    tooltipElement.style.left = `${pos.left + 10}px`;
+                                    tooltipElement.style.top = `${pos.top - 40}px`;
+                                    document.body.appendChild(tooltipElement);
+                                    console.log('Tooltip displayed for task:', task.text);
+                                } else {
+                                    console.error('Failed to get task position for ID:', id);
+                                }
+                            } else {
+                                console.error('Task not found for ID:', id);
+                            }
+                        } else {
+                            console.error('No task_id attribute on clicked bar');
+                        }
+                    }
+                }
 
-                // Native change event listener
+                initializeGantt(initialTasksData, initialLinksData);
+
                 document.addEventListener('change', function(event) {
                     const target = event.target;
                     console.log('Native change event detected on:', target, 'name:', target.name, 'value:',
@@ -247,7 +272,6 @@
                     }
                 }, true);
 
-                // jQuery fallback change event listener
                 if (window.jQuery) {
                     jQuery(document).on('change', 'input[name="directorate_id"], input[name="priority"]', function() {
                         console.log('jQuery change event detected on:', this, 'name:', this.name, 'value:', this
@@ -306,11 +330,12 @@
                         })
                         .then(data => {
                             console.log('AJAX response data:', data);
-                            if (data.tasks && Array.isArray(data.tasks)) {
-                                initializeGantt(data.tasks, currentViewMode);
+                            if (data.tasks && Array.isArray(data.tasks) && data.links && Array.isArray(data
+                                .links)) {
+                                initializeGantt(data.tasks, data.links, currentViewMode);
                             } else {
-                                console.warn('No tasks in response or invalid format:', data);
-                                initializeGantt([], currentViewMode);
+                                console.warn('No tasks or links in response or invalid format:', data);
+                                initializeGantt([], [], currentViewMode);
                                 alert('No tasks match the selected filters.');
                             }
                         })
@@ -348,32 +373,8 @@
 
                 window.setViewMode = function(mode) {
                     console.log('Changing view mode to:', mode);
-                    if (ganttInstance) {
-                        try {
-                            ganttInstance.change_view_mode(mode);
-                            currentViewMode = mode;
-                        } catch (e) {
-                            console.warn('Error changing view mode:', e);
-                        }
-                        document.querySelectorAll('.flex.space-x-0.items-center button').forEach(button => {
-                            const isActive = button.textContent.trim() === mode;
-                            button.classList.toggle('bg-blue-500', isActive);
-                            button.classList.toggle('text-white', isActive);
-                            button.classList.toggle('hover:bg-blue-600', isActive);
-                            button.classList.toggle('dark:bg-blue-600', isActive);
-                            button.classList.toggle('dark:hover:bg-blue-700', isActive);
-                            button.classList.toggle('bg-transparent', !isActive);
-                            button.classList.toggle('text-gray-700', !isActive);
-                            button.classList.toggle('dark:text-gray-300', !isActive);
-                            button.classList.toggle('hover:bg-gray-300', !isActive);
-                            button.classList.toggle('dark:hover:bg-gray-500', !isActive);
-                        });
-                    }
-                };
-
-                window.testFilter = function(directorateId) {
-                    console.log('Manually testing filter with directorateId:', directorateId);
-                    applyFilters(directorateId, '');
+                    currentViewMode = mode;
+                    initializeGantt(initialTasksData, initialLinksData, mode);
                 };
             });
         </script>

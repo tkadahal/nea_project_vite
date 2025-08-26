@@ -478,8 +478,8 @@
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 xl:table-cell">
                                 <div class="flex flex-wrap gap-2">
                                     ${users.length ? users.map(user => `
-                                                <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${user}</span>
-                                            `).join('') : '<span class="text-gray-500 dark:text-gray-400 text-xs">No Users</span>'}
+                                                        <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${user}</span>
+                                                    `).join('') : '<span class="text-gray-500 dark:text-gray-400 text-xs">No Users</span>'}
                                 </div>
                             </td>
                         </tr>
@@ -529,7 +529,7 @@
                     const target = event.target;
                     if (target.matches(
                             'select[name="directorate_id"], select[name="project_id"], select[name="status_id"], select[name="priority_id"]'
-                            )) {
+                        )) {
                         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute(
                             'content');
                         if (!csrfToken) {
@@ -567,7 +567,7 @@
                                     return response.text().then(text => {
                                         throw new Error(
                                             `HTTP error! Status: ${response.status}, Body: ${text.substring(0, 200)}...`
-                                            );
+                                        );
                                     });
                                 }
                                 return response.json();

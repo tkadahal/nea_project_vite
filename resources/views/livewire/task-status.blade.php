@@ -1,17 +1,27 @@
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700 col-span-12 lg:col-span-8"
-        id="task-status-component">
+        id="task-status-component" x-data="{ openSubtasks: {} }">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-base sm:text-sm font-semibold text-gray-800 dark:text-white">
                 {{ trans('global.task.title') }} {{ trans('global.status.title') }}
             </h2>
             <div class="flex items-center space-x-4">
-                <a class="px-1 py-1 sm:px-2 sm:py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
+                <a class="inline-flex items-center gap-1 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
                     href="{{ route('admin.tasks.ganttChart') }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
                     {{ trans('global.chart') }}
                 </a>
-                <a class="px-1 py-1 sm:px-2 sm:py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
+                <a class="inline-flex items-center gap-1 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs sm:text-sm"
                     href="{{ route('admin.task.index') }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
                     {{ trans('global.viewAll') }}
                 </a>
                 <div class="relative" wire:ignore>
@@ -78,6 +88,10 @@
                             {{ trans('global.task.fields.total_time') }}
                         </th>
                         <th class="py-2 px-4 text-left">
+                            {{ trans('global.project.title') }} / {{ trans('global.directorate.title') }} /
+                            {{ trans('global.department.title') }}
+                        </th>
+                        <th class="py-2 px-4 text-left">
                             {{ trans('global.action') }}
                         </th>
                     </tr>
@@ -86,13 +100,28 @@
                     @foreach ($tasks as $task)
                         <tr class="border-t dark:border-gray-600">
                             <td class="py-2 px-4 whitespace-nowrap">
-                                <a href="{{ route('admin.task.show', [$task->id, $task->project_id]) }}"
-                                    class="text-blue-600 hover:text-blue-800">
-                                    {{ Str::limit($task->name, 50) }}
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">
-                                        ({{ $task->project_name }})
-                                    </span>
-                                </a>
+                                <div class="flex items-center">
+                                    @if ($task->sub_tasks && $task->sub_tasks->count() > 0)
+                                        <button type="button"
+                                            class="toggle-subtasks mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                            :class="{ 'expanded': openSubtasks['{{ $task->id }}'] }"
+                                            @click="openSubtasks['{{ $task->id }}'] = !openSubtasks['{{ $task->id }}']"
+                                            data-task-id="{{ $task->id }}">
+                                            <svg class="w-5 h-5 transform transition-transform duration-200"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                        </button>
+                                    @else
+                                        <span class="w-5 h-5 mr-2"></span> <!-- Placeholder for alignment -->
+                                    @endif
+                                    <a href="{{ route('admin.task.show', [$task->id, $task->project_id ?? 0]) }}"
+                                        class="text-blue-600 hover:text-blue-800">
+                                        {{ Str::limit($task->name, 50) }}
+                                    </a>
+                                </div>
                                 <div class="sm:hidden text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     <span class="inline-block px-2 py-1 rounded-full text-white"
                                         style="background-color: {{ $task->status->color ?? 'gray' }};">
@@ -106,6 +135,22 @@
                                     </span>
                                     <br>
                                     Time: {{ $task->total_time_spent }}
+                                    <br>
+                                    @if ($task->sub_tasks && $task->sub_tasks->count() > 0)
+                                        Subtasks: {{ $task->sub_tasks->count() }} <!-- Debugging output -->
+                                    @else
+                                        Subtasks: 0 <!-- Debugging output -->
+                                    @endif
+                                    <br>
+                                    @if ($task->project_id)
+                                        Project: {{ $task->project_name ?? 'N/A' }}
+                                    @elseif ($task->directorate_id && !$task->department_id)
+                                        Directorate: {{ $task->directorate_name ?? 'N/A' }}
+                                    @elseif ($task->directorate_id && $task->department_id)
+                                        Department: {{ $task->department_name ?? 'N/A' }}
+                                    @else
+                                        No Project/Directorate/Department
+                                    @endif
                                 </div>
                             </td>
                             <td class="py-2 px-4 hidden sm:table-cell whitespace-nowrap">
@@ -123,32 +168,122 @@
                             <td class="py-2 px-4 hidden lg:table-cell whitespace-nowrap">
                                 {{ $task->total_time_spent }}
                             </td>
+                            <td class="py-2 px-4 whitespace-nowrap hidden lg:table-cell">
+                                @if ($task->project_id)
+                                    Project: {{ $task->project_name ?? 'N/A' }}
+                                @elseif ($task->directorate_id && !$task->department_id)
+                                    Directorate: {{ $task->directorate_name ?? 'N/A' }}
+                                @elseif ($task->directorate_id && $task->department_id)
+                                    Department: {{ $task->department_name ?? 'N/A' }}
+                                @else
+                                    No Project/Directorate/Department
+                                @endif
+                            </td>
                             <td class="py-2 px-4 whitespace-nowrap">
                                 <div class="flex space-x-2">
-                                    <a href="{{ route('admin.task.edit', [$task->id, $task->project_id]) }}"
-                                        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                                    <a href="{{ route('admin.task.edit', [$task->id, $task->project_id ?? 0]) }}"
+                                        class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
+                                        aria-label="Edit task">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                         </svg>
+                                        Edit
                                     </a>
-                                    <form action="{{ route('admin.task.destroy', [$task->id, $task->project_id]) }}"
+                                    <form
+                                        action="{{ route('admin.task.destroy', [$task->id, $task->project_id ?? 0]) }}"
                                         method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
-                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                                            class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
+                                            aria-label="Delete task">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
+                                            Delete
                                         </button>
                                     </form>
                                 </div>
                             </td>
                         </tr>
+                        @if ($task->sub_tasks && $task->sub_tasks->count() > 0)
+                            @foreach ($task->sub_tasks as $subTask)
+                                <tr class="border-t dark:border-gray-600 subtask-row"
+                                    x-show="openSubtasks['{{ $task->id }}']" x-cloak
+                                    data-task-id="{{ $task->id }}">
+                                    <td class="py-2 px-4 whitespace-nowrap">
+                                        <div class="ml-8">
+                                            <a href="{{ route('admin.task.show', [$subTask->id, $subTask->project_id ?? 0]) }}"
+                                                class="text-blue-600 hover:text-blue-800 text-sm">
+                                                {{ Str::limit($subTask->name, 50) }}
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="py-2 px-4 hidden sm:table-cell whitespace-nowrap">
+                                        <span class="inline-block px-2 py-1 rounded-full text-white text-xs"
+                                            style="background-color: {{ $subTask->status->color ?? 'gray' }};">
+                                            {{ $subTask->status->title }}
+                                        </span>
+                                    </td>
+                                    <td class="py-2 px-4 hidden md:table-cell whitespace-nowrap">
+                                        <span
+                                            class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">
+                                            {{ $subTask->assigned_to }}
+                                        </span>
+                                    </td>
+                                    <td class="py-2 px-4 hidden lg:table-cell whitespace-nowrap">
+                                        {{ $subTask->total_time_spent }}
+                                    </td>
+                                    <td class="py-2 px-4 whitespace-nowrap hidden lg:table-cell">
+                                        @if ($subTask->project_id)
+                                            Project: {{ $subTask->project_name ?? 'N/A' }}
+                                        @elseif ($subTask->directorate_id && !$subTask->department_id)
+                                            Directorate: {{ $subTask->directorate_name ?? 'N/A' }}
+                                        @elseif ($subTask->directorate_id && $subTask->department_id)
+                                            Department: {{ $subTask->department_name ?? 'N/A' }}
+                                        @else
+                                            No Project/Directorate/Department
+                                        @endif
+                                    </td>
+                                    <td class="py-2 px-4 whitespace-nowrap">
+                                        <div class="flex space-x-2">
+                                            <a href="{{ route('admin.task.edit', [$subTask->id, $subTask->project_id ?? 0]) }}"
+                                                class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
+                                                aria-label="Edit subtask">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                                Edit
+                                            </a>
+                                            <form
+                                                action="{{ route('admin.task.destroy', [$subTask->id, $subTask->project_id ?? 0]) }}"
+                                                method="POST" style="display:inline;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
+                                                    aria-label="Delete subtask">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endif
                     @endforeach
                 </tbody>
             </table>
@@ -195,8 +330,30 @@
         .dark .custom-scroll {
             scrollbar-color: #4b5563 #1f2937;
         }
+
+        .subtask-row {
+            background-color: #f9fafb;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .dark .subtask-row {
+            background-color: #1f2937;
+        }
+
+        .toggle-subtasks svg {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .toggle-subtasks.expanded svg {
+            transform: rotate(90deg);
+        }
+
+        [x-cloak] {
+            display: none;
+        }
     </style>
 
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
     <script>
         function waitForjQuery(callback) {
             if (typeof jQuery !== 'undefined' && jQuery.fn.jquery === '3.7.1') {
@@ -209,57 +366,62 @@
         waitForjQuery(function($) {
             const $taskContainer = $('#task-status-component');
 
-            $taskContainer.find('.dropdown-toggle-task').on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const $dropdown = $taskContainer.find('.dropdown-menu-task');
-                $dropdown.toggleClass('hidden');
-                console.log('Task dropdown toggled, visible:', !$dropdown.hasClass('hidden'), 'position:',
-                    $dropdown.position());
-                $taskContainer.find('#task-directorate-search').val('');
-                $taskContainer.find('.directorate-option-task').removeClass('hidden');
-                $taskContainer.find('#task-no-results').addClass('hidden');
-            });
+            function attachEventListeners() {
+                $taskContainer.find('.dropdown-toggle-task').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const $dropdown = $taskContainer.find('.dropdown-menu-task');
+                    $dropdown.toggleClass('hidden');
+                    console.log('Task dropdown toggled, visible:', !$dropdown.hasClass('hidden'),
+                        'position:', $dropdown.position());
+                    $taskContainer.find('#task-directorate-search').val('');
+                    $taskContainer.find('.directorate-option-task').removeClass('hidden');
+                    $taskContainer.find('#task-no-results').addClass('hidden');
+                });
 
-            $(document).on('click', function(event) {
-                if (!$(event.target).closest('.dropdown-toggle-task, .dropdown-menu-task').length) {
-                    $taskContainer.find('.dropdown-menu-task').addClass('hidden');
-                    console.log('Task dropdown closed');
-                }
-            });
-
-            $taskContainer.find('.directorate-option-task').on('click', function() {
-                const filterValue = $(this).data('filter');
-                const $dropdown = $taskContainer.find('.dropdown-menu-task');
-                $dropdown.addClass('hidden');
-                console.log('Task filter clicked:', filterValue, 'Dropdown closed');
-            });
-
-            $taskContainer.find('#task-directorate-search').on('input', function() {
-                const searchTerm = $(this).val().toLowerCase();
-                console.log('Task search term:', searchTerm);
-                let visibleCount = 0;
-
-                $taskContainer.find('.directorate-option-task').each(function() {
-                    const name = $(this).data('name').toLowerCase();
-                    const isAllDirectorates = $(this).data('filter') === 'all';
-                    if (isAllDirectorates || name.includes(searchTerm)) {
-                        $(this).removeClass('hidden');
-                        visibleCount++;
-                    } else {
-                        $(this).addClass('hidden');
+                $(document).off('click.taskDropdown').on('click.taskDropdown', function(event) {
+                    if (!$(event.target).closest('.dropdown-toggle-task, .dropdown-menu-task').length) {
+                        $taskContainer.find('.dropdown-menu-task').addClass('hidden');
+                        console.log('Task dropdown closed');
                     }
                 });
 
-                $taskContainer.find('#task-no-results').toggleClass('hidden', visibleCount > 0);
-            });
+                $taskContainer.find('.directorate-option-task').off('click').on('click', function() {
+                    const filterValue = $(this).data('filter');
+                    const $dropdown = $taskContainer.find('.dropdown-menu-task');
+                    $dropdown.addClass('hidden');
+                    console.log('Task filter clicked:', filterValue, 'Dropdown closed');
+                });
+
+                $taskContainer.find('#task-directorate-search').off('input').on('input', function() {
+                    const searchTerm = $(this).val().toLowerCase();
+                    console.log('Task search term:', searchTerm);
+                    let visibleCount = 0;
+
+                    $taskContainer.find('.directorate-option-task').each(function() {
+                        const name = $(this).data('name').toLowerCase();
+                        const isAllDirectorates = $(this).data('filter') === 'all';
+                        if (isAllDirectorates || name.includes(searchTerm)) {
+                            $(this).removeClass('hidden');
+                            visibleCount++;
+                        } else {
+                            $(this).addClass('hidden');
+                        }
+                    });
+
+                    $taskContainer.find('#task-no-results').toggleClass('hidden', visibleCount > 0);
+                });
+            }
+
+            attachEventListeners();
 
             const component = document.getElementById('task-status-component');
             if (component) {
                 const observer = new MutationObserver(function(mutations) {
                     mutations.forEach(function(mutation) {
                         if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                            console.log('Task table updated');
+                            console.log('Task table updated, re-attaching event listeners');
+                            attachEventListeners();
                         }
                     });
                 });
@@ -269,6 +431,12 @@
                     characterData: true
                 });
             }
+
+            // Livewire hook to re-attach Alpine.js after updates
+            document.addEventListener('livewire:navigated', function() {
+                console.log('Livewire navigated, re-initializing Alpine.js');
+                Alpine.initTree(document.getElementById('task-status-component'));
+            });
         });
     </script>
 </div>
