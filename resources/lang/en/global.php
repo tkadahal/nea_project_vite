@@ -46,6 +46,7 @@ return [
     'login_password_confirmation' => 'Password confirmation',
     'yes' => 'Yes',
     'no' => 'No',
+    'viewAll' => 'View All',
     'view_file' => 'View file',
     'verifyYourUser' => 'To finish your registration - site asks you to verify your email',
     'clickHereToVerify' => 'Click here to verify',
@@ -473,6 +474,8 @@ return [
         'fields' => [
             'id' => 'ID',
             'id_helper' => '',
+            'department_id' => 'Department',
+            'department_id_helper' => '',
             'project_id' => 'Project',
             'project_id_helper' => '',
             'user_id' => 'User',

@@ -32,21 +32,34 @@ class SprintData extends Component
         $sprints = [];
 
         $query = Task::query()
-            ->join('project_task', 'tasks.id', '=', 'project_task.task_id')
+            ->leftJoin('project_task', 'tasks.id', '=', 'project_task.task_id')
             ->select(
                 DB::raw("TO_CHAR(tasks.created_at, 'YYYY-MM-01') as month_start"),
-                'project_task.status_id',
+                DB::raw('COALESCE(project_task.status_id, tasks.status_id) as status_id'),
                 DB::raw('COUNT(*) as count')
-            );
+            )
+            ->whereBetween('tasks.created_at', [$startDate, $endDate]);
 
         if (in_array(3, $roles) && $directorateId) {
-            $query->join('projects', 'project_task.project_id', '=', 'projects.id')
-                ->where('projects.directorate_id', $directorateId);
+            // Directorate User: Include tasks in directorate (with or without project/department)
+            $query->where(function ($q) use ($directorateId, $projectIds) {
+                $q->where('tasks.directorate_id', $directorateId)
+                    ->orWhereHas('projects', fn($q) => $q->where('projects.directorate_id', $directorateId));
+            });
         } elseif (in_array(4, $roles) && $projectIds->isNotEmpty()) {
-            $query->whereIn('project_task.project_id', $projectIds);
+            // Project User: Include tasks in assigned projects
+            $query->where(function ($q) use ($projectIds) {
+                $q->whereIn('project_task.project_id', $projectIds);
+            });
+        } elseif (in_array(1, $roles)) {
+            // Superadmin: Include all tasks
+            // No additional filters needed
+        } else {
+            // Default: Limit to tasks user can access (e.g., assigned tasks)
+            $query->whereHas('users', fn($q) => $q->where('users.id', $user->id));
         }
 
-        $tasksByMonthAndStatus = $query->groupByRaw("TO_CHAR(tasks.created_at, 'YYYY-MM-01'), project_task.status_id")
+        $tasksByMonthAndStatus = $query->groupByRaw("TO_CHAR(tasks.created_at, 'YYYY-MM-01'), COALESCE(project_task.status_id, tasks.status_id)")
             ->get()
             ->reduce(function ($carry, $item) {
                 $carry[$item->month_start][$item->status_id] = $item->count;

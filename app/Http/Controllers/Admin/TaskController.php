@@ -15,19 +15,16 @@ use App\Models\Priority;
 use Illuminate\View\View;
 use App\Models\Department;
 use App\Models\Directorate;
-use App\Exports\TasksExport;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\JsonResponse;
 use App\Notifications\TaskCreated;
 use App\Notifications\TaskDeleted;
 use App\Notifications\TaskUpdated;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use App\Http\Requests\Task\StoreTaskRequest;
@@ -41,12 +38,20 @@ class TaskController extends Controller
 
         $activeView = session('task_view_preference', 'board');
         $user = Auth::user();
+        $roleIds = $user->roles->pluck('id')->toArray();
 
         $statuses = Cache::remember('task_statuses', 86400, fn() => Status::all());
         $priorities = Cache::remember('task_priorities', 86400, fn() => Priority::all());
-        $directorates = $user->roles->pluck('id')->contains(Role::SUPERADMIN) ? Directorate::all() : collect();
         $statusColors = $statuses->pluck('color', 'id')->toArray();
         $priorityColors = config('colors.priority');
+
+        // Load directorates based on role
+        $directorates = collect();
+        if (in_array(Role::SUPERADMIN, $roleIds)) {
+            $directorates = Directorate::all();
+        } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
+            $directorates = Directorate::where('id', $user->directorate_id)->get();
+        }
 
         $data = [
             'activeView' => $activeView,
@@ -73,12 +78,38 @@ class TaskController extends Controller
         $taskQuery = Task::with($withRelations)->latest();
 
         try {
-            $roleIds = $user->roles->pluck('id')->toArray();
-
-            // Apply filters
-            if ($request->filled('directorate_id') && in_array(Role::SUPERADMIN, $roleIds)) {
-                $taskQuery->where('directorate_id', $request->input('directorate_id'));
+            // Apply role-based filters
+            if (in_array(Role::SUPERADMIN, $roleIds)) {
+                // Superadmin: Allow directorate filter from request
+                if ($request->filled('directorate_id')) {
+                    $taskQuery->where('directorate_id', $request->input('directorate_id'));
+                }
+            } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
+                // Directorate User: Filter by user's directorate
+                $taskQuery->where('directorate_id', $user->directorate_id);
+            } elseif (in_array(Role::DEPARTMENT_USER, $roleIds) && $user->directorate_id) {
+                // Department User: Filter by departments under user's directorate
+                $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
+                    ->pluck('id');
+                if ($departmentIds->isEmpty()) {
+                    $taskQuery->whereRaw('1 = 0'); // Force empty result if no departments
+                } else {
+                    $taskQuery->whereIn('department_id', $departmentIds);
+                }
+            } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
+                // Project User: Filter by user's projects
+                $projectIds = $user->projects()->whereNull('deleted_at')->pluck('id');
+                if ($projectIds->isEmpty()) {
+                    $taskQuery->whereRaw('1 = 0'); // Force empty result if no projects
+                } else {
+                    $taskQuery->whereHas('projects', fn($q) => $q->whereIn('projects.id', $projectIds)->whereNull('deleted_at'));
+                }
+            } else {
+                // Fallback: Limit to tasks assigned to the user
+                $taskQuery->whereHas('users', fn($q) => $q->where('users.id', $user->id));
             }
+
+            // Apply additional filters
             if ($request->filled('department_id')) {
                 $taskQuery->where('department_id', $request->input('department_id'));
             }
@@ -105,24 +136,13 @@ class TaskController extends Controller
                 });
             }
 
-            if (!in_array(Role::SUPERADMIN, $roleIds)) {
-                $taskQuery->where(function ($query) use ($user, $roleIds) {
-                    if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
-                        $query->where('directorate_id', $user->directorate_id);
-                    }
-                    if (in_array(Role::PROJECT_USER, $roleIds)) {
-                        $projectIds = $user->projects()->whereNull('deleted_at')->pluck('id');
-                        $query->orWhereHas('projects', fn($q) => $q->whereIn('projects.id', $projectIds)->whereNull('deleted_at'));
-                    }
-                    if (in_array(Role::DEPARTMENT_USER, $roleIds) && $user->directorate_id) {
-                        $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
-                            ->pluck('id');
-                        $query->orWhereIn('department_id', $departmentIds);
-                    }
-                });
-            }
-
             $tasks = $taskQuery->get();
+
+            // Load directorates for tasks to ensure view compatibility
+            $taskDirectorateIds = $tasks->pluck('directorate_id')->filter()->unique()->toArray();
+            $data['directorates'] = $directorates->isEmpty() && !empty($taskDirectorateIds)
+                ? Directorate::whereIn('id', $taskDirectorateIds)->get()
+                : $directorates;
 
             $allTasks = $tasks->flatMap(function ($task) use ($statusColors, $priorityColors) {
                 $results = [];
@@ -229,7 +249,30 @@ class TaskController extends Controller
                         'project_id' => $taskItem->project_id,
                         'view_url' => $taskItem->project_id ? route('admin.task.show', [$task->id, $taskItem->project_id]) : route('admin.task.show', $task->id),
                         'parent_id' => $task->parent_id ? (string) $task->parent_id : null,
-                        'parent_title' => $task->parent ? $task->parent->title : null,
+                        'parent_title' => $task->parent ?
+
+                            $task->parent->title : null,
+                        'sub_tasks' => $task->subTasks->map(function ($subTask) use ($statusColors, $priorityColors, $taskItem) {
+                            return [
+                                'id' => $subTask->id,
+                                'title' => $subTask->title ?? 'Untitled Sub-task',
+                                'description' => $subTask->description ?? 'No description',
+                                'priority' => $subTask->priority ? ['title' => $subTask->priority->title, 'color' => $priorityColors[$subTask->priority->title] ?? 'gray'] : null,
+                                'priority_id' => $subTask->priority_id,
+                                'status' => $subTask->status ? ['id' => $subTask->status->id, 'title' => $subTask->status->title, 'color' => $statusColors[$subTask->status->id] ?? 'gray'] : null,
+                                'status_id' => $subTask->status_id,
+                                'status_color' => $subTask->status ? ($statusColors[$subTask->status->id] ?? 'gray') : 'gray',
+                                'view_url' => $taskItem->project_id ? route('admin.task.show', [$subTask->id, $taskItem->project_id]) : route('admin.task.show', $subTask->id),
+                                'project_id' => $taskItem->project_id,
+                                'project_name' => $taskItem->project?->title ?? 'N/A',
+                                'directorate_id' => $subTask->directorate_id ? (string) $subTask->directorate_id : '',
+                                'directorate_name' => $subTask->directorate?->title ?? 'N/A',
+                                'department_id' => $subTask->department_id ? (string) $subTask->department_id : '',
+                                'department_name' => $subTask->department?->title ?? 'N/A',
+                                'start_date' => $subTask->start_date ? $subTask->start_date->format('Y-m-d') : null,
+                                'due_date' => $subTask->due_date ? $subTask->due_date->format('Y-m-d') : null,
+                            ];
+                        })->values()->toArray(),
                     ];
                 })->values();
             } elseif ($activeView === 'calendar') {
@@ -1022,47 +1065,102 @@ class TaskController extends Controller
 
     public function getGanttChart(Request $request)
     {
-        $query = Task::with(['projects.directorate', 'priority', 'assignedBy']);
+        $user = Auth::user();
+        $roles = $user->roles->pluck('id')->toArray();
 
-        if ($request->filled('directorate_id')) {
-            $directorateId = $request->directorate_id;
-            $query->whereHas('projects', function ($q) use ($directorateId) {
-                $q->where('directorate_id', $directorateId);
-            });
+        $query = Task::with(['directorate', 'department', 'status', 'priority', 'assignedBy', 'projects']);
+
+        // Apply role-based filtering
+        if (in_array(Role::SUPERADMIN, $roles)) {
+            // Superadmin: Allow request-based directorate filter if provided
+            if ($request->filled('directorate_id')) {
+                $query->where('directorate_id', $request->directorate_id);
+            }
+        } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
+            // Directorate User: Filter by user's directorate (request filter can override)
+            $directorateId = $request->filled('directorate_id') ? $request->directorate_id : $user->directorate_id;
+            $query->where('directorate_id', $directorateId);
+        } elseif (in_array(Role::DEPARTMENT_USER, $roles) && $user->directorate_id) {
+            // Department User: Filter by departments under user's directorate
+            $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
+                ->pluck('id');
+            if ($departmentIds->isEmpty()) {
+                $query->whereRaw('1 = 0'); // Force empty result if no departments
+            } else {
+                $query->whereIn('department_id', $departmentIds);
+            }
+        } elseif (in_array(Role::PROJECT_USER, $roles)) {
+            // Project User: Filter by user's projects
+            $projectIds = $user->projects()->pluck('id');
+            if ($projectIds->isEmpty()) {
+                $query->whereRaw('1 = 0'); // Force empty result if no projects
+            } else {
+                $query->whereHas('projects', fn($pq) => $pq->whereIn('projects.id', $projectIds));
+            }
+        } else {
+            // Fallback: No tasks if no matching role
+            $query->whereRaw('1 = 0');
         }
 
+        // Apply priority filter for all roles if provided
         if ($request->filled('priority')) {
-            $priorityId = $request->priority;
-            $query->where('priority_id', $priorityId);
+            $query->where('priority_id', $request->priority);
         }
 
         $rawTasks = $query->get();
 
         $tasks = $rawTasks->map(function ($task) use ($request) {
-            $matchingProject = $request->filled('directorate_id')
-                ? $task->projects->firstWhere('directorate_id', $request->directorate_id)
-                : $task->projects->first();
+            // Determine entity (project, department, or directorate)
+            $project = $task->projects->first();
+            $department = $task->department;
+            $directorate = $task->directorate;
 
-            $directorateTitle = $matchingProject?->directorate?->title ?? 'N/A';
-            $directorateId = $matchingProject?->directorate?->id ?? null;
-            $projectName = $matchingProject?->name ?? 'N/A';
-            $assignedUser = $task->assignedBy?->name ?? 'N/A';
+            $projectName = $project ? $project->title : 'N/A';
+            $departmentName = $department ? $department->title : 'N/A';
+            $directorateTitle = $directorate ? $directorate->title : 'N/A';
+            $assignedUser = $task->assignedBy ? $task->assignedBy->name : 'N/A';
+
+            // Conditional entity selection
+            $entity = 'N/A';
+            if ($projectName !== 'N/A') {
+                $entity = $projectName;
+            } elseif ($departmentName !== 'N/A') {
+                $entity = $departmentName;
+            } elseif ($directorateTitle !== 'N/A') {
+                $entity = $directorateTitle;
+            }
+
+            // Compute gantt_cal as date range
+            $ganttCal = ($task->start_date && $task->due_date)
+                ? $task->start_date->format('Y-m-d') . ' to ' . $task->due_date->format('Y-m-d')
+                : 'N/A';
+
+            // Map relations
+            $description = $task->description ?? 'No description available';
+            $statusTitle = $task->status ? $task->status->title : 'Pending';
+            $priorityTitle = $task->priority ? $task->priority->title : 'N/A';
+            $tags = $task->tags ?? 'tag1,tag2';
 
             return [
                 'id' => $task->id,
                 'title' => $task->title,
                 'start' => $task->start_date ? $task->start_date->format('Y-m-d') : null,
                 'end' => $task->due_date ? $task->due_date->format('Y-m-d') : null,
-                'progress' => $task->progress ?? 0,
+                'progress' => $task->projects->first()?->pivot->progress ?? 0,
                 'directorate' => $directorateTitle,
-                'directorate_id' => $directorateId,
+                'department' => $departmentName,
                 'project_name' => $projectName,
                 'assigned_user' => $assignedUser,
                 'parent_id' => $task->parent_id,
+                'gantt_cal' => $ganttCal,
+                'description' => $description,
+                'status' => $statusTitle,
+                'priority' => $priorityTitle,
+                'tags' => $tags
             ];
-        })->filter(function ($task) use ($request) {
-            $include = !$request->filled('directorate_id') || $task['directorate_id'] == $request->directorate_id;
-            return $include && $task['start'] && $task['end'];
+        })->filter(function ($task) {
+            // Ensure tasks have valid start and end dates
+            return !is_null($task['start']) && !is_null($task['end']);
         })->values()->all();
 
         // Prepare links for parent-to-child relationships
@@ -1078,7 +1176,16 @@ class TaskController extends Controller
             }
         }
 
-        $availableDirectorates = Directorate::all()->pluck('title', 'id')->toArray();
+        // Load available directorates and priorities (only for Superadmin and Directorate User)
+        $availableDirectorates = [];
+        if (in_array(Role::SUPERADMIN, $roles)) {
+            $availableDirectorates = Directorate::all()->pluck('title', 'id')->toArray();
+        } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
+            $availableDirectorates = Directorate::where('id', $user->directorate_id)
+                ->pluck('title', 'id')
+                ->toArray();
+        }
+
         $priorities = Priority::all()->pluck('title', 'id')->toArray();
 
         if ($request->expectsJson()) {
@@ -1091,101 +1198,6 @@ class TaskController extends Controller
         }
 
         return view('admin.analytics.tasks-gantt-chart', compact('tasks', 'links', 'availableDirectorates', 'priorities'));
-    }
-
-    public function analytics(Request $request)
-    {
-        $user = Auth::user();
-        $queryString = $request->getQueryString() ?? '';
-        $cacheKey = 'task_analytics_' . $user->id . '_' . md5($queryString);
-
-        $data = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($request, $user) {
-            $query = Task::with(['status', 'priority', 'projects.directorate', 'users']);
-
-            if ($user->hasRole(Role::SUPERADMIN)) {
-                if ($request->filled('directorate_id')) {
-                    $query->whereHas('projects', fn($q) => $q->where('directorate_id', $request->directorate_id));
-                }
-            } elseif ($user->hasRole(Role::DIRECTORATE_USER)) {
-                $query->whereHas('projects', fn($q) => $q->where('directorate_id', $user->directorate_id));
-            } elseif ($user->hasRole(Role::PROJECT_USER)) {
-                $query->whereHas('projects', fn($q) => $q->whereIn('id', $user->projects->pluck('id')));
-            }
-
-            if ($request->filled('project_id')) {
-                $query->whereHas('projects', fn($q) => $q->where('id', $request->project_id));
-            }
-            if ($request->filled('status_id')) {
-                $query->where('status_id', $request->status_id);
-            }
-            if ($request->filled('priority_id')) {
-                $query->where('priority_id', $request->priority_id);
-            }
-
-            $tasks = $query->latest()->paginate(10);
-
-            $summary = [
-                'total_tasks' => $query->count(),
-                'completed_tasks' => $query->clone()->whereHas('status', fn($q) => $q->where('title', 'Completed'))->count(),
-                'overdue_tasks' => $query->clone()->where('due_date', '<', now())->whereHas('status', fn($q) => $q->where('title', '!=', 'Completed'))->count(),
-                'average_progress' => round(
-                    $query->clone()->select(DB::raw('avg(progress::integer) as avg_progress'))->withoutGlobalScopes()->reorder()->value('avg_progress') ?? 0,
-                    1
-                ),
-            ];
-
-            $charts = [
-                'status' => [
-                    'labels' => Status::pluck('title')->toArray(),
-                    'data' => Status::pluck('title')->map(fn($title) => $query->clone()->whereHas('status', fn($q) => $q->where('title', $title))->count())->toArray(),
-                ],
-                'priority' => [
-                    'labels' => Priority::pluck('title')->toArray(),
-                    'data' => Priority::pluck('title')->map(fn($title) => $query->clone()->whereHas('priority', fn($q) => $q->where('title', $title))->count())->toArray(),
-                ],
-            ];
-
-            $directorates = $user->hasRole(Role::SUPERADMIN) ? Directorate::all() : collect();
-            $projects = Project::whereIn('id', $query->clone()->with('projects')->get()->pluck('projects.*.id')->flatten()->unique())->get();
-            $statuses = Status::all();
-            $priorities = Priority::all();
-
-            return compact('tasks', 'summary', 'charts', 'directorates', 'projects', 'statuses', 'priorities');
-        });
-
-        if ($request->expectsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            return response()->json($data);
-        }
-
-        return view('admin.analytics.tasks-analytics', $data);
-    }
-
-    public function exportAnalytics(Request $request)
-    {
-        $user = Auth::user();
-        $taskQuery = Task::with(['status', 'priority', 'projects.directorate', 'users']);
-
-        if ($user->hasRole('SuperAdmin')) {
-            if ($request->filled('directorate_id')) {
-                $taskQuery->whereHas('projects', fn($q) => $q->where('directorate_id', $request->directorate_id));
-            }
-        } elseif ($user->hasRole('Directorate User')) {
-            $taskQuery->whereHas('projects', fn($q) => $q->where('directorate_id', $user->directorate_id));
-        } elseif ($user->hasRole('Project User')) {
-            $taskQuery->whereHas('projects', fn($q) => $q->whereIn('id', $user->projects->pluck('id')));
-        }
-
-        if ($request->filled('project_id')) {
-            $taskQuery->whereHas('projects', fn($q) => $q->where('id', $request->project_id));
-        }
-        if ($request->filled('status_id')) {
-            $taskQuery->where('status_id', $request->status_id);
-        }
-        if ($request->filled('priority_id')) {
-            $taskQuery->where('priority_id', $request->priority_id);
-        }
-
-        return Excel::download(new TasksExport($taskQuery), 'tasks_' . now()->format('Y-m-d_H-i-s') . '.csv');
     }
 
     public function loadMore(Request $request)

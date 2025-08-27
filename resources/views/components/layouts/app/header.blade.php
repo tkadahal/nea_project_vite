@@ -87,19 +87,6 @@
                             </div>
                         </a>
                     @endcan
-                    @can('shutdown_create')
-                        <a href="{{ route('admin.shutdown.create') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M10 9v6m4-6v6m-7-3h10" />
-                                </svg>
-                                {{ trans('global.shutdown.title') }}
-                            </div>
-                        </a>
-                    @endcan
                 </div>
             </div>
         </div>
@@ -124,10 +111,9 @@
                             <x-flag-country-us class="h-5 w-5 mr-1" />
                         @endif
                         <span class="font-medium">{{ strtoupper(app()->getLocale()) }}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 9l-7 7-7-7" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div

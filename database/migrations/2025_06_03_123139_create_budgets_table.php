@@ -17,6 +17,8 @@ return new class extends Migration
 
             $table->decimal('total_budget', 15, 2)->nullable();
             $table->decimal('internal_budget', 15, 2)->nullable();
+            $table->decimal('government_share', 15, 2)->nullable();
+            $table->decimal('government_loan', 15, 2)->nullable();
             $table->decimal('foreign_loan_budget', 15, 2)->nullable();
             $table->decimal('foreign_subsidy_budget', 15, 2)->nullable();
             $table->integer('budget_revision')->default(1);

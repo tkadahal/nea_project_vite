@@ -28,7 +28,7 @@ class TasksExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             'Task',
-            'Project',
+            'Context',
             'Status',
             'Priority',
             'Due Date',
@@ -40,12 +40,22 @@ class TasksExport implements FromQuery, WithHeadings, WithMapping
     public function map($task): array
     {
         try {
-            // Load status from project_task.status_id
+            // Use the coalesced status_id from the query
             $status = Status::find($task->status_id);
+
+            // Determine context (Project, Department, or Directorate)
+            $context = 'N/A';
+            if ($task->projects->isNotEmpty()) {
+                $context = $task->projects->pluck('title')->implode(', ');
+            } elseif ($task->department_id && $task->department) {
+                $context = $task->department->title;
+            } elseif ($task->directorate_id && $task->directorate) {
+                $context = $task->directorate->title;
+            }
 
             return [
                 $task->title ?? 'N/A',
-                $task->projects->isNotEmpty() ? $task->projects->pluck('title')->implode(', ') : 'N/A',
+                $context,
                 $status ? $status->title : 'N/A',
                 $task->priority ? $task->priority->title : 'N/A',
                 $task->due_date ? $task->due_date->format('Y-m-d') : 'N/A',
@@ -53,6 +63,10 @@ class TasksExport implements FromQuery, WithHeadings, WithMapping
                 $task->users->isNotEmpty() ? $task->users->pluck('name')->implode(', ') : 'No Users',
             ];
         } catch (\Exception $e) {
+            Log::error('Error mapping task for export', [
+                'task_id' => $task->id ?? 'unknown',
+                'error' => $e->getMessage(),
+            ]);
             return [
                 $task->title ?? 'N/A',
                 'Error',

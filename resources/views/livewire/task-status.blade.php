@@ -88,10 +88,6 @@
                             {{ trans('global.task.fields.total_time') }}
                         </th>
                         <th class="py-2 px-4 text-left">
-                            {{ trans('global.project.title') }} / {{ trans('global.directorate.title') }} /
-                            {{ trans('global.department.title') }}
-                        </th>
-                        <th class="py-2 px-4 text-left">
                             {{ trans('global.action') }}
                         </th>
                     </tr>
@@ -107,20 +103,24 @@
                                             :class="{ 'expanded': openSubtasks['{{ $task->id }}'] }"
                                             @click="openSubtasks['{{ $task->id }}'] = !openSubtasks['{{ $task->id }}']"
                                             data-task-id="{{ $task->id }}">
-                                            <svg class="w-5 h-5 transform transition-transform duration-200"
-                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M9 5l7 7-7 7"></path>
-                                            </svg>
+                                            <span
+                                                class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                                                {{ $task->sub_tasks->count() }}
+                                            </span>
                                         </button>
                                     @else
                                         <span class="w-5 h-5 mr-2"></span> <!-- Placeholder for alignment -->
                                     @endif
-                                    <a href="{{ route('admin.task.show', [$task->id, $task->project_id ?? 0]) }}"
-                                        class="text-blue-600 hover:text-blue-800">
-                                        {{ Str::limit($task->name, 50) }}
-                                    </a>
+                                    {{ Str::limit($task->name, 50) }}
+                                    (@if ($task->project_id)
+                                        Project: {{ $task->project_name ?? 'N/A' }}
+                                    @elseif ($task->directorate_id && !$task->department_id)
+                                        Directorate: {{ $task->directorate_name ?? 'N/A' }}
+                                    @elseif ($task->directorate_id && $task->department_id)
+                                        Department: {{ $task->department_name ?? 'N/A' }}
+                                    @else
+                                        No Project/Directorate/Department
+                                    @endif)
                                 </div>
                                 <div class="sm:hidden text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     <span class="inline-block px-2 py-1 rounded-full text-white"
@@ -135,22 +135,6 @@
                                     </span>
                                     <br>
                                     Time: {{ $task->total_time_spent }}
-                                    <br>
-                                    @if ($task->sub_tasks && $task->sub_tasks->count() > 0)
-                                        Subtasks: {{ $task->sub_tasks->count() }} <!-- Debugging output -->
-                                    @else
-                                        Subtasks: 0 <!-- Debugging output -->
-                                    @endif
-                                    <br>
-                                    @if ($task->project_id)
-                                        Project: {{ $task->project_name ?? 'N/A' }}
-                                    @elseif ($task->directorate_id && !$task->department_id)
-                                        Directorate: {{ $task->directorate_name ?? 'N/A' }}
-                                    @elseif ($task->directorate_id && $task->department_id)
-                                        Department: {{ $task->department_name ?? 'N/A' }}
-                                    @else
-                                        No Project/Directorate/Department
-                                    @endif
                                 </div>
                             </td>
                             <td class="py-2 px-4 hidden sm:table-cell whitespace-nowrap">
@@ -168,45 +152,18 @@
                             <td class="py-2 px-4 hidden lg:table-cell whitespace-nowrap">
                                 {{ $task->total_time_spent }}
                             </td>
-                            <td class="py-2 px-4 whitespace-nowrap hidden lg:table-cell">
-                                @if ($task->project_id)
-                                    Project: {{ $task->project_name ?? 'N/A' }}
-                                @elseif ($task->directorate_id && !$task->department_id)
-                                    Directorate: {{ $task->directorate_name ?? 'N/A' }}
-                                @elseif ($task->directorate_id && $task->department_id)
-                                    Department: {{ $task->department_name ?? 'N/A' }}
-                                @else
-                                    No Project/Directorate/Department
-                                @endif
-                            </td>
                             <td class="py-2 px-4 whitespace-nowrap">
                                 <div class="flex space-x-2">
-                                    <a href="{{ route('admin.task.edit', [$task->id, $task->project_id ?? 0]) }}"
-                                        class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
-                                        aria-label="Edit task">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
+                                    <a href="{{ route('admin.task.show', array_filter([$task->id, $task->project_id])) }}"
+                                        class="text-blue-600 hover:text-blue-800">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
-                                        Edit
                                     </a>
-                                    <form
-                                        action="{{ route('admin.task.destroy', [$task->id, $task->project_id ?? 0]) }}"
-                                        method="POST" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
-                                            aria-label="Delete task">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Delete
-                                        </button>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -217,10 +174,16 @@
                                     data-task-id="{{ $task->id }}">
                                     <td class="py-2 px-4 whitespace-nowrap">
                                         <div class="ml-8">
-                                            <a href="{{ route('admin.task.show', [$subTask->id, $subTask->project_id ?? 0]) }}"
-                                                class="text-blue-600 hover:text-blue-800 text-sm">
-                                                {{ Str::limit($subTask->name, 50) }}
-                                            </a>
+                                            {{ Str::limit($subTask->name, 50) }}
+                                            (@if ($subTask->project_id)
+                                                Project: {{ $subTask->project_name ?? 'N/A' }}
+                                            @elseif ($subTask->directorate_id && !$subTask->department_id)
+                                                Directorate: {{ $subTask->directorate_name ?? 'N/A' }}
+                                            @elseif ($subTask->directorate_id && $subTask->department_id)
+                                                Department: {{ $subTask->department_name ?? 'N/A' }}
+                                            @else
+                                                No Project/Directorate/Department
+                                            @endif)
                                         </div>
                                     </td>
                                     <td class="py-2 px-4 hidden sm:table-cell whitespace-nowrap">
@@ -238,47 +201,19 @@
                                     <td class="py-2 px-4 hidden lg:table-cell whitespace-nowrap">
                                         {{ $subTask->total_time_spent }}
                                     </td>
-                                    <td class="py-2 px-4 whitespace-nowrap hidden lg:table-cell">
-                                        @if ($subTask->project_id)
-                                            Project: {{ $subTask->project_name ?? 'N/A' }}
-                                        @elseif ($subTask->directorate_id && !$subTask->department_id)
-                                            Directorate: {{ $subTask->directorate_name ?? 'N/A' }}
-                                        @elseif ($subTask->directorate_id && $subTask->department_id)
-                                            Department: {{ $subTask->department_name ?? 'N/A' }}
-                                        @else
-                                            No Project/Directorate/Department
-                                        @endif
-                                    </td>
                                     <td class="py-2 px-4 whitespace-nowrap">
                                         <div class="flex space-x-2">
-                                            <a href="{{ route('admin.task.edit', [$subTask->id, $subTask->project_id ?? 0]) }}"
-                                                class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
-                                                aria-label="Edit subtask">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
-                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <a href="{{ route('admin.task.show', array_filter([$task->id, $task->project_id])) }}"
+                                                class="text-blue-600 hover:text-blue-800">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2"
-                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
-                                                Edit
                                             </a>
-                                            <form
-                                                action="{{ route('admin.task.destroy', [$subTask->id, $subTask->project_id ?? 0]) }}"
-                                                method="POST" style="display:inline;">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
-                                                    aria-label="Delete subtask">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                    Delete
-                                                </button>
-                                            </form>
                                         </div>
                                     </td>
                                 </tr>

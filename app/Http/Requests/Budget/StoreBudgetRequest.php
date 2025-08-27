@@ -23,6 +23,8 @@ class StoreBudgetRequest extends FormRequest
             'project_id' => 'required|integer|exists:projects,id',
             'fiscal_year_id' => 'required|integer|exists:fiscal_years,id',
             'internal_budget' => 'required|numeric|min:0',
+            'government_share' => 'required|numeric|min:0',
+            'government_loan' => 'required|numeric|min:0',
             'foreign_loan_budget' => 'required|numeric|min:0',
             'foreign_subsidy_budget' => 'required|numeric|min:0',
             'total_budget' => 'required|numeric|min:0',

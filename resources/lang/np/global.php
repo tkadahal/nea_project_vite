@@ -46,6 +46,7 @@ return [
     'login_password_confirmation' => 'पासवर्ड पुष्टि',
     'yes' => 'हो',
     'no' => 'होईन',
+    'viewAll' => 'सबै हेर्नुहोस्',
     'view_file' => 'फाइल हेर्नुहोस्',
     'verifyYourUser' => 'तपाईंको इमेल प्रमाणित गर्न साइटले अनुरोध गर्दछ',
     'clickHereToVerify' => 'प्रमाणित गर्न यहाँ क्लिक गर्नुहोस्',
@@ -473,6 +474,8 @@ return [
         'fields' => [
             'id' => 'क्र.सं',
             'id_helper' => '',
+            'department_id' => 'विभाग',
+            'department_id_helper' => '',
             'project_id' => 'परियोजना',
             'project_id_helper' => '',
             'user_id' => 'प्रयोगकर्ताहरू',

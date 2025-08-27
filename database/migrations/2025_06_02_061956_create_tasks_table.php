@@ -27,8 +27,6 @@ return new class extends Migration
             $table->foreignId('status_id')->index()->constrained();
             $table->foreignId('priority_id')->index()->constrained();
 
-            // $table->string('progress')->nullable();
-
             $table->boolean('active')->default(0);
 
             $table->foreignId('assigned_by')->nullable()->constrained('users')->onDelete('set null');

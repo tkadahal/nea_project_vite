@@ -19,6 +19,8 @@ class ProjectBudgetRevision extends Model
     protected $fillable = [
         'budget_id',
         'internal_budget',
+        'government_share',
+        'government_loan',
         'foreign_loan_budget',
         'foreign_subsidy_budget',
         'total_budget',
@@ -30,6 +32,8 @@ class ProjectBudgetRevision extends Model
 
     protected $casts = [
         'internal_budget' => 'decimal:2',
+        'government_share' => 'decimal:2',
+        'goverment_loan' => 'decimal:2',
         'foreign_loan_budget' => 'decimal:2',
         'foreign_subsidy_budget' => 'decimal:2',
         'total_budget' => 'decimal:2',

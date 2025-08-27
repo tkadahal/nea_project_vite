@@ -12,23 +12,6 @@
                     ->values()
                     ->toArray();
                 $visibleTasks = array_slice($statusTasks, 0, 5);
-                \Log::debug("Status {$status->id} ({$status->title}) tasks:", [
-                    'count' => count($statusTasks),
-                    'tasks' => array_map(function ($task) {
-                        return [
-                            'id' => $task['id'],
-                            'title' => $task['title'],
-                            'sub_tasks' => isset($task['sub_tasks'])
-                                ? array_map(function ($subTask) {
-                                    return [
-                                        'id' => $subTask['id'],
-                                        'title' => $subTask['title'],
-                                    ];
-                                }, $task['sub_tasks'])
-                                : [],
-                        ];
-                    }, $statusTasks),
-                ]);
             @endphp
             <div class="text-white p-3 rounded-t-md" style="background-color: {{ $columnHeaderColor }};">
                 <h4 class="font-bold m-0">{{ $status->title }} (<span class="task-count">{{ count($statusTasks) }}</span>)
@@ -37,6 +20,17 @@
             <div class="kanban-list bg-gray-50 dark:bg-gray-700 p-3 rounded-b-md" id="status_{{ $status->id }}"
                 data-status-id="{{ $status->id }}">
                 @foreach ($visibleTasks as $task)
+                    @php
+                        // Safely get directorate title
+                        $directorateTitle =
+                            $task['directorate_id'] && $directorates->firstWhere('id', $task['directorate_id'])
+                                ? $directorates->firstWhere('id', $task['directorate_id'])->title
+                                : $task['directorate_name'] ?? 'N/A';
+                        $departmentTitle =
+                            $task['department_id'] && $departments->firstWhere('id', $task['department_id'])
+                                ? $departments->firstWhere('id', $task['department_id'])->title
+                                : $task['department_name'] ?? 'N/A';
+                    @endphp
                     <div class="card-item bg-white dark:bg-gray-800 p-4 rounded-md shadow-md mb-3 kanban-item"
                         data-task-id="{{ $task['id'] }}" data-project-id="{{ $task['project_id'] ?? '' }}"
                         data-directorate-id="{{ $task['directorate_id'] ?? '' }}"
@@ -45,17 +39,26 @@
                         data-start-date="{{ $task['start_date'] ?? '' }}"
                         data-due-date="{{ $task['due_date'] ?? '' }}" data-title="{{ $task['title'] }}"
                         data-search="{{ strtolower($task['title'] .' ' .($task['description'] ?? '') .' ' .($task['priority']['title'] ?? '') .' ' .($task['status']['title'] ?? '') .' ' .($task['directorate_id'] ?? '') .' ' .($task['department_id'] ?? '') .' ' .collect($task['sub_tasks'] ?? [])->pluck('title')->implode(' ')) }}"
-                        data-status-id="{{ $task['status_id'] ?? $status->id }}">
+                        data-status-id="{{ $task['status_id'] ?? $status->id }}"
+                        data-has-subtasks="{{ !empty($task['sub_tasks']) ? 'true' : 'false' }}">
                         <div class="flex items-center">
                             <button type="button"
                                 class="toggle-subtasks mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 {{ empty($task['sub_tasks']) ? 'hidden' : '' }}"
                                 data-task-id="{{ $task['id'] }}"
                                 onclick="toggleSubtasks(this, '{{ $task['id'] }}')">
-                                <svg class="w-5 h-5 transform transition-transform duration-200" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5l7 7-7 7"></path>
-                                </svg>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 transform transition-transform duration-200" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                    @if (!empty($task['sub_tasks']))
+                                        <span
+                                            class="ml-1 inline-block px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                                            {{ count($task['sub_tasks']) }}
+                                        </span>
+                                    @endif
+                                </div>
                             </button>
                             <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex-1">
                                 {{ $task['title'] ?? 'Untitled Task' }}
@@ -74,10 +77,10 @@
                                 {{ $task['project_name'] ?? 'N/A' }}</p>
                         @elseif ($task['directorate_id'] && !$task['department_id'] && !$task['project_id'])
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Directorate:
-                                {{ $directorates->find($task['directorate_id'])?->title ?? 'N/A' }}</p>
+                                {{ $directorateTitle }}</p>
                         @elseif ($task['directorate_id'] && $task['department_id'] && !$task['project_id'])
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Department:
-                                {{ $departments->find($task['department_id'])?->title ?? 'N/A' }}</p>
+                                {{ $departmentTitle }}</p>
                         @else
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No Project/Directorate/Department
                             </p>
@@ -93,6 +96,17 @@
                                                 'sub_task_id' => $subTask['id'],
                                                 'sub_task_title' => $subTask['title'],
                                             ]);
+                                            // Safely get directorate and department titles for sub-tasks
+                                            $subTaskDirectorateTitle =
+                                                $subTask['directorate_id'] &&
+                                                $directorates->firstWhere('id', $subTask['directorate_id'])
+                                                    ? $directorates->firstWhere('id', $subTask['directorate_id'])->title
+                                                    : $subTask['directorate_name'] ?? 'N/A';
+                                            $subTaskDepartmentTitle =
+                                                $subTask['department_id'] &&
+                                                $departments->firstWhere('id', $subTask['department_id'])
+                                                    ? $departments->firstWhere('id', $subTask['department_id'])->title
+                                                    : $subTask['department_name'] ?? 'N/A';
                                         @endphp
                                         <div class="subtask-item bg-gray-100 dark:bg-gray-900 p-3 rounded-md mb-2"
                                             data-task-id="{{ $subTask['id'] }}"
@@ -228,6 +242,11 @@
         cursor: grabbing;
     }
 
+    .kanban-item[data-has-subtasks="true"] {
+        cursor: default;
+        /* Prevent drag cursor for tasks with sub-tasks */
+    }
+
     .subtask-item {
         border-left: 2px solid #e5e7eb;
         transition: all 0.2s ease-in-out;
@@ -287,6 +306,11 @@
         } else {
             console.warn(`Subtasks container not found for task ${taskId}`);
         }
+    }
+
+    function hasSubtasks(taskId) {
+        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+        return taskElement ? taskElement.getAttribute('data-has-subtasks') === 'true' : false;
     }
 
     window.attachDragAndDropListeners = function() {
@@ -382,7 +406,18 @@
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
-                filter: '.subtask-item', // Prevent sub-tasks from being draggable
+                filter: '.subtask-item, [data-has-subtasks="true"]', // Prevent sub-tasks and tasks with sub-tasks from being draggable
+                onStart: function(evt) {
+                    const draggableElement = evt.item;
+                    const taskId = draggableElement.dataset.taskId;
+                    if (hasSubtasks(taskId)) {
+                        evt.preventDefault(); // Cancel drag
+                        alert("Task has subtask. please update subtask first"); // Show alert
+                        console.log(`Drag prevented for task ${taskId} due to sub-tasks`);
+                    } else {
+                        draggableElement.classList.add('kanban-item'); // Ensure cursor is grab
+                    }
+                },
                 onEnd: function(evt) {
                     const draggableElement = evt.item;
                     const dropzone = evt.to;
@@ -397,15 +432,23 @@
                             return;
                         }
 
-                        draggableElement.dataset.statusId = newStatusId;
-                        console.log(
-                            `Moved task ${taskId} to status ${newStatusId} ${projectId ? `for project ${projectId}` : 'without project'}`
-                        );
-                        updateTaskStatus(taskId, projectId, newStatusId, draggableElement);
+                        // Only proceed if the task has no sub-tasks
+                        if (!hasSubtasks(taskId)) {
+                            draggableElement.dataset.statusId = newStatusId;
+                            console.log(
+                                `Moved task ${taskId} to status ${newStatusId} ${projectId ? `for project ${projectId}` : 'without project'}`
+                            );
+                            updateTaskStatus(taskId, projectId, newStatusId, draggableElement);
+                        } else {
+                            console.log(`Move prevented for task ${taskId} due to sub-tasks`);
+                            // Revert to original position if needed (Sortable handles this by default if prevented)
+                        }
                     }
                 }
             });
         });
+
+        // Add has-subtasks class is handled by data-has-subtasks attribute
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -501,15 +544,19 @@
                         `${task.title || ''} ${task.description || ''} ${task.priority?.title || ''} ${statusTitles[task.status_id] || ''} ${task.directorate_id || ''} ${task.department_id || ''} ${task.sub_tasks ? task.sub_tasks.map(st => st.title).join(' ') : ''}`
                         .toLowerCase();
                     card.dataset.statusId = task.status_id;
+                    card.dataset.hasSubtasks = task.sub_tasks && task.sub_tasks.length ? 'true' : 'false';
                     card.innerHTML = `
                         <div class="flex items-center">
                             <button type="button" class="toggle-subtasks mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ${task.sub_tasks && task.sub_tasks.length ? '' : 'hidden'}"
-                                    data-task-id="${task.id}"
-                                    onclick="toggleSubtasks(this, '${task.id}')">
-                                <svg class="w-5 h-5 transform transition-transform duration-200"
-                                     fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
+                                data-task-id="${task.id}"
+                                onclick="toggleSubtasks(this, '${task.id}')">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 transform transition-transform duration-200"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                    ${task.sub_tasks && task.sub_tasks.length ? `<span class="ml-1 inline-block px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">${task.sub_tasks.length}</span>` : ''}
+                                </div>
                             </button>
                             <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex-1">
                                 ${task.title || 'Untitled Task'}

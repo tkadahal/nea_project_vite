@@ -205,7 +205,7 @@
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider sm:table-cell">
-                                    {{ trans('global.task.fields.project_id') }}
+                                    {{ trans('global.task.fields.entity') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -214,10 +214,6 @@
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider md:table-cell">
                                     {{ trans('global.task.fields.priority_id') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider md:table-cell">
-                                    {{ trans('global.task.fields.progress') }}
                                 </th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider lg:table-cell">
@@ -241,7 +237,9 @@
                                         <td
                                             class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 sm:table-cell">
                                             <span
-                                                class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">{{ $row['project'] ?? 'N/A' }}</span>
+                                                class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">
+                                                {{ $row['entity'] ?? 'N/A' }}
+                                            </span>
                                         </td>
                                         <td
                                             class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
@@ -256,10 +254,6 @@
                                                 style="background-color: {{ $row['priority']['color'] ?? 'gray' }}">{{ $row['priority']['title'] ?? 'N/A' }}</span>
                                         </td>
                                         <td
-                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 md:table-cell">
-                                            {{ $row['progress'] ?? 'N/A' }}%
-                                        </td>
-                                        <td
                                             class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 lg:table-cell">
                                             {{ $row['due_date'] ?? 'N/A' }}
                                         </td>
@@ -270,7 +264,7 @@
                                                     @foreach ($row['users'] as $user)
                                                         <span
                                                             class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">
-                                                            {{ is_object($user) ? $user->name ?? 'Unknown User' : $user ?? 'Unknown User' }}
+                                                            {{ $user['initials'] ?? 'N/A' }}
                                                         </span>
                                                     @endforeach
                                                 @else
@@ -283,7 +277,7 @@
                                 @endforeach
                             @else
                                 <tr>
-                                    <td colspan="7"
+                                    <td colspan="6"
                                         class="px-4 sm:px-6 py-4 text-center text-sm text-gray-600 dark:text-gray-300">
                                         No tasks available
                                     </td>
@@ -456,16 +450,13 @@
                     // Update table
                     const taskTableBody = document.getElementById('taskTableBody');
                     taskTableBody.innerHTML = (data?.tableData?.length ?? 0) ? data.tableData.map(row => {
-                        // Ensure users is an array of strings
-                        const users = Array.isArray(row.users) ? row.users.map(user =>
-                            typeof user === 'object' && user ? (user.name || 'Unknown User') : (user ||
-                                'Unknown User')
-                        ) : [];
+                        // Ensure users is an array of objects with initials
+                        const users = Array.isArray(row.users) ? row.users : [];
                         return `
                         <tr>
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">${row.title || 'N/A'}</td>
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 sm:table-cell">
-                                <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${row.project || 'N/A'}</span>
+                                <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${row.entity || 'N/A'}</span>
                             </td>
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <span class="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs" style="background-color: ${row.status?.color || 'gray'}">${row.status?.title || 'N/A'}</span>
@@ -473,12 +464,11 @@
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 md:table-cell">
                                 <span class="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs" style="background-color: ${row.priority?.color || 'gray'}">${row.priority?.title || 'N/A'}</span>
                             </td>
-                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 md:table-cell">${row.progress || 'N/A'}%</td>
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 lg:table-cell">${row.due_date || 'N/A'}</td>
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 xl:table-cell">
                                 <div class="flex flex-wrap gap-2">
                                     ${users.length ? users.map(user => `
-                                                        <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${user}</span>
+                                                        <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${user.initials || 'N/A'}</span>
                                                     `).join('') : '<span class="text-gray-500 dark:text-gray-400 text-xs">No Users</span>'}
                                 </div>
                             </td>
@@ -486,12 +476,11 @@
                     `;
                     }).join('') : `
                         <tr>
-                            <td colspan="7" class="px-4 sm:px-6 py-4 text-center text-sm text-gray-600 dark:text-gray-300">
+                            <td colspan="6" class="px-4 sm:px-6 py-4 text-center text-sm text-gray-600 dark:text-gray-300">
                                 No tasks available
                             </td>
                         </tr>
                     `;
-
                     // Update pagination
                     const pagination = document.getElementById('pagination');
                     pagination.innerHTML = data?.tasks?.links || '';
