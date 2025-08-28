@@ -36,18 +36,18 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {{ trans('global.budget.fields.total_budget') }}
+                            {{ trans('global.budget.fields.government_loan') }}
                         </label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($budget->total_budget, 2) }}
+                            {{ number_format($budget->government_loan, 2) }}
                         </p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {{ trans('global.budget.fields.internal_budget') }}
+                            {{ trans('global.budget.fields.government_share') }}
                         </label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($budget->internal_budget, 2) }}
+                            {{ number_format($budget->government_share, 2) }}
                         </p>
                     </div>
                     <div>
@@ -68,19 +68,41 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ trans('global.budget.fields.internal_budget') }}
+                        </label>
+                        <p class="mt-1 text-gray-900 dark:text-gray-200">
+                            {{ number_format($budget->internal_budget, 2) }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ trans('global.budget.fields.total_budget') }}
+                        </label>
+                        <p class="mt-1 text-gray-900 dark:text-gray-200">
+                            {{ number_format($budget->total_budget, 2) }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             {{ trans('global.budget.fields.budget_revision') }}
                         </label>
                         <p class="mt-1 text-gray-900 dark:text-gray-200">
                             {{ $budget->budget_revision }}
                         </p>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {{ trans('global.budget.fields.remaining_budget') }}
-                        </label>
-                        <p class="mt-1 text-gray-900 dark:text-gray-200">
-                            {{ number_format($budget->remaining_budget, 2) }}
-                        </p>
+                    <div class="flex items-center gap-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {{ trans('global.budget.fields.remaining_budget') }}
+                            </label>
+                            <p class="mt-1 text-gray-900 dark:text-gray-200">
+                                {{ number_format($budget->remaining_budget, 2) }}
+                            </p>
+                        </div>
+                        <a href="{{ route('admin.budget.remaining', $budget->id) }}"
+                            class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
+                            {{ trans('global.budget.actions.show_remaining_budgets') }}
+                        </a>
                     </div>
                 </div>
 
@@ -104,7 +126,11 @@
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        {{ trans('global.budget.fields.internal_budget') }}
+                                        {{ trans('global.budget.fields.government_loan') }}
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        {{ trans('global.budget.fields.government_share') }}
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -113,6 +139,10 @@
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         {{ trans('global.budget.fields.foreign_subsidy_budget') }}
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        {{ trans('global.budget.fields.internal_budget') }}
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -137,7 +167,11 @@
                                         </td>
                                         <td
                                             class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                                            {{ number_format($revision->internal_budget, 2) }}
+                                            {{ number_format($revision->government_loan, 2) }}
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                                            {{ number_format($revision->government_share, 2) }}
                                         </td>
                                         <td
                                             class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
@@ -146,6 +180,10 @@
                                         <td
                                             class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                                             {{ number_format($revision->foreign_subsidy_budget, 2) }}
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                                            {{ number_format($revision->internal_budget, 2) }}
                                         </td>
                                         <td
                                             class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">

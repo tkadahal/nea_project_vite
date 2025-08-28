@@ -46,12 +46,7 @@
                         <div class="space-y-6">
                             <x-forms.select label="{{ trans('global.budget.fields.project_id') }}" name="project_id"
                                 id="project_id" :options="collect($projects)
-                                    ->map(
-                                        fn($label, $value) => [
-                                            'value' => (string) $value,
-                                            'label' => $label,
-                                        ],
-                                    )
+                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                     ->values()
                                     ->all()" :selected="old('project_id', $projectId ?? '')"
                                 placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('project_id')"
@@ -59,29 +54,57 @@
 
                             <x-forms.select label="{{ trans('global.budget.fields.fiscal_year_id') }}"
                                 name="fiscal_year_id" id="fiscal_year_id" :options="collect($fiscalYears)
-                                    ->map(
-                                        fn($label, $value) => [
-                                            'value' => (string) $value,
-                                            'label' => $label,
-                                        ],
-                                    )
+                                    ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                     ->values()
                                     ->all()" :selected="old('fiscal_year_id')"
                                 placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('fiscal_year_id')"
                                 class="js-single-select" />
 
-                            <x-forms.input label="{{ trans('global.budget.fields.internal_budget') }}"
-                                name="internal_budget" type="number" step="0.01" min="0" :value="old('internal_budget', '')"
-                                :error="$errors->first('internal_budget')" class="budget-component" placeholder="0.00" />
+                            <!-- Government Budget Section -->
+                            <div>
+                                <h4 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-4">
+                                    {{ trans('global.budget.headers.governmentBudget') }}
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <x-forms.input label="{{ trans('global.budget.fields.government_loan') }}"
+                                        name="government_loan" type="number" step="0.01" min="0"
+                                        :value="old('government_loan', '')" :error="$errors->first('government_loan')" class="budget-component"
+                                        placeholder="0.00" />
+                                    <x-forms.input label="{{ trans('global.budget.fields.government_share') }}"
+                                        name="government_share" type="number" step="0.01" min="0"
+                                        :value="old('government_share', '')" :error="$errors->first('government_share')" class="budget-component"
+                                        placeholder="0.00" />
+                                </div>
+                            </div>
 
-                            <x-forms.input label="{{ trans('global.budget.fields.foreign_loan_budget') }}"
-                                name="foreign_loan_budget" type="number" step="0.01" min="0"
-                                :value="old('foreign_loan_budget', '')" :error="$errors->first('foreign_loan_budget')" class="budget-component" placeholder="0.00" />
+                            <!-- Foreign Budget Section -->
+                            <div>
+                                <h4 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-4">
+                                    {{ trans('global.budget.headers.foreignBudget') }}
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <x-forms.input label="{{ trans('global.budget.fields.foreign_loan_budget') }}"
+                                        name="foreign_loan_budget" type="number" step="0.01" min="0"
+                                        :value="old('foreign_loan_budget', '')" :error="$errors->first('foreign_loan_budget')" class="budget-component"
+                                        placeholder="0.00" />
+                                    <x-forms.input label="{{ trans('global.budget.fields.foreign_subsidy_budget') }}"
+                                        name="foreign_subsidy_budget" type="number" step="0.01" min="0"
+                                        :value="old('foreign_subsidy_budget', '')" :error="$errors->first('foreign_subsidy_budget')" class="budget-component"
+                                        placeholder="0.00" />
+                                </div>
+                            </div>
 
-                            <x-forms.input label="{{ trans('global.budget.fields.foreign_subsidy_budget') }}"
-                                name="foreign_subsidy_budget" type="number" step="0.01" min="0"
-                                :value="old('foreign_subsidy_budget', '')" :error="$errors->first('foreign_subsidy_budget')" class="budget-component" placeholder="0.00" />
+                            <!-- Internal Budget Section -->
+                            <div>
+                                <h4 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-4">
+                                    {{ trans('global.budget.fields.internal_budget') }}
+                                </h4>
+                                <x-forms.input label="{{ trans('global.budget.fields.internal_budget') }}"
+                                    name="internal_budget" type="number" step="0.01" min="0"
+                                    :value="old('internal_budget', '')" :error="$errors->first('internal_budget')" class="budget-component" placeholder="0.00" />
+                            </div>
 
+                            <!-- Total Budget -->
                             <x-forms.input label="{{ trans('global.budget.fields.total_budget') }}" name="total_budget"
                                 type="number" step="0.01" min="0" :value="old('total_budget', '')" :error="$errors->first('total_budget')"
                                 readonly="true"
@@ -98,12 +121,9 @@
                         </h3>
                         <div class="space-y-6">
                             <x-forms.date-input label="{{ trans('global.budget.fields.decision_date') }}"
-                                name="decision_date" type="text" :value="old('decision_date', '')" :error="$errors->first('decision_date')"
-                                class="bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-700 dark:text-gray-300" />
-
+                                name="decision_date" type="text" :value="old('decision_date', '')" :error="$errors->first('decision_date')" />
                             <x-forms.text-area label="{{ trans('global.budget.fields.remarks') }}" name="remarks"
                                 :value="old('remarks')" :error="$errors->first('remarks')" />
-
                             <x-forms.file-input label="{{ trans('global.budget.fields.upload_documents') }}"
                                 name="files" multiple accept=".pdf,.png,.jpg" maxSize="2MB" />
                         </div>
@@ -163,7 +183,6 @@
             scrollbar-color: #6b7280 #1f2937;
         }
 
-        /* Ensure total_budget text is visible */
         input[readonly] {
             opacity: 1 !important;
             color: inherit !important;
@@ -194,20 +213,25 @@
 
             // Budget calculation logic
             function updateTotalBudget() {
+                const $governmentLoan = $('input[name="government_loan"]');
+                const $governmentShare = $('input[name="government_share"]');
+                const $foreignLoan = $('input[name="foreign_loan_budget"]');
+                const $foreignSubsidy = $('input[name="foreign_subsidy_budget"]');
                 const $internal = $('input[name="internal_budget"]');
-                const $loan = $('input[name="foreign_loan_budget"]');
-                const $subsidy = $('input[name="foreign_subsidy_budget"]');
                 const $total = $('input[name="total_budget"]');
                 const $errorMessage = $('#error-message');
                 const $errorText = $('#error-text');
 
-                if (!$internal.length || !$loan.length || !$subsidy.length || !$total.length) {
+                if (!$governmentLoan.length || !$governmentShare.length || !$foreignLoan.length || !$foreignSubsidy
+                    .length || !$internal.length || !$total.length) {
                     $errorText.text('Error: One or more budget inputs not found in the DOM.');
                     $errorMessage.removeClass('hidden');
                     console.error('Budget inputs missing:', {
+                        government_loan: $governmentLoan.length,
+                        government_share: $governmentShare.length,
+                        foreign_loan: $foreignLoan.length,
+                        foreign_subsidy: $foreignSubsidy.length,
                         internal: $internal.length,
-                        loan: $loan.length,
-                        subsidy: $subsidy.length,
                         total: $total.length
                     });
                     return;
@@ -218,11 +242,14 @@
                     return isNaN(num) || num < 0 ? 0 : num;
                 };
 
+                const governmentLoan = getValidNumber($governmentLoan.val());
+                const governmentShare = getValidNumber($governmentShare.val());
+                const foreignLoan = getValidNumber($foreignLoan.val());
+                const foreignSubsidy = getValidNumber($foreignSubsidy.val());
                 const internal = getValidNumber($internal.val());
-                const loan = getValidNumber($loan.val());
-                const subsidy = getValidNumber($subsidy.val());
 
-                const total = (internal + loan + subsidy).toFixed(2);
+                const total = (governmentLoan + governmentShare + foreignLoan + foreignSubsidy + internal).toFixed(
+                    2);
                 $total.val(total).trigger('change').trigger('input');
                 $total[0].dispatchEvent(new Event('input', {
                     bubbles: true
@@ -251,7 +278,9 @@
             });
 
             // Bind events by name as fallback
-            const inputNames = ['internal_budget', 'foreign_loan_budget', 'foreign_subsidy_budget'];
+            const inputNames = ['government_loan', 'government_share', 'foreign_loan_budget',
+                'foreign_subsidy_budget', 'internal_budget'
+            ];
             inputNames.forEach(function(name) {
                 const $input = $(`input[name="${name}"]`);
                 if ($input.length) {
@@ -296,9 +325,8 @@
                     }
                     $container.find(".js-no-options").addClass("hidden");
                     const filteredOptions = searchTerm ?
-                        currentOptions.filter((option) =>
-                            option.label.toLowerCase().includes(searchTerm.toLowerCase())
-                        ) :
+                        currentOptions.filter((option) => option.label.toLowerCase().includes(searchTerm
+                            .toLowerCase())) :
                         currentOptions;
                     $.each(filteredOptions, function(index, option) {
                         const $option = $(`
@@ -309,12 +337,12 @@
                         $optionsContainer.append($option);
                     });
                     const selectedOption = currentOptions.find(
-                        (opt) => String(opt.value) === String(currentSelectedValue),
+                        (opt) => String(opt.value) === String(currentSelectedValue)
                     );
                     $selectedLabel.text(
                         selectedOption ?
                         selectedOption.label :
-                        $container.data("placeholder") || "Select an option",
+                        $container.data("placeholder") || "Select an option"
                     );
                     $hiddenInput.val(selectedOption ? currentSelectedValue : "");
                     if (!selectedOption) {
@@ -329,52 +357,42 @@
                     $hiddenInput.trigger("change");
                 }
 
-                $container
-                    .off("options-updated")
-                    .on("options-updated", function(event, data) {
-                        currentOptions = data?.options || $container.data("options") || [];
-                        currentSelectedValue =
-                            data?.selected &&
-                            currentOptions.some(
-                                (opt) => String(opt.value) === String(data.selected),
-                            ) ?
-                            String(data.selected) :
-                            "";
-                        renderOptions();
-                        updateHiddenInput();
-                    });
+                $container.off("options-updated").on("options-updated", function(event, data) {
+                    currentOptions = data?.options || $container.data("options") || [];
+                    currentSelectedValue =
+                        data?.selected &&
+                        currentOptions.some((opt) => String(opt.value) === String(data.selected)) ?
+                        String(data.selected) :
+                        "";
+                    renderOptions();
+                    updateHiddenInput();
+                });
 
-                $optionsContainer
-                    .off("click", ".js-option")
-                    .on("click", ".js-option", function(e) {
-                        e.stopPropagation();
-                        const $option = $(this);
-                        currentSelectedValue = $option.data("value");
-                        $container.data("selected", currentSelectedValue);
-                        $container.attr("data-selected", currentSelectedValue);
-                        $selectedLabel.text($option.text().trim());
-                        $dropdown.addClass("hidden");
-                        updateHiddenInput();
-                    });
+                $optionsContainer.off("click", ".js-option").on("click", ".js-option", function(e) {
+                    e.stopPropagation();
+                    const $option = $(this);
+                    currentSelectedValue = $option.data("value");
+                    $container.data("selected", currentSelectedValue);
+                    $container.attr("data-selected", currentSelectedValue);
+                    $selectedLabel.text($option.text().trim());
+                    $dropdown.addClass("hidden");
+                    updateHiddenInput();
+                });
 
                 $searchInput.off("input").on("input", function() {
                     renderOptions($(this).val());
                 });
 
-                $container
-                    .find(".js-toggle-dropdown")
-                    .off("click")
-                    .on("click", function(e) {
-                        e.stopPropagation();
-                        $dropdown.toggleClass("hidden");
-                        if (!$dropdown.hasClass("hidden")) {
-                            $searchInput.focus();
-                        }
-                    });
+                $container.find(".js-toggle-dropdown").off("click").on("click", function(e) {
+                    e.stopPropagation();
+                    $dropdown.toggleClass("hidden");
+                    if (!$dropdown.hasClass("hidden")) {
+                        $searchInput.focus();
+                    }
+                });
 
-                $(document)
-                    .off("click.dropdown-" + componentId)
-                    .on("click.dropdown-" + componentId, function(e) {
+                $(document).off("click.dropdown-" + componentId).on("click.dropdown-" + componentId,
+                    function(e) {
                         if (!$container.is(e.target) && $container.has(e.target).length === 0) {
                             $dropdown.addClass("hidden");
                         }
@@ -394,7 +412,6 @@
                     selected: projectId,
                 });
             } else {
-                // Ensure project dropdown is reset to placeholder
                 const projectSelectContainer = $('.js-single-select[data-name="project_id"]');
                 projectSelectContainer.data('selected', '');
                 projectSelectContainer.attr('data-selected', '');

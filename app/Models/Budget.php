@@ -117,6 +117,17 @@ class Budget extends Model
         return max(0, (float) $this->foreign_subsidy_budget - (float) $spent);
     }
 
+    public function getRemainingBudgetAttribute(): float
+    {
+        return round(
+            $this->remaining_internal_budget +
+                $this->remaining_government_share +
+                $this->remaining_government_loan +
+                $this->remaining_foreign_loan_budget +
+                $this->remaining_foreign_subsidy_budget,
+            2
+        );
+    }
 
     public static function getCumulativeBudget(Project $project, FiscalYear $fiscalYear): float
     {

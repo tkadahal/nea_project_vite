@@ -242,11 +242,6 @@
         cursor: grabbing;
     }
 
-    .kanban-item[data-has-subtasks="true"] {
-        cursor: default;
-        /* Prevent drag cursor for tasks with sub-tasks */
-    }
-
     .subtask-item {
         border-left: 2px solid #e5e7eb;
         transition: all 0.2s ease-in-out;
@@ -308,18 +303,13 @@
         }
     }
 
-    function hasSubtasks(taskId) {
-        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-        return taskElement ? taskElement.getAttribute('data-has-subtasks') === 'true' : false;
-    }
-
     window.attachDragAndDropListeners = function() {
         const statusIdMap = {};
         @foreach ($statuses as $status)
             statusIdMap['status_{{ $status->id }}'] = {{ $status->id }};
         @endforeach
 
-        function updateTaskStatus(taskId, projectId, newStatusId, draggableElement) {
+        function updateTaskStatus(taskId, projectId, newStatusId, draggableElement, originalList, originalIndex) {
             const token = getCsrfToken();
             if (!token) return;
 
@@ -343,9 +333,7 @@
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(err => {
-                            throw new Error(
-                                `HTTP error! status: ${response.status}, message: ${err.message || JSON.stringify(err)}`
-                            );
+                            throw new Error(err.message || 'Unknown error');
                         });
                     }
                     return response.json();
@@ -377,7 +365,7 @@
                         toastr.success(data.message || 'Task status updated successfully!');
                     }
 
-                    // Update task count in the column header
+                    // Update task count in the column headers
                     const dropzone = draggableElement.closest('.kanban-list');
                     const statusId = dropzone.dataset.statusId;
                     const taskCount = dropzone.querySelectorAll('.card-item:not(.subtask-item)').length;
@@ -385,11 +373,32 @@
                     if (countElement) {
                         countElement.textContent = taskCount;
                     }
+                    const originalCountElement = originalList.closest('.kanban-column').querySelector(
+                        '.task-count');
+                    if (originalCountElement) {
+                        originalCountElement.textContent = originalList.querySelectorAll(
+                            '.card-item:not(.subtask-item)').length;
+                    }
                 })
                 .catch(error => {
                     console.error('Error updating task status:', error.message);
                     if (typeof toastr !== 'undefined') {
-                        toastr.error('Error updating task status: ' + error.message);
+                        toastr.error(error.message);
+                    }
+                    // Revert the task to its original position
+                    originalList.insertBefore(draggableElement, originalList.children[originalIndex]);
+                    // Update task counts for both columns
+                    const dropzone = draggableElement.closest('.kanban-list');
+                    const taskCount = dropzone.querySelectorAll('.card-item:not(.subtask-item)').length;
+                    const countElement = dropzone.closest('.kanban-column').querySelector('.task-count');
+                    if (countElement) {
+                        countElement.textContent = taskCount;
+                    }
+                    const originalCountElement = originalList.closest('.kanban-column').querySelector(
+                        '.task-count');
+                    if (originalCountElement) {
+                        originalCountElement.textContent = originalList.querySelectorAll(
+                            '.card-item:not(.subtask-item)').length;
                     }
                 });
         }
@@ -406,21 +415,12 @@
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
-                filter: '.subtask-item, [data-has-subtasks="true"]', // Prevent sub-tasks and tasks with sub-tasks from being draggable
-                onStart: function(evt) {
-                    const draggableElement = evt.item;
-                    const taskId = draggableElement.dataset.taskId;
-                    if (hasSubtasks(taskId)) {
-                        evt.preventDefault(); // Cancel drag
-                        alert("Task has subtask. please update subtask first"); // Show alert
-                        console.log(`Drag prevented for task ${taskId} due to sub-tasks`);
-                    } else {
-                        draggableElement.classList.add('kanban-item'); // Ensure cursor is grab
-                    }
-                },
+                filter: '.subtask-item', // Only prevent sub-tasks from being draggable
                 onEnd: function(evt) {
                     const draggableElement = evt.item;
                     const dropzone = evt.to;
+                    const originalList = evt.from;
+                    const originalIndex = evt.oldIndex;
 
                     if (evt.from !== dropzone) {
                         const taskId = draggableElement.dataset.taskId;
@@ -432,23 +432,16 @@
                             return;
                         }
 
-                        // Only proceed if the task has no sub-tasks
-                        if (!hasSubtasks(taskId)) {
-                            draggableElement.dataset.statusId = newStatusId;
-                            console.log(
-                                `Moved task ${taskId} to status ${newStatusId} ${projectId ? `for project ${projectId}` : 'without project'}`
-                            );
-                            updateTaskStatus(taskId, projectId, newStatusId, draggableElement);
-                        } else {
-                            console.log(`Move prevented for task ${taskId} due to sub-tasks`);
-                            // Revert to original position if needed (Sortable handles this by default if prevented)
-                        }
+                        draggableElement.dataset.statusId = newStatusId;
+                        console.log(
+                            `Moved task ${taskId} to status ${newStatusId} ${projectId ? `for project ${projectId}` : 'without project'}`
+                        );
+                        updateTaskStatus(taskId, projectId, newStatusId, draggableElement,
+                            originalList, originalIndex);
                     }
                 }
             });
         });
-
-        // Add has-subtasks class is handled by data-has-subtasks attribute
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -519,7 +512,7 @@
                 if (!response.ok) {
                     return response.json().then(err => {
                         throw new Error(
-                            `HTTP error! status: ${response.status}, message: ${err.message || JSON.stringify(err)}`
+                            err.message || 'Unknown error'
                         );
                     });
                 }
@@ -641,7 +634,7 @@
             .catch(error => {
                 console.error('Error loading more tasks:', error.message);
                 if (typeof toastr !== 'undefined') {
-                    toastr.error('Error loading more tasks: ' + error.message);
+                    toastr.error(error.message);
                 }
             })
             .finally(() => {

@@ -1,5 +1,4 @@
 <x-layouts.app>
-
     <div class="mb-6 flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -9,16 +8,12 @@
                 {{ trans('global.edit') }} {{ trans('global.project.title_singular') }}
             </p>
         </div>
-
         @can('project_access')
             <a href="{{ route('admin.project.index') }}"
-                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
-                  focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
-                  dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
+                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
                 {{ trans('global.back_to_list') }}
             </a>
         @endcan
-
     </div>
 
     <div
@@ -66,18 +61,26 @@
                                         ->values()
                                         ->all()" :selected="old('directorate_id', $project->directorate_id)"
                                     placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('directorate_id')"
-                                    class="js-single-select" />
+                                    class="js-single-select" :disabled="auth()->user()->hasRole('project_user')" />
                             </div>
 
                             <div class="col-span-full">
-                                <x-forms.select label="{{ trans('global.project.fields.departments') }}"
-                                    name="department_id" id="department_select" :options="collect($departments)
-                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                        ->values()
-                                        ->all()" :selected="old('department_id', $project->department_id)"
-                                    placeholder="{{ trans('global.pleaseSelect') }}" allow-clear="true"
-                                    data-selected="{{ old('department_id', $project->department_id) }}"
-                                    :error="$errors->first('department_id')" class="js-single-select" />
+                                @if (auth()->user()->hasRole('project_user'))
+                                    <x-forms.input label="{{ trans('global.project.fields.departments') }}"
+                                        name="department_id" type="text" :value="$departments[$project->department_id] ?? ''" readonly
+                                        :error="$errors->first('department_id')" />
+                                    <input type="hidden" name="department_id"
+                                        value="{{ old('department_id', $project->department_id) }}">
+                                @else
+                                    <x-forms.select label="{{ trans('global.project.fields.departments') }}"
+                                        name="department_id" id="department_select" :options="collect($departments)
+                                            ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
+                                            ->values()
+                                            ->all()" :selected="old('department_id', $project->department_id)"
+                                        placeholder="{{ trans('global.pleaseSelect') }}" allow-clear="true"
+                                        data-selected="{{ old('department_id', $project->department_id) }}"
+                                        :error="$errors->first('department_id')" class="js-single-select" />
+                                @endif
                             </div>
 
                             <div class="col-span-full">
@@ -105,6 +108,7 @@
                     </div>
                 </div>
 
+                <!-- Rest of the form (date, status, priority, attachments) remains unchanged -->
                 <div class="space-y-6">
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
@@ -240,6 +244,7 @@
 
         waitForJQuery(function() {
             const $ = jQuery;
+            const isProjectUser = {{ auth()->user()->hasRole('project_user') ? 'true' : 'false' }};
 
             $(".js-single-select").each(function() {
                 const $container = $(this);
@@ -287,10 +292,8 @@
                     $selectedLabel.text(selectedOption ? selectedOption.label : $container.data(
                         "placeholder") || "Select an option");
                     $hiddenInput.val(selectedOption ? currentSelectedValue : "");
-                    if (!selectedOption) {
-                        currentSelectedValue = "";
-                        $container.data("selected", "");
-                        $container.attr("data-selected", "");
+                    if (!selectedOption && currentSelectedValue) {
+                        $selectedLabel.text("Selected: " + currentSelectedValue);
                     }
                 }
 
@@ -303,7 +306,7 @@
                     currentSelectedValue = data?.selected && currentOptions.some((opt) => String(opt
                             .value) === String(data.selected)) ?
                         String(data.selected) :
-                        "";
+                        currentSelectedValue;
                     renderOptions();
                     updateHiddenInput();
                 });
@@ -325,6 +328,8 @@
 
                 $container.find(".js-toggle-dropdown").off("click").on("click", function(e) {
                     e.stopPropagation();
+                    if ($container.find("select").prop("disabled"))
+                return; // Prevent dropdown for disabled fields
                     $(".js-dropdown").not($dropdown).addClass("hidden");
                     $dropdown.toggleClass("hidden");
                     if (!$dropdown.hasClass("hidden")) {
@@ -374,13 +379,14 @@
             }
 
             function loadDepartments(directorateId, selectedDepartmentId = "") {
-                if (!directorateId) {
+                if (!directorateId || isProjectUser) {
                     updateSelectOptions(departmentSelectContainer, [], "");
                     return;
                 }
                 const $optionsContainer = departmentSelectContainer.find(".js-options-container");
                 $optionsContainer.empty().append(
-                    '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading...</div>');
+                    '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading...</div>'
+                );
 
                 $.ajax({
                     url: `/admin/projects/departments/${encodeURIComponent(directorateId)}`,
@@ -395,12 +401,13 @@
                             data.map((dept) => ({
                                 value: String(dept.value),
                                 label: String(dept.label),
-                            })).filter((opt) => opt.value && opt.label) : [];
+                            })).filter((opt) => opt.value && opt.label) :
+                            [];
                         updateSelectOptions(departmentSelectContainer, formattedData,
                             selectedDepartmentId);
                     },
                     error: function(xhr) {
-                        updateSelectOptions(departmentSelectContainer, [], "");
+                        updateSelectOptions(departmentSelectContainer, [], selectedDepartmentId);
                         $optionsContainer.empty().append(
                             '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load departments</div>'
                         );
@@ -419,11 +426,15 @@
                 }
                 const $optionsContainer = userSelectContainer.find(".js-options-container");
                 $optionsContainer.empty().append(
-                    '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading...</div>');
+                    '<div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">Loading...</div>'
+                );
 
                 $.ajax({
                     url: `/admin/projects/users/${encodeURIComponent(directorateId)}`,
                     method: "GET",
+                    data: {
+                        project_id: "{{ $project->id }}"
+                    },
                     dataType: "json",
                     headers: {
                         "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
@@ -434,11 +445,12 @@
                             data.map((user) => ({
                                 value: String(user.value),
                                 label: String(user.label),
-                            })).filter((opt) => opt.value && opt.label) : [];
+                            })).filter((opt) => opt.value && opt.label) :
+                            [];
                         updateSelectOptions(userSelectContainer, formattedData, selectedUserId);
                     },
                     error: function(xhr) {
-                        updateSelectOptions(userSelectContainer, [], "");
+                        updateSelectOptions(userSelectContainer, [], selectedUserId);
                         $optionsContainer.empty().append(
                             '<div class="px-4 py-2 text-sm text-red-500 dark:text-red-400">Failed to load users</div>'
                         );
@@ -451,12 +463,13 @@
             }
 
             directorateInput.off("change").on("change", function() {
+                if (isProjectUser) return; // Prevent changes for project_user
                 const directorateId = $(this).val();
-                loadDepartments(directorateId, "{{ old('department_id', $project->department_id) }}");
-                loadUsers(directorateId, "{{ old('project_manager', $project->project_manager) }}");
+                loadDepartments(directorateId, "");
+                loadUsers(directorateId, "");
             });
 
-            if (directorateInput.val()) {
+            if (directorateInput.val() && !isProjectUser) {
                 loadDepartments(directorateInput.val(), "{{ old('department_id', $project->department_id) }}");
                 loadUsers(directorateInput.val(), "{{ old('project_manager', $project->project_manager) }}");
             } else {

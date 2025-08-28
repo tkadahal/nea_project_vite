@@ -173,6 +173,32 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Subtasks Section -->
+                    <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <h3
+                            class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                            {{ trans('global.task.headers.subTasks') }}
+                        </h3>
+                        <div class="grid grid-cols-1 gap-6">
+                            <div id="subtasks-container" class="space-y-2">
+                                <!-- Dynamic subtask checkboxes will be added here -->
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <input type="text" id="subtask-title-input"
+                                    class="block w-full p-2 text-sm border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="{{ trans('global.task.fields.subtask_title_placeholder') }}" />
+                                <button type="button" id="add-subtask"
+                                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                                    {{ trans('global.add') }}
+                                </button>
+                            </div>
+                            <input type="hidden" name="subtasks" id="subtasks-hidden">
+                            @if ($errors->first('subtasks.*'))
+                                <p class="text-red-500 text-sm mt-2">{{ $errors->first('subtasks.*') }}</p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -217,6 +243,84 @@
                         clearTimeout(timeout);
                         timeout = setTimeout(later, wait);
                     };
+                }
+
+                // Subtasks management
+                const $subtasksContainer = $("#subtasks-container");
+                const $subtasksHiddenInput = $("#subtasks-hidden");
+                const $subtaskTitleInput = $("#subtask-title-input");
+                let subtaskCounter = 0;
+
+                function updateSubtasksHiddenInput() {
+                    const subtasks = [];
+                    $subtasksContainer.find(".subtask-checkbox").each(function() {
+                        const $checkbox = $(this).find('input[type="checkbox"]');
+                        const title = $checkbox.data('title').trim();
+                        const completed = $checkbox.prop('checked');
+                        if (title) {
+                            subtasks.push({
+                                title,
+                                completed
+                            });
+                        }
+                    });
+                    $subtasksHiddenInput.val(JSON.stringify(subtasks));
+                }
+
+                function addSubtask(title = "", completed = false) {
+                    if (!title) return; // Prevent adding empty subtasks
+                    const subtaskId = `subtask-${subtaskCounter++}`;
+                    const $subtask = $(`
+                        <div class="subtask-checkbox flex items-center space-x-3 p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <input type="checkbox" class="h-5 w-5 text-blue-600 dark:text-blue-500 border-gray-300 rounded"
+                                   ${completed ? 'checked' : ''} data-title="${title.replace(/"/g, '&quot;')}">
+                            <span class="text-sm text-gray-700 dark:text-gray-300 flex-1">${title}</span>
+                            <button type="button" class="remove-subtask text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    `);
+                    $subtasksContainer.append($subtask);
+                    updateSubtasksHiddenInput();
+
+                    // Add event listeners for checkbox changes
+                    $subtask.find('input[type="checkbox"]').on("change", updateSubtasksHiddenInput);
+
+                    // Add remove event listener
+                    $subtask.find(".remove-subtask").on("click", function() {
+                        $subtask.remove();
+                        updateSubtasksHiddenInput();
+                    });
+                }
+
+                $("#add-subtask").on("click", function() {
+                    const title = $subtaskTitleInput.val().trim();
+                    if (title) {
+                        addSubtask(title);
+                        $subtaskTitleInput.val(""); // Clear input after adding
+                    } else {
+                        $("#error-message").removeClass("hidden").find("#error-text").text(
+                            "{{ trans('global.task.errors.subtask_title_required') }}"
+                        );
+                    }
+                });
+
+                // Allow adding subtask with Enter key
+                $subtaskTitleInput.on("keypress", function(e) {
+                    if (e.which === 13) { // Enter key
+                        e.preventDefault();
+                        $("#add-subtask").trigger("click");
+                    }
+                });
+
+                // Initialize with any old subtask data
+                const oldSubtasks = @json(old('subtasks', []));
+                if (oldSubtasks.length > 0) {
+                    oldSubtasks.forEach(subtask => {
+                        addSubtask(subtask.title || "", subtask.completed || false);
+                    });
                 }
 
                 // Initialize single-select dropdowns

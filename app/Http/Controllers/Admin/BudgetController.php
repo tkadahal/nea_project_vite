@@ -34,6 +34,8 @@ class BudgetController extends Controller
             trans('global.budget.fields.internal_budget'),
             trans('global.budget.fields.foreign_loan_budget'),
             trans('global.budget.fields.foreign_subsidy_budget'),
+            trans('global.budget.fields.government_loan'),
+            trans('global.budget.fields.government_share'),
             trans('global.budget.fields.budget_revision'),
         ];
 
@@ -46,6 +48,8 @@ class BudgetController extends Controller
                 'internal_budget' => $budget->internal_budget,
                 'foreign_loan' => $budget->foreign_loan_budget,
                 'foreign_subsidy' => $budget->foreign_subsidy_budget,
+                'government_loan' => $budget->government_loan,
+                'government_share' => $budget->government_share,
                 'budget_revision' => $budget->budget_revision,
             ];
         })->all();
@@ -117,6 +121,8 @@ class BudgetController extends Controller
                 'internal_budget' => $existingBudget->internal_budget + $validatedData['internal_budget'],
                 'foreign_loan_budget' => $existingBudget->foreign_loan_budget + $validatedData['foreign_loan_budget'],
                 'foreign_subsidy_budget' => $existingBudget->foreign_subsidy_budget + $validatedData['foreign_subsidy_budget'],
+                'government_loan' => $existingBudget->government_loan + $validatedData['government_loan'],
+                'government_share' => $existingBudget->government_share + $validatedData['government_share'],
                 'total_budget' => $existingBudget->total_budget + $validatedData['total_budget'],
             ]);
 
@@ -124,6 +130,8 @@ class BudgetController extends Controller
                 'internal_budget' => $validatedData['internal_budget'],
                 'foreign_loan_budget' => $validatedData['foreign_loan_budget'],
                 'foreign_subsidy_budget' => $validatedData['foreign_subsidy_budget'],
+                'government_loan' => $validatedData['government_loan'],
+                'government_share' => $validatedData['government_share'],
                 'total_budget' => $validatedData['total_budget'],
                 'decision_date' => $validatedData['decision_date'],
                 'remarks' => $validatedData['remarks'],
@@ -134,6 +142,8 @@ class BudgetController extends Controller
                 'internal_budget' => $validatedData['internal_budget'],
                 'foreign_loan_budget' => $validatedData['foreign_loan_budget'],
                 'foreign_subsidy_budget' => $validatedData['foreign_subsidy_budget'],
+                'government_loan' => $validatedData['government_loan'],
+                'government_share' => $validatedData['government_share'],
                 'total_budget' => $validatedData['total_budget'],
                 'budget_revision' => 1,
             ]);
@@ -142,6 +152,8 @@ class BudgetController extends Controller
                 'internal_budget' => $validatedData['internal_budget'],
                 'foreign_loan_budget' => $validatedData['foreign_loan_budget'],
                 'foreign_subsidy_budget' => $validatedData['foreign_subsidy_budget'],
+                'government_loan' => $validatedData['government_loan'],
+                'government_share' => $validatedData['government_share'],
                 'total_budget' => $validatedData['total_budget'],
                 'decision_date' => $validatedData['decision_date'],
                 'remarks' => $validatedData['remarks'],
@@ -196,5 +208,13 @@ class BudgetController extends Controller
     public function destroy(Budget $budget)
     {
         //
+    }
+
+    public function remaining(Budget $budget)
+    {
+        abort_if(Gate::denies('budget_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $budget->load('project', 'fiscalYear');
+        return view('admin.budgets.remaining', compact('budget'));
     }
 }

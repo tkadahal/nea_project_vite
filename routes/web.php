@@ -116,6 +116,7 @@ Route::group(
 
         // Route::resource('fiscalYear', FiscalYearController::class);
 
+        Route::get('/budget/{budget}/remaining', [BudgetController::class, 'remaining'])->name('budget.remaining');
         Route::resource('budget', BudgetController::class);
 
         Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');

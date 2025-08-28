@@ -205,17 +205,6 @@ class ExpenseController extends Controller
             ])->withInput();
         }
 
-        Log::info('Expense update request', [
-            'expense_id' => $expense->id,
-            'project_id' => $validatedData['project_id'],
-            'fiscal_year_id' => $validatedData['fiscal_year_id'],
-            'budget_type' => $validatedData['budget_type'],
-            'amount' => $validatedData['amount'],
-            'date' => $validatedData['date'],
-            'quarter' => $validatedData['quarter'],
-            'available_budget' => $availableBudget,
-        ]);
-
         $expense->update([
             'project_id' => $validatedData['project_id'],
             'fiscal_year_id' => $validatedData['fiscal_year_id'],
@@ -233,7 +222,6 @@ class ExpenseController extends Controller
     {
         abort_if(Gate::denies('expense_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        Log::info('Expense delete request', ['expense_id' => $expense->id]);
         $expense->delete();
         return redirect()->route('admin.expense.index')->with('success', 'Expense deleted successfully.');
     }
@@ -259,7 +247,7 @@ class ExpenseController extends Controller
         $validated = $request->validate([
             'project_id' => 'required|integer|exists:projects,id',
             'fiscal_year_id' => 'required|integer|exists:fiscal_years,id',
-            'budget_type' => 'required|in:internal,foreign_loan,foreign_subsidy',
+            'budget_type' => 'required|in:internal,foreign_loan,foreign_subsidy,government_loan,government_share',
         ]);
 
         $budget = Budget::where('project_id', $validated['project_id'])
@@ -270,26 +258,16 @@ class ExpenseController extends Controller
             return response()->json(['available' => null]);
         }
 
-        $budgetField = match ($validated['budget_type']) {
-            'internal' => 'internal_budget',
-            'foreign_loan' => 'foreign_loan_budget',
-            'foreign_subsidy' => 'foreign_subsidy_budget',
+        $remainingBudgetField = match ($validated['budget_type']) {
+            'internal' => 'remaining_internal_budget',
+            'foreign_loan' => 'remaining_foreign_loan_budget',
+            'foreign_subsidy' => 'remaining_foreign_subsidy_budget',
+            'government_loan' => 'remaining_government_loan',
+            'government_share' => 'remaining_government_share',
         };
 
-        $existingExpenses = Expense::where('project_id', $validated['project_id'])
-            ->where('fiscal_year_id', $validated['fiscal_year_id'])
-            ->where('budget_type', $validated['budget_type'])
-            ->sum('amount');
+        $available = $budget->$remainingBudgetField;
 
-        $available = $budget->$budgetField - $existingExpenses;
-
-        Log::info('Available budget queried', [
-            'project_id' => $validated['project_id'],
-            'fiscal_year_id' => $validated['fiscal_year_id'],
-            'budget_type' => $validated['budget_type'],
-            'available' => $available,
-        ]);
-
-        return response()->json(['available' => $available]);
+        return response()->json(['available' => number_format($available, 2, '.', '')]);
     }
 }

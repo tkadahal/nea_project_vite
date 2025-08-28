@@ -11,7 +11,7 @@
     <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
 
-        <form class="w-full" method="POST" action="{{ route('admin.expense.store') }}">
+        <form id="expense-form" class="w-full" method="POST" action="{{ route('admin.expense.store') }}">
             @csrf
 
             @if ($errors->any())
@@ -66,9 +66,23 @@
 
                             <x-forms.select label="{{ trans('global.expense.fields.budget_type') }}" name="budget_type"
                                 id="budget_type" :options="[
-                                    ['value' => 'internal', 'label' => __('Internal Budget')],
-                                    ['value' => 'foreign_loan', 'label' => __('Foreign Loan Budget')],
-                                    ['value' => 'foreign_subsidy', 'label' => __('Foreign Subsidy Budget')],
+                                    ['value' => 'internal', 'label' => trans('global.budget.fields.internal_budget')],
+                                    [
+                                        'value' => 'foreign_loan',
+                                        'label' => trans('global.budget.fields.foreign_loan_budget'),
+                                    ],
+                                    [
+                                        'value' => 'foreign_subsidy',
+                                        'label' => trans('global.budget.fields.foreign_subsidy_budget'),
+                                    ],
+                                    [
+                                        'value' => 'government_loan',
+                                        'label' => trans('global.budget.fields.government_loan'),
+                                    ],
+                                    [
+                                        'value' => 'government_share',
+                                        'label' => trans('global.budget.fields.government_share'),
+                                    ],
                                 ]" :selected="old('budget_type')"
                                 placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('budget_type')"
                                 class="js-single-select" />
@@ -83,10 +97,15 @@
                             {{ trans('global.expense.title') }}
                         </h3>
                         <div class="space-y-6">
-                            <x-forms.input label="{{ trans('global.expense.fields.amount') }}" name="amount"
-                                id="amount" type="number" step="0.01" min="0" :value="old('amount')" required
-                                class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                :error="$errors->first('amount')" />
+                            <div>
+                                <x-forms.input label="{{ trans('global.expense.fields.amount') }}" name="amount"
+                                    id="amount" type="number" step="0.01" min="0" :value="old('amount')"
+                                    required
+                                    class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    :error="$errors->first('amount')" />
+                                <span id="remaining-budget"
+                                    class="text-sm text-gray-500 dark:text-gray-400 mt-1 block"></span>
+                            </div>
 
                             <x-forms.text-area label="{{ trans('global.expense.fields.description') }}"
                                 name="description" :value="old('description')" :error="$errors->first('description')" />
@@ -103,17 +122,16 @@
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
 
-                            <x-forms.input label="{{ trans('global.expense.fields.date') }}" name="date"
-                                id="date" type="date" :value="old('date')" required
-                                class="w-full p-2 border rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                :error="$errors->first('date')" />
+                            <x-forms.date-input label="{{ trans('global.expense.fields.date') }}" name="date"
+                                :value="old('date')" :error="$errors->first('date')" />
+
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="mt-8">
-                <x-buttons.primary>
+                <x-buttons.primary type="submit">
                     {{ trans('global.save') }}
                 </x-buttons.primary>
             </div>
@@ -135,51 +153,124 @@
                     const $projectSelect = $('.js-single-select[data-name="project_id"]');
                     const $fiscalYearSelect = $('.js-single-select[data-name="fiscal_year_id"]');
                     const $budgetTypeSelect = $('.js-single-select[data-name="budget_type"]');
+                    const $amountInput = $('#amount');
                     const $availableBudget = $('#available-budget');
+                    const $remainingBudget = $('#remaining-budget');
+                    const $errorMessage = $('#error-message');
+                    const $errorText = $('#error-text');
+                    const $closeError = $('#close-error');
+                    const $form = $('#expense-form');
+                    let remainingBudget = null;
+
+                    function showError(message) {
+                        $errorText.text(message);
+                        $errorMessage.removeClass('hidden');
+                    }
+
+                    function hideError() {
+                        $errorMessage.addClass('hidden');
+                        $errorText.text('');
+                    }
+
+                    $closeError.on('click', hideError);
 
                     function updateAvailableBudget() {
                         const projectId = JSON.parse($projectSelect.attr('data-selected') || 'null');
                         const fiscalYearId = JSON.parse($fiscalYearSelect.attr('data-selected') || 'null');
                         const budgetType = JSON.parse($budgetTypeSelect.attr('data-selected') || 'null');
 
+                        console.log('updateAvailableBudget called with:', {
+                            projectId,
+                            fiscalYearId,
+                            budgetType
+                        });
+
                         if (projectId && fiscalYearId && budgetType) {
                             $.ajax({
                                 url: '{{ route('admin.budgets.available') }}',
+                                method: 'GET',
                                 data: {
                                     project_id: projectId,
                                     fiscal_year_id: fiscalYearId,
                                     budget_type: budgetType
                                 },
                                 success: function(response) {
-                                    if (response.available) {
+                                    console.log('AJAX success:', response);
+                                    if (response.available !== undefined && response.available !== null) {
+                                        remainingBudget = parseFloat(response.available);
+                                        const budgetTypeLabel = $budgetTypeSelect.find('option:selected')
+                                            .text();
                                         $availableBudget.text(
-                                            `Available ${budgetType} budget: ${response.available.toFixed(2)}`
+                                            `Available ${budgetTypeLabel}: ${remainingBudget.toFixed(2)}`
                                         );
+                                        $remainingBudget.text(
+                                            `Remaining ${budgetTypeLabel}: ${remainingBudget.toFixed(2)}`
+                                        );
+                                        validateAmount();
                                     } else {
+                                        remainingBudget = null;
                                         $availableBudget.text(
-                                            'No budget allocated for this fiscal year and budget type.');
+                                            'No budget allocated for this fiscal year and budget type.'
+                                        );
+                                        $remainingBudget.text('');
+                                        console.log('No budget available or response.available is null');
                                     }
                                 },
                                 error: function(xhr) {
-                                    console.error('Error fetching available budget:', xhr.responseText);
+                                    console.error('AJAX error:', xhr.status, xhr.responseText);
+                                    remainingBudget = null;
                                     $availableBudget.text('Error fetching budget information.');
+                                    $remainingBudget.text('');
                                 }
                             });
                         } else {
+                            remainingBudget = null;
                             $availableBudget.text('');
+                            $remainingBudget.text('');
+                            console.log('Missing required fields:', {
+                                projectId,
+                                fiscalYearId,
+                                budgetType
+                            });
+                        }
+                    }
+
+                    function validateAmount() {
+                        const amount = parseFloat($amountInput.val());
+                        console.log('validateAmount called with amount:', amount, 'remainingBudget:', remainingBudget);
+                        if (remainingBudget !== null && amount > remainingBudget) {
+                            showError(
+                                `Amount cannot exceed the remaining budget of ${remainingBudget.toFixed(2)}.`
+                            );
+                            $amountInput.addClass(
+                                'border-red-500 focus:ring-red-500 focus:border-red-500'
+                            );
+                            return false;
+                        } else {
+                            hideError();
+                            $amountInput.removeClass(
+                                'border-red-500 focus:ring-red-500 focus:border-red-500'
+                            );
+                            $amountInput.addClass(
+                                'border-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-transparent'
+                            );
+                            return true;
                         }
                     }
 
                     $dateInput.on('change', function() {
                         const date = $(this).val();
+                        console.log('Date changed:', date);
                         if (!date) return;
 
                         $.ajax({
                             url: '{{ route('admin.fiscal-years.by-date') }}',
+                            method: 'GET',
                             data: {
                                 date: date
                             },
                             success: function(response) {
+                                console.log('Fiscal year AJAX success:', response);
                                 if (response.fiscal_year_id) {
                                     $fiscalYearSelect.attr('data-selected', JSON.stringify(response
                                         .fiscal_year_id));
@@ -193,16 +284,41 @@
                                 }
                             },
                             error: function(xhr) {
-                                console.error('Error fetching fiscal year:', xhr.responseText);
+                                console.error('Fiscal year AJAX error:', xhr.status, xhr.responseText);
                             }
                         });
                     });
 
-                    $projectSelect.on('change', updateAvailableBudget);
-                    $fiscalYearSelect.on('change', updateAvailableBudget);
-                    $budgetTypeSelect.on('change', updateAvailableBudget);
+                    $projectSelect.on('change', function() {
+                        console.log('Project select changed:', $projectSelect.attr('data-selected'));
+                        updateAvailableBudget();
+                        validateAmount();
+                    });
+                    $fiscalYearSelect.on('change', function() {
+                        console.log('Fiscal year select changed:', $fiscalYearSelect.attr('data-selected'));
+                        updateAvailableBudget();
+                        validateAmount();
+                    });
+                    $budgetTypeSelect.on('change', function() {
+                        console.log('Budget type select changed:', $budgetTypeSelect.attr('data-selected'));
+                        updateAvailableBudget();
+                        validateAmount();
+                    });
+                    $amountInput.on('input', function() {
+                        console.log('Amount input changed:', $amountInput.val());
+                        validateAmount();
+                    });
+
+                    $form.on('submit', function(e) {
+                        console.log('Form submit attempted');
+                        if (!validateAmount()) {
+                            e.preventDefault();
+                            console.log('Form submission prevented due to invalid amount');
+                        }
+                    });
 
                     // Initial update
+                    console.log('Initializing form');
                     updateAvailableBudget();
                 }
             })();

@@ -254,13 +254,23 @@ class ProjectController extends Controller
         } elseif (in_array(Role::DIRECTORATE_USER, $roleIds)) {
             $fixedDirectorateId = $user->directorate_id;
             $directorates = Directorate::where('id', $fixedDirectorateId)->pluck('title', 'id');
+        } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
+            $fixedDirectorateId = $user->directorate_id;
+            $directorates = Directorate::where('id', $fixedDirectorateId)->pluck('title', 'id');
+            $users = User::whereIn('id', function ($query) use ($project) {
+                $query->select('user_id')
+                    ->from('project_user')
+                    ->where('project_id', $project->id);
+            })->pluck('name', 'id');
         }
 
         if ($project->directorate_id) {
             $departments = Department::whereHas('directorates', function ($query) use ($project) {
                 $query->where('directorate_id', $project->directorate_id);
             })->pluck('title', 'id');
-            $users = User::where('directorate_id', $project->directorate_id)->pluck('name', 'id');
+            if (in_array(Role::SUPERADMIN, $roleIds) && $users->isEmpty()) {
+                $users = User::where('directorate_id', $project->directorate_id)->pluck('name', 'id');
+            }
         }
 
         return view('admin.projects.edit', compact(

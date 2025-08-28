@@ -21,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use App\Notifications\TaskCreated;
 use App\Notifications\TaskDeleted;
 use App\Notifications\TaskUpdated;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -450,11 +451,15 @@ class TaskController extends Controller
 
         $validated = $request->validated();
         $validated['assigned_by'] = Auth::id();
-        $taskData = array_diff_key($validated, array_flip(['progress', 'projects', 'users']));
+
+        // Extract subtasks and remove from main task data
+        $subtasks = isset($validated['subtasks']) ? json_decode($validated['subtasks'], true) : [];
+        $taskData = array_diff_key($validated, array_flip(['progress', 'projects', 'users', 'subtasks']));
         $task = Task::create($taskData);
 
+        // Prepare project sync data for parent task and subtasks
+        $projectSyncData = [];
         if (!empty($validated['projects'])) {
-            $projectSyncData = [];
             foreach ($validated['projects'] as $projectId) {
                 $projectSyncData[$projectId] = [
                     'status_id' => $validated['status_id'],
@@ -466,8 +471,37 @@ class TaskController extends Controller
             $task->projects()->sync($projectSyncData);
         }
 
+        // Sync users for the parent task
         $task->users()->sync($validated['users'] ?? []);
 
+        // Create subtasks as child tasks, sync projects and users
+        if (!empty($subtasks)) {
+            foreach ($subtasks as $subtaskData) {
+                if (!empty($subtaskData['title'])) {
+                    $subtask = Task::create([
+                        'title' => $subtaskData['title'],
+                        'status_id' => $subtaskData['completed'] ? 2 : 1, // 2 = completed, 1 = pending
+                        'parent_id' => $task->id,
+                        'directorate_id' => $task->directorate_id,
+                        'department_id' => $task->department_id,
+                        'assigned_by' => Auth::id(),
+                        'start_date' => $task->start_date, // Inherit from parent task
+                        'due_date' => $task->due_date, // Inherit from parent task (optional)
+                        'priority_id' => $task->priority_id, // Inherit from parent task (optional)
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    // Sync the same projects to the subtask
+                    if (!empty($projectSyncData)) {
+                        $subtask->projects()->sync($projectSyncData);
+                    }
+                    // Sync the same users to the subtask
+                    $subtask->users()->sync($validated['users'] ?? []);
+                }
+            }
+        }
+
+        // Notify users
         $notifiedUsers = collect();
         if (!empty($validated['projects'])) {
             foreach ($validated['projects'] as $projectId) {
@@ -901,19 +935,45 @@ class TaskController extends Controller
         ]);
 
         $task = Task::findOrFail($request->task_id);
+
+        // Check if the task has subtasks
+        if ($task->subTasks()->exists()) {
+            return response()->json([
+                'message' => 'This task has subtasks, please update the subtask first'
+            ], 422);
+        }
+
         $statusId = $request->status_id;
         $projectId = $request->project_id;
 
         try {
-            if ($projectId) {
-                $task->projects()->updateExistingPivot($projectId, ['status_id' => $statusId]);
-            } else {
+            // Start a transaction to ensure atomic updates
+            DB::beginTransaction();
+
+            // Check if the task is a subtask (has a parent_id)
+            if ($task->parent_id) {
+                // For subtasks, update status_id in both tasks table and project_task (if project_id exists)
                 $task->update(['status_id' => $statusId]);
+                if ($projectId) {
+                    $task->projects()->updateExistingPivot($projectId, ['status_id' => $statusId]);
+                }
+            } else {
+                // For tasks (not subtasks)
+                if ($projectId) {
+                    // Update only project_task pivot table if associated with a project
+                    $task->projects()->updateExistingPivot($projectId, ['status_id' => $statusId]);
+                } else {
+                    // Update tasks table if no project is associated
+                    $task->update(['status_id' => $statusId]);
+                }
             }
+
+            DB::commit();
 
             return response()->json(['message' => 'Task status updated successfully']);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error updating task status'], 500);
+            DB::rollBack();
+            return response()->json(['message' => 'Error updating task status: ' . $e->getMessage()], 500);
         }
     }
 
