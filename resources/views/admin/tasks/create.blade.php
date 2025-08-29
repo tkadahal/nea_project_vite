@@ -1,5 +1,4 @@
 <x-layouts.app>
-
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
             {{ trans('global.task.title') }}
@@ -11,7 +10,7 @@
 
     <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
-        <form class="w-full" action="{{ route('admin.task.store') }}" method="POST">
+        <form id="task-form" class="w-full" action="{{ route('admin.task.store') }}" method="POST">
             @csrf
 
             @if ($errors->any())
@@ -174,7 +173,6 @@
                         </div>
                     </div>
 
-                    <!-- Subtasks Section -->
                     <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
@@ -203,7 +201,7 @@
             </div>
 
             <div class="mt-8">
-                <x-buttons.primary>
+                <x-buttons.primary id="submit-button" type="submit" :disabled="false">
                     {{ trans('global.save') }}
                 </x-buttons.primary>
             </div>
@@ -225,12 +223,93 @@
                 } else {
                     console.error("Failed to load jQuery or DOM after maximum retries.");
                     $("#error-message").removeClass("hidden").find("#error-text").text(
-                        "Failed to initialize form due to missing jQuery or DOM.");
+                        "{{ trans('global.task.errors.form_init_failed') }}");
                 }
             }
 
             waitForJQuery(function() {
                 const $ = jQuery;
+
+                // Form submission handling
+                const $form = $('#task-form');
+                const $submitButton = $('#submit-button');
+                const $errorMessage = $('#error-message');
+                const $errorText = $('#error-text');
+                const $closeError = $('#close-error');
+
+                function showError(message) {
+                    $errorText.text(message);
+                    $errorMessage.removeClass('hidden');
+                }
+
+                function hideError() {
+                    $errorMessage.addClass('hidden');
+                    $errorText.text('');
+                }
+
+                $closeError.on('click', hideError);
+
+                $form.on('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Form submit attempted');
+
+                    if ($submitButton.prop('disabled')) {
+                        console.log('Form submission prevented: button is disabled');
+                        return;
+                    }
+
+                    const directorateId = $('input[name="directorate_id"].js-hidden-input').val();
+                    const title = $('input[name="title"]').val();
+                    const users = $('.js-multi-select[data-name="users"]').data('selected') || [];
+                    const startDate = $('input[name="start_date"]').val();
+                    const statusId = $('input[name="status_id"].js-hidden-input').val();
+                    const priorityId = $('input[name="priority_id"].js-hidden-input').val();
+
+                    if (!directorateId || !title || !users.length || !startDate || !statusId || !priorityId) {
+                        showError('{{ trans('global.task.errors.missing_fields') }}');
+                        console.log('Form submission prevented: missing required fields', {
+                            directorateId,
+                            title,
+                            users,
+                            startDate,
+                            statusId,
+                            priorityId
+                        });
+                        return;
+                    }
+
+                    $submitButton
+                        .prop('disabled', true)
+                        .addClass('opacity-50 cursor-not-allowed')
+                        .text('{{ trans('global.saving') }}...');
+                    console.log('Submit button disabled');
+
+                    $.ajax({
+                        url: $form.attr('action'),
+                        method: 'POST',
+                        data: $form.serialize(),
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function(response) {
+                            console.log('Form submission success:', response);
+                            hideError();
+                            window.location.href = '{{ route('admin.task.index') }}';
+                        },
+                        error: function(xhr) {
+                            console.error('Form submission error:', xhr.status, xhr.responseJSON);
+                            $submitButton
+                                .prop('disabled', false)
+                                .removeClass('opacity-50 cursor-not-allowed')
+                                .text('{{ trans('global.save') }}');
+                            showError(
+                                xhr.responseJSON?.message ||
+                                '{{ trans('global.task.errors.create_failed') }}'
+                            );
+                        }
+                    });
+                });
 
                 // Debounce function
                 function debounce(func, wait) {
@@ -300,10 +379,9 @@
                     if (title) {
                         addSubtask(title);
                         $subtaskTitleInput.val(""); // Clear input after adding
+                        hideError();
                     } else {
-                        $("#error-message").removeClass("hidden").find("#error-text").text(
-                            "{{ trans('global.task.errors.subtask_title_required') }}"
-                        );
+                        showError("{{ trans('global.task.errors.subtask_title_required') }}");
                     }
                 });
 
@@ -681,10 +759,7 @@
                                 updateSelectOptions(departmentContainer, formattedData,
                                     selectedDepartment);
                                 if (formattedData.length === 0) {
-                                    $("#error-message").removeClass("hidden").find("#error-text")
-                                        .text(
-                                            "No departments available for the selected directorate."
-                                        );
+                                    showError("{{ trans('global.task.errors.no_departments') }}");
                                 }
                                 // Trigger department change to load users
                                 departmentInput.trigger("change");
@@ -693,11 +768,10 @@
                                 console.error("Departments AJAX error:", xhr.status, xhr.statusText,
                                     xhr.responseJSON);
                                 updateSelectOptions(departmentContainer, [], "");
-                                $("#error-message").removeClass("hidden").find("#error-text").text(
-                                    "Failed to load departments: " + (xhr.responseJSON
-                                        ?.message ||
-                                        "Unknown error")
-                                );
+                                showError(
+                                    "{{ trans('global.task.errors.departments_fetch_failed') }}" +
+                                    (xhr.responseJSON
+                                        ?.message || "Unknown error"));
                                 // Trigger department change to reset users
                                 departmentInput.trigger("change");
                             }
@@ -734,10 +808,7 @@
                                 updateSelectOptions(projectsContainer, formattedData,
                                     validOldProjects);
                                 if (formattedData.length === 0) {
-                                    $("#error-message").removeClass("hidden").find("#error-text")
-                                        .text(
-                                            "No projects available for the selected directorate."
-                                        );
+                                    showError("{{ trans('global.task.errors.no_projects') }}");
                                 }
                                 // Trigger projects change to load users
                                 projectsContainer.trigger("change");
@@ -746,10 +817,10 @@
                                 console.error("Projects AJAX error:", xhr.status, xhr.statusText,
                                     xhr.responseJSON);
                                 updateSelectOptions(projectsContainer, [], []);
-                                $("#error-message").removeClass("hidden").find("#error-text").text(
-                                    "Failed to load projects: " + (xhr.responseJSON?.message ||
-                                        "Unknown error")
-                                );
+                                showError(
+                                    "{{ trans('global.task.errors.projects_fetch_failed') }}" +
+                                    (xhr.responseJSON?.message ||
+                                        "Unknown error"));
                                 // Trigger projects change to reset users
                                 projectsContainer.trigger("change");
                             }
@@ -803,21 +874,16 @@
                                         .value) === String(userId)));
                                 updateSelectOptions(usersContainer, formattedData, validOldUsers);
                                 if (formattedData.length === 0) {
-                                    // $("#error-message").removeClass("hidden").find("#error-text")
-                                    //     .text(
-                                    //         "No users available for the selected " + (departmentId ?
-                                    //             "department" : "directorate") + "."
-                                    //     );
+                                    //showError("{{ trans('global.task.errors.no_users') }}");
                                 }
                             },
                             error: function(xhr) {
                                 console.error("Users AJAX error:", xhr.status, xhr.statusText, xhr
                                     .responseJSON);
                                 updateSelectOptions(usersContainer, [], []);
-                                $("#error-message").removeClass("hidden").find("#error-text").text(
-                                    "Failed to load users: " + (xhr.responseJSON?.message ||
-                                        "Unknown error")
-                                );
+                                // showError("{{ trans('global.task.errors.users_fetch_failed') }}" +
+                                //     (xhr.responseJSON?.message ||
+                                //         "Unknown error"));
                             }
                         });
                     });
@@ -860,19 +926,16 @@
                                     .value) === String(userId)));
                             updateSelectOptions(usersContainer, formattedData, validOldUsers);
                             if (formattedData.length === 0) {
-                                $("#error-message").removeClass("hidden").find("#error-text").text(
-                                    "No users available for the selected projects."
-                                );
+                                showError("{{ trans('global.task.errors.no_users') }}");
                             }
                         },
                         error: function(xhr) {
                             console.error("Users AJAX error:", xhr.status, xhr.statusText, xhr
                                 .responseJSON);
                             updateSelectOptions(usersContainer, [], []);
-                            $("#error-message").removeClass("hidden").find("#error-text").text(
-                                "Failed to load users: " + (xhr.responseJSON?.message ||
-                                    "Unknown error")
-                            );
+                            showError("{{ trans('global.task.errors.users_fetch_failed') }}" + (xhr
+                                .responseJSON?.message ||
+                                "Unknown error"));
                         }
                     });
                 }, 300);
@@ -884,11 +947,6 @@
                         debouncedFetchUsers(selectedProjects);
                     });
                 }
-
-                // Close error message
-                $("#close-error").on("click", function() {
-                    $("#error-message").addClass("hidden").find("#error-text").text("");
-                });
 
                 // Trigger initial change for pre-selected directorate or department (only if no fixedProjectId)
                 if (!fixedProjectId) {

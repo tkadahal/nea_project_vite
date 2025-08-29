@@ -33,7 +33,7 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'employee_id')->ignore($userId),
             ],
             'directorate_id' => [
-                $isDirectorateOrProjectUser ? 'sometimes' : 'required',
+                $isDirectorateOrProjectUser ? 'nullable' : 'nullable',
                 'integer',
                 'exists:directorates,id',
             ],

@@ -248,6 +248,7 @@
                         const budgetDisplay = $('#project-budget');
                         const budgetAmount = $('#budget-amount');
                         const submitButton = $('#submit-button');
+                        const contractForm = $('#contract-form');
                         let remainingBudget = 0;
 
                         console.log('Superadmin script initialized (create)');
@@ -262,6 +263,12 @@
                         console.log('Directorate input:', directorateInput.length ? 'Found' : 'Not found',
                             directorateInput);
                         console.log('Project input:', projectInput.length ? 'Found' : 'Not found', projectInput);
+
+                        // Disable submit button on form submission
+                        contractForm.on('submit', function() {
+                            console.log('Form submitted, disabling submit button');
+                            submitButton.prop('disabled', true).text('Submitting...');
+                        });
 
                         directorateInput.on('change', function() {
                             const directorateId = $(this).val();
@@ -443,6 +450,7 @@
                         const budgetDisplay = $('#project-budget');
                         const budgetAmount = $('#budget-amount');
                         const submitButton = $('#submit-button');
+                        const contractForm = $('#contract-form');
                         let remainingBudget = 0;
 
                         console.log('Non-superadmin script initialized (create)');
@@ -451,6 +459,12 @@
                         console.log('Project container HTML:', projectContainer.length ? projectContainer[0].outerHTML :
                             'N/A');
                         console.log('Project input:', projectInput.length ? 'Found' : 'Not found', projectInput);
+
+                        // Disable submit button on form submission
+                        contractForm.on('submit', function() {
+                            console.log('Form submitted, disabling submit button');
+                            submitButton.prop('disabled', true).text('Submitting...');
+                        });
 
                         projectInput.on('change', function() {
                             const projectId = $(this).val();

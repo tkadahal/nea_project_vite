@@ -388,6 +388,8 @@ return [
         'fields' => [
             'id' => 'ID',
             'id_helper' => '',
+            'title' => 'Program / Activity',
+            'title_helper' => '',
             'project_id' => 'Project',
             'project_id_helper' => '',
             'user_id' => 'User',

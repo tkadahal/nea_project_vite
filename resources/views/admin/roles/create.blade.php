@@ -12,7 +12,7 @@
         <div class="flex-1">
             <div
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 p-6">
-                <form class="max-w-3xl mx-auto" action="{{ route('admin.role.store') }}" method="POST">
+                <form id="role-form" class="max-w-3xl mx-auto" action="{{ route('admin.role.store') }}" method="POST">
                     @csrf
 
                     @if ($errors->any())
@@ -32,7 +32,7 @@
                             <svg class="fill-current h-6 w-6 text-red-500" role="button"
                                 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                 <path
-                                    d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 010 1.698z" />
+                                    d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
                             </svg>
                         </button>
                     </div>
@@ -62,7 +62,7 @@
                     </div>
 
                     <div class="mt-8">
-                        <x-buttons.primary>
+                        <x-buttons.primary id="submit-button" type="submit" :disabled="false">
                             {{ trans('global.save') }}
                         </x-buttons.primary>
                     </div>
@@ -71,4 +71,95 @@
         </div>
     </div>
 
+    @push('scripts')
+        <script>
+            function waitForJQuery(callback, retries = 50, interval = 100) {
+                if (typeof jQuery !== "undefined" && jQuery.fn.jquery && document.readyState !== "loading") {
+                    console.log("jQuery and DOM ready. jQuery version:", jQuery.fn.jquery, "DOM state:", document.readyState);
+                    callback();
+                } else if (retries > 0) {
+                    console.warn("jQuery or DOM not ready, retrying... jQuery:", typeof jQuery !== "undefined" ? jQuery.fn
+                        .jquery : "undefined", "DOM:", document.readyState, "Retries left:", retries);
+                    setTimeout(function() {
+                        waitForJQuery(callback, retries - 1, interval);
+                    }, interval);
+                } else {
+                    console.error("Failed to load jQuery or DOM after maximum retries.");
+                    $("#error-message").removeClass("hidden").find("#error-text").text(
+                        "{{ trans('global.role.errors.form_init_failed') }}");
+                }
+            }
+
+            waitForJQuery(function() {
+                const $ = jQuery;
+
+                const $form = $('#role-form');
+                const $submitButton = $('#submit-button');
+                const $errorMessage = $('#error-message');
+                const $errorText = $('#error-text');
+                const $closeError = $('#close-error');
+
+                function showError(message) {
+                    $errorText.text(message);
+                    $errorMessage.removeClass('hidden');
+                }
+
+                function hideError() {
+                    $errorMessage.addClass('hidden');
+                    $errorText.text('');
+                }
+
+                $closeError.on('click', hideError);
+
+                $form.on('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Form submit attempted');
+
+                    if ($submitButton.prop('disabled')) {
+                        console.log('Form submission prevented: button is disabled');
+                        return;
+                    }
+
+                    const title = $('input[name="title"]').val();
+                    if (!title) {
+                        showError('{{ trans('global.role.errors.missing_title') }}');
+                        console.log('Form submission prevented: title is required');
+                        return;
+                    }
+
+                    $submitButton
+                        .prop('disabled', true)
+                        .addClass('opacity-50 cursor-not-allowed')
+                        .text('{{ trans('global.saving') }}...');
+                    console.log('Submit button disabled');
+
+                    $.ajax({
+                        url: $form.attr('action'),
+                        method: 'POST',
+                        data: $form.serialize(),
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function(response) {
+                            console.log('Form submission success:', response);
+                            hideError();
+                            window.location.href = '{{ route('admin.role.index') }}';
+                        },
+                        error: function(xhr) {
+                            console.error('Form submission error:', xhr.status, xhr.responseJSON);
+                            $submitButton
+                                .prop('disabled', false)
+                                .removeClass('opacity-50 cursor-not-allowed')
+                                .text('{{ trans('global.save') }}');
+                            showError(
+                                xhr.responseJSON?.message ||
+                                '{{ trans('global.role.errors.create_failed') }}'
+                            );
+                        }
+                    });
+                });
+            });
+        </script>
+    @endpush
 </x-layouts.app>

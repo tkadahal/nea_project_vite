@@ -51,6 +51,7 @@ class ExpenseController extends Controller
 
         $headers = [
             trans('global.expense.fields.id'),
+            trans('global.expense.fields.title'),
             trans('global.expense.fields.project_id'),
             trans('global.expense.fields.fiscal_year_id'),
             trans('global.expense.fields.budget_type'),
@@ -63,6 +64,7 @@ class ExpenseController extends Controller
         $data = $expenses->map(function ($expense) {
             return [
                 'id' => $expense->id,
+                'title' => $expense->title ?? 'N/A',
                 'project' => $expense->project->title ?? 'N/A',
                 'fiscal_year' => $expense->fiscalYear->title ?? 'N/A',
                 'budget_type' => str_replace(

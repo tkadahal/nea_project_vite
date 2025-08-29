@@ -10,7 +10,6 @@
 
     <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
-
         <form id="expense-form" class="w-full" method="POST" action="{{ route('admin.expense.store') }}">
             @csrf
 
@@ -32,7 +31,7 @@
                     <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20">
                         <path
-                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 010 1.698z" />
+                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
                     </svg>
                 </button>
             </div>
@@ -97,6 +96,11 @@
                             {{ trans('global.expense.title') }}
                         </h3>
                         <div class="space-y-6">
+                            <div class="col-span-full">
+                                <x-forms.input label="{{ trans('global.expense.fields.title') }}" name="title"
+                                    type="text" :value="old('title')" :error="$errors->first('title')" />
+                            </div>
+
                             <div>
                                 <x-forms.input label="{{ trans('global.expense.fields.amount') }}" name="amount"
                                     id="amount" type="number" step="0.01" min="0" :value="old('amount')"
@@ -124,14 +128,13 @@
 
                             <x-forms.date-input label="{{ trans('global.expense.fields.date') }}" name="date"
                                 :value="old('date')" :error="$errors->first('date')" />
-
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="mt-8">
-                <x-buttons.primary type="submit">
+                <x-buttons.primary id="submit-button" type="submit" :disabled="false">
                     {{ trans('global.save') }}
                 </x-buttons.primary>
             </div>
@@ -160,6 +163,7 @@
                     const $errorText = $('#error-text');
                     const $closeError = $('#close-error');
                     const $form = $('#expense-form');
+                    const $submitButton = $('button[type="submit"]'); // Reference to the submit button
                     let remainingBudget = null;
 
                     function showError(message) {
@@ -173,6 +177,18 @@
                     }
 
                     $closeError.on('click', hideError);
+
+                    // Disable submit button on form submission
+                    $form.on('submit', function(e) {
+                        console.log('Form submitted, disabling submit button');
+                        $submitButton.prop('disabled', true).text('Submitting...');
+                        if (!validateAmount()) {
+                            e.preventDefault();
+                            console.log('Form submission prevented due to invalid amount');
+                            $submitButton.prop('disabled', false).text(
+                            '{{ trans('global.save') }}'); // Re-enable if validation fails
+                        }
+                    });
 
                     function updateAvailableBudget() {
                         const projectId = JSON.parse($projectSelect.attr('data-selected') || 'null');
@@ -307,14 +323,6 @@
                     $amountInput.on('input', function() {
                         console.log('Amount input changed:', $amountInput.val());
                         validateAmount();
-                    });
-
-                    $form.on('submit', function(e) {
-                        console.log('Form submit attempted');
-                        if (!validateAmount()) {
-                            e.preventDefault();
-                            console.log('Form submission prevented due to invalid amount');
-                        }
                     });
 
                     // Initial update

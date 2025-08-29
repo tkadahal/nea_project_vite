@@ -31,7 +31,7 @@ class StoreUserRequest extends FormRequest
                 'unique:users,employee_id',
             ],
             'directorate_id' => [
-                $isDirectorateOrProjectUser ? 'nullable' : 'required',
+                $isDirectorateOrProjectUser ? 'nullable' : 'nullable',
                 $isDirectorateOrProjectUser ? 'integer' : 'integer',
                 $isDirectorateOrProjectUser ? 'exists:directorates,id' : 'exists:directorates,id',
             ],

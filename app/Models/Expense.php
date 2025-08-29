@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Expense extends Model
 {
     protected $fillable = [
+        'title',
         'project_id',
         'user_id',
         'fiscal_year_id',

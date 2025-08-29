@@ -387,6 +387,8 @@ return [
         'fields' => [
             'id' => 'क्र.सं',
             'id_helper' => '',
+            'title' => 'कार्यक्रम / क्रियाकलाप',
+            'title_helper' => '',
             'project_id' => 'परियोजना',
             'project_id_helper' => '',
             'user_id' => 'प्रयोगकर्ता',

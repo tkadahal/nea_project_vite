@@ -20,6 +20,7 @@ class StoreExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'title' => 'required|string|max:255',
             'project_id' => 'required|integer|exists:projects,id',
             'fiscal_year_id' => 'required|integer|exists:fiscal_years,id',
             'budget_type' => 'required|in:internal,foreign_loan,foreign_subsidy',

@@ -12,7 +12,7 @@
         <div class="flex-1">
             <div
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 p-6">
-                <form class="max-w-3xl mx-auto" action="{{ route('admin.user.store') }}" method="POST">
+                <form id="user-form" class="max-w-3xl mx-auto" action="{{ route('admin.user.store') }}" method="POST">
                     @csrf
 
                     @if ($errors->any())
@@ -106,7 +106,7 @@
                     </div>
 
                     <div>
-                        <x-buttons.primary>
+                        <x-buttons.primary id="submit-button" type="submit" :disabled="false">
                             {{ trans('global.save') }}
                         </x-buttons.primary>
                     </div>
@@ -130,7 +130,7 @@
                 } else {
                     console.error("Failed to load jQuery or DOM after maximum retries.");
                     $("#error-message").removeClass("hidden").find("#error-text").text(
-                        "Failed to initialize form due to missing jQuery or DOM.");
+                        "{{ trans('global.user.errors.form_init_failed') }}");
                 }
             }
 
@@ -139,9 +139,24 @@
 
                 window.debugProjectsData = [];
 
+                const $form = $('#user-form');
+                const $submitButton = $('#submit-button');
                 const $projectsContainer = $('.js-multi-select[data-name="projects"]');
-                console.log('Projects container found:', $projectsContainer.length, 'ID:', $projectsContainer.attr(
-                    'id'));
+                const $errorMessage = $('#error-message');
+                const $errorText = $('#error-text');
+                const $closeError = $('#close-error');
+
+                function showError(message) {
+                    $errorText.text(message);
+                    $errorMessage.removeClass('hidden');
+                }
+
+                function hideError() {
+                    $errorMessage.addClass('hidden');
+                    $errorText.text('');
+                }
+
+                $closeError.on('click', hideError);
 
                 @if (!$isDirectorateOrProjectUser)
                     $('input[name="directorate_id"].js-hidden-input').on('change', function() {
@@ -199,10 +214,9 @@
                                         selected: validOldProjects
                                     });
                                 if (formattedData.length === 0) {
-                                    $('#error-message').removeClass('hidden').find('#error-text')
-                                        .text(
-                                            'No projects available for the selected directorate.'
-                                        );
+                                    showError('{{ trans('global.user.errors.no_projects') }}');
+                                } else {
+                                    hideError();
                                 }
                             },
                             error: function(xhr) {
@@ -215,10 +229,9 @@
                                         options: [],
                                         selected: []
                                     });
-                                $('#error-message').removeClass('hidden').find('#error-text').text(
-                                    'Failed to load projects: ' + (xhr.responseJSON?.message ||
-                                        'Unknown error')
-                                );
+                                showError(
+                                    '{{ trans('global.user.errors.projects_fetch_failed') }}' +
+                                    (xhr.responseJSON?.message || 'Unknown error'));
                             }
                         });
                     });
@@ -234,8 +247,75 @@
                     }
                 @endif
 
-                $('#close-error').on('click', function() {
-                    $('#error-message').addClass('hidden').find('#error-text').text('');
+                // Form submission handling
+                $form.on('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Form submit attempted');
+
+                    if ($submitButton.prop('disabled')) {
+                        console.log('Form submission prevented: button is disabled');
+                        return;
+                    }
+
+                    const employeeId = $('input[name="employee_id"]').val();
+                    const name = $('input[name="name"]').val();
+                    const email = $('input[name="email"]').val();
+                    const password = $('input[name="password"]').val();
+                    const roles =
+                        @if (!$isDirectorateOrProjectUser)
+                            $('.js-multi-select[data-name="roles"]').data('selected') || []
+                        @else
+                            []
+                        @endif ;
+                    const directorateId =
+                        @if (!$isDirectorateOrProjectUser)
+                            $('input[name="directorate_id"].js-hidden-input').val()
+                        @else
+                            null
+                        @endif ;
+                    const projects = $('.js-multi-select[data-name="projects"]').data('selected') || [];
+
+                    if (!employeeId || !name || !email || !password || (
+                            @if (!$isDirectorateOrProjectUser)
+                                roles.length === 0 ||
+                            @endif
+                            false)) {
+                        showError('{{ trans('global.user.errors.missing_fields') }}');
+                        console.log('Form submission prevented due to missing required fields');
+                        return;
+                    }
+
+                    $submitButton
+                        .prop('disabled', true)
+                        .addClass('opacity-50 cursor-not-allowed')
+                        .text('{{ trans('global.saving') }}...');
+                    console.log('Submit button disabled');
+
+                    $.ajax({
+                        url: $form.attr('action'),
+                        method: 'POST',
+                        data: $form.serialize(),
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function(response) {
+                            console.log('Form submission success:', response);
+                            hideError();
+                            window.location.href = '{{ route('admin.user.index') }}';
+                        },
+                        error: function(xhr) {
+                            console.error('Form submission error:', xhr.status, xhr.responseJSON);
+                            $submitButton
+                                .prop('disabled', false)
+                                .removeClass('opacity-50 cursor-not-allowed')
+                                .text('{{ trans('global.save') }}');
+                            showError(
+                                xhr.responseJSON?.message ||
+                                '{{ trans('global.user.errors.create_failed') }}'
+                            );
+                        }
+                    });
                 });
             });
         </script>
