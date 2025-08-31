@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Models\Builders\ModelBuilder;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Builders\ModelBuilder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Project extends Model
 {
@@ -97,7 +98,7 @@ class Project extends Model
                 return $tasks->avg('progress');
             }
             $weightedProgress = $tasks->sum(fn($task) => $task->progress * $task->estimated_hours);
-            return round($weightedProgress / $totalWeight, 2);
+            return (float) round($weightedProgress / $totalWeight, 2);
         }
 
         $contracts = $this->contracts()->get();
@@ -107,7 +108,7 @@ class Project extends Model
                 return $contracts->avg('progress');
             }
             $weightedProgress = $contracts->sum(fn($contract) => $contract->progress * $contract->contract_amount);
-            return round($weightedProgress / $totalWeight, 2);
+            return (float) round($weightedProgress / $totalWeight, 2);
         }
 
         return 0.0;
@@ -128,7 +129,7 @@ class Project extends Model
             $this->attributes['total_budget'] = $latestBudget ? (float) $latestBudget->total_budget : 0.0;
         }
 
-        return $this->attributes['total_budget'];
+        return (float) $this->attributes['total_budget'];
     }
 
     public function expenses(): HasMany
@@ -188,21 +189,14 @@ class Project extends Model
         ];
     }
 
-    public function scopeFilterByRole(Builder $query, $user)
+    public function scopeFilterByRole($query, User $user)
     {
-        if ($user->roles->contains('id', 3)) {
-            return $query->where('directorate_id', $user->directorate_id);
-        }
-
-        if ($user->roles->contains('id', 4)) {
-            return $query->whereIn('id', function ($query) use ($user) {
-                $query->select('project_id')
-                    ->from('project_user')
-                    ->where('user_id', $user->id);
-            });
-        }
-
-        return $query;
+        return $query->whereExists(function ($subQuery) use ($user) {
+            $subQuery->select(DB::raw(1))
+                ->from('project_user')
+                ->whereColumn('project_user.project_id', 'projects.id')
+                ->where('project_user.user_id', $user->id);
+        });
     }
 
     public function users(): BelongsToMany

@@ -8,13 +8,14 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\Status;
 use App\Models\Project;
+use App\Models\Contract;
 use App\Models\Priority;
 use Illuminate\View\View;
 use App\Models\Department;
 use App\Models\Directorate;
 use App\Exports\TasksExport;
-use App\Exports\ProjectsExport;
 use Illuminate\Http\Request;
+use App\Exports\ProjectsExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -438,5 +439,154 @@ class AnalyticalDashboardController extends Controller
         }
 
         return Excel::download(new ProjectsExport($projectQuery), 'projects_' . now()->format('Y-m-d_H-i-s') . '.csv');
+    }
+
+    public function summary(Request $request): View|JsonResponse
+    {
+        // Get filter inputs
+        $directorateId = $request->input('directorate_id');
+        $projectId = $request->input('project_id');
+        $statusId = $request->input('status_id');
+        $priorityId = $request->input('priority_id');
+
+        // Base query for projects with filters
+        $projectQuery = Project::query()
+            ->when($directorateId, fn($query) => $query->where('projects.directorate_id', $directorateId))
+            ->when($projectId, fn($query) => $query->where('projects.id', $projectId))
+            ->when($statusId, fn($query) => $query->where('projects.status_id', $statusId))
+            ->when($priorityId, fn($query) => $query->where('projects.priority_id', $priorityId))
+            ->when(auth()->user()->hasRole(Role::SUPERADMIN) === false, fn($query) => $query->filterByRole(auth()->user()));
+
+        // Summary Data
+        $totalProjects = $projectQuery->clone()->count();
+        $totalContracts = Contract::query()
+            ->when($projectId, fn($query) => $query->where('contracts.project_id', $projectId))
+            ->when($statusId, fn($query) => $query->where('contracts.status_id', $statusId))
+            ->when($priorityId, fn($query) => $query->where('contracts.priority_id', $priorityId))
+            ->count();
+        $totalTasks = Task::query()
+            ->when($directorateId, fn($query) => $query->where('tasks.directorate_id', $directorateId))
+            ->when($projectId, fn($query) => $query->whereHas('projects', fn($q) => $q->where('projects.id', $projectId)))
+            ->when($statusId, fn($query) => $query->where('tasks.status_id', $statusId))
+            ->when($priorityId, fn($query) => $query->where('tasks.priority_id', $priorityId))
+            ->count();
+        $totalBudget = $projectQuery->clone()
+            ->join('budgets', function ($join) {
+                $join->on('projects.id', '=', 'budgets.project_id')
+                    ->whereRaw('budgets.id = (SELECT MAX(budgets_sub.id) FROM budgets AS budgets_sub WHERE budgets_sub.project_id = projects.id)');
+            })
+            ->sum('budgets.total_budget');
+        $averagePhysicalProgress = (float) $projectQuery->clone()->avg('projects.progress') ?? 0.0;
+
+        // Financial Progress
+        $financialProgressData = $projectQuery->clone()
+            ->leftJoin('budgets', function ($join) {
+                $join->on('projects.id', '=', 'budgets.project_id')
+                    ->whereRaw('budgets.id = (SELECT MAX(budgets_sub.id) FROM budgets AS budgets_sub WHERE budgets_sub.project_id = projects.id)');
+            })
+            ->leftJoin('expenses', 'projects.id', '=', 'expenses.project_id')
+            ->leftJoin('contracts', 'projects.id', '=', 'contracts.project_id')
+            ->select('projects.id')
+            ->selectRaw('COALESCE(SUM(expenses.amount), 0) + COALESCE(SUM(contracts.contract_amount), 0) AS total_spent')
+            ->selectRaw('COALESCE(budgets.total_budget, 0) AS total_budget')
+            ->groupBy('projects.id', 'budgets.total_budget')
+            ->get();
+        $averageFinancialProgress = $financialProgressData->count() > 0
+            ? $financialProgressData->avg(fn($project) => $project->total_budget > 0 ? ($project->total_spent / $project->total_budget) * 100 : 0.0)
+            : 0.0;
+
+        // Chart Data
+        $projectsByStatus = $projectQuery->clone()
+            ->select('projects.status_id', DB::raw('COUNT(*) AS count'))
+            ->groupBy('projects.status_id')
+            ->with('status')
+            ->get();
+        $statusLabels = $projectsByStatus->pluck('status.title')->toArray();
+        $statusCounts = $projectsByStatus->pluck('count')->toArray();
+        $statusColors = $projectsByStatus->pluck('status.color')->toArray() ?: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+
+        $projectsByDirectorate = $projectQuery->clone()
+            ->select('projects.directorate_id', DB::raw('AVG(projects.progress) AS avg_progress'))
+            ->groupBy('projects.directorate_id')
+            ->with('directorate')
+            ->get();
+        $directorateLabels = $projectsByDirectorate->pluck('directorate.title')->toArray();
+        $directorateProgress = $projectsByDirectorate->pluck('avg_progress')->toArray();
+        $directorateColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+
+        // Detailed Data (Paginated)
+        $projects = $projectQuery->clone()
+            ->with(['directorate', 'department', 'status', 'priority', 'projectManager', 'budgets'])
+            ->paginate(10, ['*'], 'projects_page');
+        $contracts = Contract::query()
+            ->when($projectId, fn($query) => $query->where('contracts.project_id', $projectId))
+            ->when($statusId, fn($query) => $query->where('contracts.status_id', $statusId))
+            ->when($priorityId, fn($query) => $query->where('contracts.priority_id', $priorityId))
+            ->with(['project', 'status', 'priority'])
+            ->paginate(10, ['*'], 'contracts_page');
+        $tasks = Task::query()
+            ->when($directorateId, fn($query) => $query->where('tasks.directorate_id', $directorateId))
+            ->when($projectId, fn($query) => $query->whereHas('projects', fn($q) => $q->where('projects.id', $projectId)))
+            ->when($statusId, fn($query) => $query->where('tasks.status_id', $statusId))
+            ->when($priorityId, fn($query) => $query->where('tasks.priority_id', $priorityId))
+            ->with(['directorate', 'department', 'status', 'priority', 'assignedBy', 'users'])
+            ->paginate(10, ['*'], 'tasks_page');
+
+        // Table Data for Projects
+        $tableData = $projects->map(fn($project) => [
+            'title' => $project->title,
+            'entity' => $project->directorate?->title ?? 'N/A',
+            'status' => ['title' => $project->status?->title ?? 'N/A', 'color' => $project->status?->color ?? 'gray'],
+            'priority' => ['title' => $project->priority?->title ?? 'N/A', 'color' => $project->priority?->color ?? 'gray'],
+            'due_date' => $project->end_date?->format('Y-m-d') ?? 'N/A',
+            'users' => $project->projectManager ? [['initials' => $this->getInitials($project->projectManager->name)]] : [],
+            'progress' => round($project->progress ?? 0, 2),
+            'financial_progress' => round($project->financial_progress ?? 0, 2),
+            'total_budget' => (float) ($project->total_budget ?? 0),
+        ])->toArray();
+
+        // Data structure for view/JSON response
+        $data = [
+            'summary' => [
+                'total_projects' => $totalProjects,
+                'total_contracts' => $totalContracts,
+                'total_tasks' => $totalTasks,
+                'total_budget' => (float) $totalBudget,
+                'average_physical_progress' => round($averagePhysicalProgress, 2),
+                'average_financial_progress' => round($averageFinancialProgress, 2),
+            ],
+            'charts' => [
+                'status' => [
+                    'labels' => $statusLabels,
+                    'data' => $statusCounts,
+                    'colors' => $statusColors,
+                ],
+                'directorate' => [
+                    'labels' => $directorateLabels,
+                    'data' => $directorateProgress,
+                    'colors' => $directorateColors,
+                ],
+            ],
+            'tableData' => $tableData,
+            'projects' => $projects,
+            'contracts' => $contracts,
+            'tasks' => $tasks,
+            'directorates' => auth()->user()->hasRole(Role::SUPERADMIN) ? Directorate::all() : collect([]),
+            'projectsList' => Project::pluck('title', 'id'),
+            'statuses' => Status::pluck('title', 'id'),
+            'priorities' => Priority::pluck('title', 'id'),
+        ];
+
+        if ($request->ajax()) {
+            return response()->json($data);
+        }
+
+        return view('admin.summary', $data);
+    }
+
+    private function getInitials(string $name): string
+    {
+        $words = explode(' ', trim($name));
+        return collect($words)->map(fn($word) => strtoupper($word[0] ?? ''))->take(2)->implode('');
     }
 }

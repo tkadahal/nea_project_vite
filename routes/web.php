@@ -59,6 +59,8 @@ Route::group(
         Route::resource('permission', PermissionController::class);
         Route::resource('role', RoleController::class);
 
+        Route::get('summary', [AnalyticalDashboardController::class, 'summary'])->name('summary');
+
         Route::get('analytics/task', [AnalyticalDashboardController::class, 'taskAnalytics'])->name('analytics.task');
         Route::get('analytics/project', [AnalyticalDashboardController::class, 'projectAnalytics'])->name('analytics.project');
         Route::get('/tasks/analytics/export', [AnalyticalDashboardController::class, 'exportTaskAnalytics'])->name('tasks.analytics.export');
