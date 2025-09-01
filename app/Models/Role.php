@@ -16,6 +16,9 @@ class Role extends Model
     const DIRECTORATE_USER = 3;
     const PROJECT_USER = 4;
     const DEPARTMENT_USER = 5;
+    const MD = 6;
+    const DMD = 7;
+    const SECRETARIAT = 8;
 
     use HasFactory;
     use SoftDeletes;

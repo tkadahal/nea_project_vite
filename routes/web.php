@@ -2,29 +2,30 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Admin\AnalyticalDashboardController;
-use App\Http\Controllers\Admin\CommentController;
-use App\Http\Controllers\Admin\BudgetController;
-use App\Http\Controllers\Admin\ContractController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\DirectorateController;
-use App\Http\Controllers\Admin\EventController;
-use App\Http\Controllers\Admin\ExpenseController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\FileController;
-use App\Http\Controllers\Admin\FiscalYearController;
-use App\Http\Controllers\Admin\PermissionController;
-use App\Http\Controllers\Admin\PriorityController;
-use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\RoleController;
-use App\Http\Controllers\Admin\StatusController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Settings\AppearanceController;
-use App\Http\Controllers\Settings\PasswordController;
+use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\BudgetController;
+use App\Http\Controllers\Admin\StatusController;
+use App\Http\Controllers\Admin\CommentController;
+use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ContractController;
+use App\Http\Controllers\Admin\PriorityController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\FiscalYearController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Settings\ProfileController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\DirectorateController;
+use App\Http\Controllers\Settings\PasswordController;
+use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Admin\ProjectActivityController;
 use App\Http\Controllers\Admin\ContractExtensionController;
+use App\Http\Controllers\Admin\AnalyticalDashboardController;
 
 // Route::get('/', function () {
 //     return redirect()->route('login');
@@ -81,6 +82,9 @@ Route::group(
         Route::get('/projects/departments/{directorate_id}', [ProjectController::class, 'getDepartments'])->name('projects.departments');
         Route::get('/projects/budget/create', [ProjectController::class, 'createBudget'])->name('project.budget.create');
         Route::resource('project', ProjectController::class);
+
+        Route::get('projectActivity', [ProjectActivityController::class, 'create']);
+        Route::post('projectActivity/{project}', [ProjectActivityController::class, 'store'])->name('project-activities.store');
 
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);

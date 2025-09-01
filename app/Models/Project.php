@@ -238,6 +238,11 @@ class Project extends Model
             });
     }
 
+    public function projectActivities(): HasMany
+    {
+        return $this->hasMany(ProjectActivity::class);
+    }
+
     public function newEloquentBuilder($query): ModelBuilder
     {
         return new ModelBuilder($query);
