@@ -84,7 +84,7 @@ Route::group(
         Route::resource('project', ProjectController::class);
 
         Route::get('projectActivity', [ProjectActivityController::class, 'create']);
-        Route::post('projectActivity/{project}', [ProjectActivityController::class, 'store'])->name('project-activities.store');
+        Route::post('projectActivity', [ProjectActivityController::class, 'store'])->name('project-activities.store');
 
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);

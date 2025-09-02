@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Project;
+use App\Models\FiscalYear;
 use Illuminate\Http\Request;
 use App\Models\ProjectActivity;
 use App\Http\Controllers\Controller;
@@ -23,11 +24,14 @@ class ProjectActivityController extends Controller
      */
     public function create()
     {
+        $projects = Project::all();
+        $fiscalYears = FiscalYear::all();
+
         $project = Project::find(1);
 
         $capitalActivities = $project->projectActivities()->where('expenditure_id', 1)->get();
         $recurrentActivities = $project->projectActivities()->where('expenditure_id', 2)->get();
-        return view('admin.project-activities.create', compact('project', 'capitalActivities', 'recurrentActivities'));
+        return view('admin.project-activities.create', compact('projects', 'fiscalYears', 'capitalActivities', 'recurrentActivities'));
     }
 
     /**
