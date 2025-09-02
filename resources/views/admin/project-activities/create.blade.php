@@ -370,6 +370,7 @@
                     updateRowNumbers(section);
                     updateTotals();
                     validateRow(section, index);
+                    console.log(`Added row ${index} in ${section}, parent: ${parentIndex}, depth: ${depth}`);
                 }
 
                 function addSubRow($row) {
@@ -404,6 +405,7 @@
                     updateRowNumbers(section);
                     updateTotals();
                     validateParentRows(section);
+                    console.log(`Removed row ${index} in ${section}, parent: ${parentIndex}`);
                 });
 
                 function updateRowNumbers(section) {
@@ -471,13 +473,19 @@
                         $quarters.removeClass('error-border');
                     }
                     validateParentRow(section, $row.data('parent'), $row);
+                    console.log(
+                        `Validated row ${index} in ${section}, quarters sum: ${quarterSum}, planned: ${plannedBudget}`
+                        );
                 }
 
                 function validateParentRow(section, parentIndex, $changedRow = null) {
-                    if (!parentIndex) return;
+                    if (!parentIndex) {
+                        console.log(`No parent for row in ${section}`);
+                        return;
+                    }
                     const $parentRow = $(`#${section}-activities tr[data-index="${parentIndex}"]`);
                     if (!$parentRow.length) {
-                        console.log(`Parent row with index ${parentIndex} not found in ${section}`);
+                        console.error(`Parent row with index ${parentIndex} not found in ${section}`);
                         return;
                     }
                     const $childRows = $(`#${section}-activities tr[data-parent="${parentIndex}"]`);
@@ -485,6 +493,10 @@
                         console.log(`No child rows found for parent index ${parentIndex} in ${section}`);
                         return;
                     }
+                    console.log(
+                        `Validating parent ${$parentRow.find('td:first').text()} in ${section} with ${$childRows.length} children`
+                        );
+
                     const childInputs = {
                         'total_budget': '.total-budget-input',
                         'expenses_till_date': '.expenses-input',
@@ -497,9 +509,19 @@
 
                     for (const [field, selector] of Object.entries(childInputs)) {
                         const $parentInput = $parentRow.find(`${selector}[name*="[${field}]"]`);
+                        if ($parentInput.length === 0) {
+                            console.error(`Parent input for ${field} not found in row ${parentIndex}`);
+                            continue;
+                        }
                         let childSum = 0;
                         $childRows.each(function() {
                             const $childInput = $(this).find(`${selector}[name*="[${field}]"]`);
+                            if ($childInput.length === 0) {
+                                console.error(
+                                    `Child input for ${field} not found in row ${$(this).find('td:first').text()}`
+                                    );
+                                return;
+                            }
                             const childValue = parseFloat($childInput.val()) || 0;
                             childSum += childValue;
                             console.log(`Child ${$(this).find('td:first').text()} ${field}: ${childValue}`);
@@ -511,11 +533,13 @@
                         if (Math.abs(childSum - parentValue) > 0.01) {
                             $parentInput.addClass('error-border');
                             $childRows.find(`${selector}[name*="[${field}]"]`).addClass('error-border');
+                            console.log(`Error: ${field} mismatch, parent: ${parentValue}, sum: ${childSum}`);
                         } else {
                             $parentInput.removeClass('error-border');
                             if (!$changedRow || !$changedRow.is($parentInput.closest('tr'))) {
                                 $childRows.find(`${selector}[name*="[${field}]"]`).removeClass('error-border');
                             }
+                            console.log(`Match: ${field} parent: ${parentValue}, sum: ${childSum}`);
                         }
                     }
 
@@ -529,6 +553,7 @@
                     $rows.each(function() {
                         parentIndexes.add($(this).data('parent'));
                     });
+                    console.log(`Validating ${parentIndexes.size} parent rows in ${section}`);
                     parentIndexes.forEach(parentIndex => validateParentRow(section, parentIndex));
                 }
 
