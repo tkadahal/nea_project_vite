@@ -91,8 +91,6 @@
                                             fn($project) => [
                                                 'value' => (string) $project['id'],
                                                 'label' => $project['title'],
-                                                'total_budget' => $project['total_budget'],
-                                                'remaining_budget' => $project['remaining_budget'],
                                             ],
                                         )
                                         ->values()
@@ -103,13 +101,6 @@
                                         ->contains(\App\Models\Role::SUPERADMIN) && !$project
                                         ? 'js-single-select'
                                         : ''" />
-                                <div id="project-budget"
-                                    class="mt-2 text-sm text-gray-600 dark:text-gray-400 {{ $projects->isEmpty() ? 'hidden' : '' }}">
-                                    {{ trans('global.contract.fields.available_budget') }} :
-                                    <span id="budget-amount">
-                                        {{ $projects->isNotEmpty() ? $projects->firstWhere('id', old('project_id', $project->id ?? ''))['remaining_budget'] ?? 'N/A' : 'N/A' }}
-                                    </span>
-                                </div>
                             </div>
 
                             <div class="col-span-full">
@@ -236,33 +227,68 @@
 
                 function initializeScript($) {
                     $(document).ready(function() {
-                        // Target js-single-select divs by data-name
                         const directorateContainer = $('.js-single-select[data-name="directorate_id"]');
                         const projectContainer = $('.js-single-select[data-name="project_id"]');
-                        // Target hidden inputs for value changes
                         const directorateInput = directorateContainer.find('input[type="hidden"][name="directorate_id"]');
                         const projectInput = projectContainer.find('input[type="hidden"][name="project_id"]');
                         const errorMessage = $('#error-message');
                         const errorText = $('#error-text');
-                        const contractAmountInput = $('#contract-amount');
-                        const budgetDisplay = $('#project-budget');
-                        const budgetAmount = $('#budget-amount');
                         const submitButton = $('#submit-button');
                         const contractForm = $('#contract-form');
-                        let remainingBudget = 0;
+                        const effectiveDateInput = $('input[name="agreement_effective_date"]');
+                        const completionDateInput = $('input[name="agreement_completion_date"]');
+                        const initialPeriodInput = $('input[name="initial_contract_period"]');
 
                         console.log('Superadmin script initialized (create)');
                         console.log('Directorate container:', directorateContainer.length ? 'Found' : 'Not found',
                             directorateContainer);
                         console.log('Project container:', projectContainer.length ? 'Found' : 'Not found',
-                            projectContainer);
+                        projectContainer);
                         console.log('Directorate container HTML:', directorateContainer.length ? directorateContainer[0]
                             .outerHTML : 'N/A');
                         console.log('Project container HTML:', projectContainer.length ? projectContainer[0].outerHTML :
                             'N/A');
                         console.log('Directorate input:', directorateInput.length ? 'Found' : 'Not found',
-                            directorateInput);
+                        directorateInput);
                         console.log('Project input:', projectInput.length ? 'Found' : 'Not found', projectInput);
+
+                        // Function to calculate initial contract period
+                        function calculateInitialPeriod() {
+                            const effectiveDate = effectiveDateInput.val();
+                            const completionDate = completionDateInput.val();
+
+                            if (effectiveDate && completionDate) {
+                                const effective = new Date(effectiveDate);
+                                const completion = new Date(completionDate);
+
+                                // Check if dates are valid
+                                if (!isNaN(effective.getTime()) && !isNaN(completion.getTime())) {
+                                    // Calculate difference in days
+                                    const diffTime = completion - effective;
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                    // Update initial_contract_period if non-negative
+                                    if (diffDays >= 0) {
+                                        initialPeriodInput.val(diffDays);
+                                    } else {
+                                        initialPeriodInput.val('');
+                                        errorMessage.removeClass('hidden');
+                                        errorText.text('Completion date must be after effective date.');
+                                    }
+                                } else {
+                                    initialPeriodInput.val('');
+                                }
+                            } else {
+                                initialPeriodInput.val('');
+                            }
+                        }
+
+                        // Trigger calculation on date input changes
+                        effectiveDateInput.on('change', calculateInitialPeriod);
+                        completionDateInput.on('change', calculateInitialPeriod);
+
+                        // Trigger initial calculation if dates are pre-filled
+                        calculateInitialPeriod();
 
                         // Disable submit button on form submission
                         contractForm.on('submit', function() {
@@ -282,10 +308,6 @@
                                 });
                                 projectContainer.find('.js-selected-label').text(projectContainer.attr(
                                     'data-placeholder'));
-                                budgetDisplay.addClass('hidden');
-                                budgetAmount.text('N/A');
-                                remainingBudget = 0;
-                                submitButton.prop('disabled', true);
 
                                 $.ajax({
                                     url: '/admin/contracts/projects/' + encodeURIComponent(directorateId),
@@ -299,10 +321,7 @@
                                         const options = Array.isArray(data) ? data.map(project => ({
                                             value: String(project.value),
                                             label: String(project.label ||
-                                                'Untitled Project'),
-                                            total_budget: project.total_budget || '0.00',
-                                            remaining_budget: project.remaining_budget ||
-                                                '0.00'
+                                                'Untitled Project')
                                         })).filter(opt => opt.value && opt.label && opt.label !==
                                             'undefined') : [];
                                         console.log('Processed options:', options);
@@ -324,6 +343,7 @@
                                             });
                                             errorMessage.addClass('hidden');
                                             errorText.text('');
+                                            submitButton.prop('disabled', false);
                                         }
                                     },
                                     error: function(xhr) {
@@ -336,9 +356,6 @@
                                         errorMessage.removeClass('hidden');
                                         errorText.text('Failed to load projects: ' + (xhr.responseJSON
                                             ?.message || 'AJAX error'));
-                                        budgetDisplay.addClass('hidden');
-                                        budgetAmount.text('N/A');
-                                        remainingBudget = 0;
                                         submitButton.prop('disabled', true);
                                     }
                                 });
@@ -348,74 +365,24 @@
                                     options: [],
                                     selected: null
                                 });
-                                budgetDisplay.addClass('hidden');
-                                budgetAmount.text('N/A');
-                                remainingBudget = 0;
-                                submitButton.prop('disabled', true);
                                 errorMessage.addClass('hidden');
                                 errorText.text('');
+                                submitButton.prop('disabled', true);
                             }
                         });
 
                         projectInput.on('change', function() {
                             const projectId = $(this).val();
                             console.log('Project changed:', projectId);
-
-                            if (projectId) {
-                                const projectOptions = JSON.parse(projectContainer.attr('data-options') || '[]');
-                                const selectedOption = projectOptions.find(opt => String(opt.value) === String(
-                                    projectId));
-                                const remainingBudgetValue = selectedOption ? selectedOption.remaining_budget :
-                                    null;
-                                console.log('Selected option budget:', remainingBudgetValue);
-                                if (remainingBudgetValue !== undefined && remainingBudgetValue !== null) {
-                                    remainingBudget = parseFloat(String(remainingBudgetValue).replace(/,/g, '')) ||
-                                        0;
-                                    budgetDisplay.removeClass('hidden');
-                                    budgetAmount.text(remainingBudgetValue);
-                                    validateContractAmount();
-                                } else {
-                                    budgetDisplay.addClass('hidden');
-                                    budgetAmount.text('N/A');
-                                    remainingBudget = 0;
-                                    submitButton.prop('disabled', true);
-                                    errorMessage.addClass('hidden');
-                                    errorText.text('');
-                                }
-                            } else {
-                                budgetDisplay.addClass('hidden');
-                                budgetAmount.text('N/A');
-                                remainingBudget = 0;
-                                submitButton.prop('disabled', true);
-                                errorMessage.addClass('hidden');
-                                errorText.text('');
-                            }
+                            submitButton.prop('disabled', !projectId);
+                            errorMessage.addClass('hidden');
+                            errorText.text('');
                         });
-
-                        function validateContractAmount() {
-                            const amount = parseFloat(contractAmountInput.val()) || 0;
-                            console.log('Validating contract amount:', amount, 'Remaining budget:', remainingBudget);
-                            if (amount > remainingBudget && remainingBudget !== 0) {
-                                errorMessage.removeClass('hidden');
-                                errorText.text(
-                                    `Contract amount (${amount.toFixed(2)}) exceeds available budget (${remainingBudget.toFixed(2)}).`
-                                );
-                                submitButton.prop('disabled', true);
-                            } else {
-                                errorMessage.addClass('hidden');
-                                errorText.text('');
-                                submitButton.prop('disabled', remainingBudget === 0);
-                            }
-                        }
-
-                        contractAmountInput.on('input', validateContractAmount);
 
                         $('#close-error').on('click', function() {
                             console.log('Close error clicked');
                             errorMessage.addClass('hidden');
                             errorText.text('');
-                            submitButton.prop('disabled', remainingBudget === 0 || parseFloat(contractAmountInput
-                                .val()) > remainingBudget);
                         });
 
                         // Trigger initial change if directorate is selected
@@ -424,6 +391,7 @@
                             directorateInput.trigger('change');
                         } else {
                             console.warn('No initial directorate selected or container not found');
+                            submitButton.prop('disabled', true);
                         }
                     });
                 }
@@ -446,19 +414,56 @@
                         const projectInput = projectContainer.find('input[type="hidden"][name="project_id"]');
                         const errorMessage = $('#error-message');
                         const errorText = $('#error-text');
-                        const contractAmountInput = $('#contract-amount');
-                        const budgetDisplay = $('#project-budget');
-                        const budgetAmount = $('#budget-amount');
                         const submitButton = $('#submit-button');
                         const contractForm = $('#contract-form');
-                        let remainingBudget = 0;
+                        const effectiveDateInput = $('input[name="agreement_effective_date"]');
+                        const completionDateInput = $('input[name="agreement_completion_date"]');
+                        const initialPeriodInput = $('input[name="initial_contract_period"]');
 
                         console.log('Non-superadmin script initialized (create)');
                         console.log('Project container:', projectContainer.length ? 'Found' : 'Not found',
-                            projectContainer);
+                        projectContainer);
                         console.log('Project container HTML:', projectContainer.length ? projectContainer[0].outerHTML :
                             'N/A');
                         console.log('Project input:', projectInput.length ? 'Found' : 'Not found', projectInput);
+
+                        // Function to calculate initial contract period
+                        function calculateInitialPeriod() {
+                            const effectiveDate = effectiveDateInput.val();
+                            const completionDate = completionDateInput.val();
+
+                            if (effectiveDate && completionDate) {
+                                const effective = new Date(effectiveDate);
+                                const completion = new Date(completionDate);
+
+                                // Check if dates are valid
+                                if (!isNaN(effective.getTime()) && !isNaN(completion.getTime())) {
+                                    // Calculate difference in days
+                                    const diffTime = completion - effective;
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                    // Update initial_contract_period if non-negative
+                                    if (diffDays >= 0) {
+                                        initialPeriodInput.val(diffDays);
+                                    } else {
+                                        initialPeriodInput.val('');
+                                        errorMessage.removeClass('hidden');
+                                        errorText.text('Completion date must be after effective date.');
+                                    }
+                                } else {
+                                    initialPeriodInput.val('');
+                                }
+                            } else {
+                                initialPeriodInput.val('');
+                            }
+                        }
+
+                        // Trigger calculation on date input changes
+                        effectiveDateInput.on('change', calculateInitialPeriod);
+                        completionDateInput.on('change', calculateInitialPeriod);
+
+                        // Trigger initial calculation if dates are pre-filled
+                        calculateInitialPeriod();
 
                         // Disable submit button on form submission
                         contractForm.on('submit', function() {
@@ -469,68 +474,23 @@
                         projectInput.on('change', function() {
                             const projectId = $(this).val();
                             console.log('Project changed:', projectId);
-
-                            if (projectId) {
-                                const projectOptions = JSON.parse(projectContainer.attr('data-options') || '[]');
-                                const selectedOption = projectOptions.find(opt => String(opt.value) === String(
-                                    projectId));
-                                const remainingBudgetValue = selectedOption ? selectedOption.remaining_budget :
-                                    null;
-                                console.log('Selected option budget:', remainingBudgetValue);
-                                if (remainingBudgetValue !== undefined && remainingBudgetValue !== null) {
-                                    remainingBudget = parseFloat(String(remainingBudgetValue).replace(/,/g, '')) ||
-                                        0;
-                                    budgetDisplay.removeClass('hidden');
-                                    budgetAmount.text(remainingBudgetValue);
-                                    validateContractAmount();
-                                } else {
-                                    budgetDisplay.addClass('hidden');
-                                    budgetAmount.text('N/A');
-                                    remainingBudget = 0;
-                                    submitButton.prop('disabled', true);
-                                    errorMessage.addClass('hidden');
-                                    errorText.text('');
-                                }
-                            } else {
-                                budgetDisplay.addClass('hidden');
-                                budgetAmount.text('N/A');
-                                remainingBudget = 0;
-                                submitButton.prop('disabled', true);
-                                errorMessage.addClass('hidden');
-                                errorText.text('');
-                            }
+                            submitButton.prop('disabled', !projectId);
+                            errorMessage.addClass('hidden');
+                            errorText.text('');
                         });
-
-                        function validateContractAmount() {
-                            const amount = parseFloat(contractAmountInput.val()) || 0;
-                            console.log('Validating contract amount:', amount, 'Remaining budget:', remainingBudget);
-                            if (amount > remainingBudget && remainingBudget !== 0) {
-                                errorMessage.removeClass('hidden');
-                                errorText.text(
-                                    `Contract amount (${amount.toFixed(2)}) exceeds available budget (${remainingBudget.toFixed(2)}).`
-                                );
-                                submitButton.prop('disabled', true);
-                            } else {
-                                errorMessage.addClass('hidden');
-                                errorText.text('');
-                                submitButton.prop('disabled', remainingBudget === 0);
-                            }
-                        }
-
-                        contractAmountInput.on('input', validateContractAmount);
 
                         $('#close-error').on('click', function() {
                             console.log('Close error clicked');
                             errorMessage.addClass('hidden');
                             errorText.text('');
-                            submitButton.prop('disabled', remainingBudget === 0 || parseFloat(contractAmountInput
-                                .val()) > remainingBudget);
                         });
 
                         const initialProjectId = @json(old('project_id', $project->id ?? ''));
                         if (initialProjectId && projectContainer.length) {
                             console.log('Setting initial project:', initialProjectId);
                             projectInput.val(initialProjectId).trigger('change');
+                        } else {
+                            submitButton.prop('disabled', true);
                         }
                     });
                 }

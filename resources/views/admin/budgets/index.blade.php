@@ -20,6 +20,7 @@
     </div>
 
     <div class="mb-6">
-        <x-table.dataTable :headers="$headers" :data="$data" :routePrefix="$routePrefix" :actions="$actions" :deleteConfirmationMessage="$deleteConfirmationMessage" />
+        <x-table.dataTables.budgets :headers="$headers" :data="$data" :routePrefix="$routePrefix" :actions="$actions"
+            :deleteConfirmationMessage="$deleteConfirmationMessage" />
     </div>
 </x-layouts.app>

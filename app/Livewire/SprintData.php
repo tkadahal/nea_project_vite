@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Models\Role;
 use App\Models\Status;
 use App\Models\Task;
 use Carbon\Carbon;
@@ -25,7 +26,7 @@ class SprintData extends Component
         $user = Auth::user();
         $roles = $user->roles->pluck('id')->toArray();
         $directorateId = $user->directorate_id;
-        $projectIds = in_array(4, $roles) ? $user->projects()->pluck('id') : collect([]);
+        $projectIds = in_array(Role::PROJECT_USER, $roles) ? $user->projects()->pluck('id') : collect([]);
 
         $endDate = Carbon::now();
         $startDate = $endDate->copy()->subMonths(71);
@@ -40,22 +41,17 @@ class SprintData extends Component
             )
             ->whereBetween('tasks.created_at', [$startDate, $endDate]);
 
-        if (in_array(3, $roles) && $directorateId) {
-            // Directorate User: Include tasks in directorate (with or without project/department)
+        if (in_array(Role::DIRECTORATE_USER, $roles) && $directorateId) {
             $query->where(function ($q) use ($directorateId, $projectIds) {
                 $q->where('tasks.directorate_id', $directorateId)
                     ->orWhereHas('projects', fn($q) => $q->where('projects.directorate_id', $directorateId));
             });
-        } elseif (in_array(4, $roles) && $projectIds->isNotEmpty()) {
-            // Project User: Include tasks in assigned projects
+        } elseif (in_array(Role::PROJECT_USER, $roles) && $projectIds->isNotEmpty()) {
             $query->where(function ($q) use ($projectIds) {
                 $q->whereIn('project_task.project_id', $projectIds);
             });
-        } elseif (in_array(1, $roles)) {
-            // Superadmin: Include all tasks
-            // No additional filters needed
+        } elseif (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
         } else {
-            // Default: Limit to tasks user can access (e.g., assigned tasks)
             $query->whereHas('users', fn($q) => $q->where('users.id', $user->id));
         }
 

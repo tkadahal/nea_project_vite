@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Models\Directorate;
-use App\Models\Project;
+use App\Models\Role;
 use App\Models\Status;
+use App\Models\Project;
+use Livewire\Component;
+use App\Models\Directorate;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Livewire\Component;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectStatus extends Component
 {
     public array $project_status = ['completed' => 0, 'in_progress' => 0, 'behind' => 0];
 
-    public ?int $directorateFilter = null; // Default: no directorate filter
+    public ?int $directorateFilter = null;
 
     public array $availableDirectorates = [];
 
@@ -37,11 +38,9 @@ class ProjectStatus extends Component
         $user = Auth::user();
         $roles = $user->roles->pluck('id')->toArray();
 
-        if (in_array(1, $roles)) {
-            // Admin can see all directorates
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             $this->availableDirectorates = Directorate::pluck('title', 'id')->toArray();
-        } elseif (in_array(3, $roles) && $user->directorate_id) {
-            // Directorate user can only see their own directorate
+        } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
             $this->availableDirectorates = Directorate::where('id', $user->directorate_id)
                 ->pluck('title', 'id')
                 ->toArray();
@@ -56,18 +55,14 @@ class ProjectStatus extends Component
         $directorateId = $this->directorateFilter ?? $user->directorate_id;
         $userProjectIds = in_array(4, $roles) ? $user->projects()->pluck('id') : collect([]);
 
-        if (in_array(1, $roles)) {
-            // Admin role
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             $this->project_status = $this->getProjectStatus($this->directorateFilter);
-        } elseif (in_array(3, $roles)) {
-            // Directorate user role
+        } elseif (in_array(Role::DIRECTORATE_USER, $roles)) {
             $this->project_status = $directorateId ? $this->getProjectStatus($directorateId) : $this->project_status;
-        } elseif (in_array(4, $roles)) {
-            // Project user role
+        } elseif (in_array(Role::PROJECT_USER, $roles)) {
             $this->project_status = $userProjectIds->isNotEmpty() ? $this->getProjectStatus(null, $userProjectIds) : $this->project_status;
         }
 
-        // Ensure project_status has valid numeric values
         $this->project_status = array_map(function ($value) {
             return is_numeric($value) ? (int) $value : 0;
         }, $this->project_status);
@@ -83,7 +78,7 @@ class ProjectStatus extends Component
         }
 
         $total = max(1, $query->count());
-        Log::debug('Total projects: '.$total);
+        Log::debug('Total projects: ' . $total);
 
         $statusCounts = $query->select('status_id', DB::raw('count(*) as count'))
             ->groupBy('status_id')

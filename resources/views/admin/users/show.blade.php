@@ -11,12 +11,14 @@
                 </span>
             </p>
         </div>
-        <a href="{{ route('admin.user.index') }}"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
+        @can('user_access')
+            <a href="{{ route('admin.user.index') }}"
+                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300
                   focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
                   dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
-            {{ trans('global.back_to_list') }}
-        </a>
+                {{ trans('global.back_to_list') }}
+            </a>
+        @endcan
     </div>
 
     <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
@@ -73,24 +75,28 @@
         </div>
 
         <div class="mt-6 flex space-x-3">
-            <a href="{{ route('admin.user.edit', $user) }}"
-                class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600
+            @can('user_edit')
+                <a href="{{ route('admin.user.edit', $user) }}"
+                    class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600
                       focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2
                       dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-offset-gray-900">
-                {{ trans('global.edit') }} {{ trans('global.user.title_singular') }}
-            </a>
+                    {{ trans('global.edit') }} {{ trans('global.user.title_singular') }}
+                </a>
+            @endcan
 
-            <form action="{{ route('admin.user.destroy', $user) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
-                @csrf
-                @method('DELETE')
-                <button type="submit"
-                    class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600
+            @can('user_delete')
+                <form action="{{ route('admin.user.destroy', $user) }}" method="POST"
+                    onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600
                            focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2
                            dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-offset-gray-900">
-                    {{ trans('global.delete') }} {{ trans('global.user.title_singular') }}
-                </button>
-            </form>
+                        {{ trans('global.delete') }} {{ trans('global.user.title_singular') }}
+                    </button>
+                </form>
+            @endcan
         </div>
     </div>
 </x-layouts.app>

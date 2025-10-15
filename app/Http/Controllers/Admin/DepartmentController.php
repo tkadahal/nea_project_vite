@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Role;
+use Illuminate\View\View;
+use App\Models\Department;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use App\Http\Requests\Department\StoreDepartmentRequest;
 use App\Http\Requests\Department\UpdateDepartmentRequest;
-use App\Models\Department;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\Response;
 
 class DepartmentController extends Controller
 {
@@ -19,12 +21,43 @@ class DepartmentController extends Controller
     {
         abort_if(Gate::denies('department_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $departments = Department::query()->latest()->get();
+        $directorateColors = config('colors.directorate');
 
-        $headers = [trans('global.department.fields.id'), trans('global.department.fields.title')];
-        $data = $departments->map(function ($department) {
+        $user = Auth::user();
+        $roleIds = $user->roles->pluck('id')->toArray();
+
+        $departmentsQuery = Department::query()->with('directorates')->latest();
+
+        if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
+            $departments = $departmentsQuery->get();
+        } elseif (in_array(Role::DIRECTORATE_USER, $roleIds)) {
+            $directorateId = $user->directorate_id;
+            if (!$directorateId) {
+                $departments = collect();
+            } else {
+                $departments = $departmentsQuery->whereHas('directorates', function ($query) use ($directorateId) {
+                    $query->where('directorates.id', $directorateId);
+                })->get();
+            }
+        } else {
+            $departments = collect();
+        }
+
+        $headers = [trans('global.department.fields.id'), trans('global.directorate.title_singular'), trans('global.department.fields.title')];
+        $data = $departments->map(function ($department) use ($directorateColors) {
+            $directorates = $department->directorates->map(function ($directorate) use ($directorateColors) {
+                $directorateId = $directorate->id;
+                $color = isset($directorateColors[$directorateId]) ? $directorateColors[$directorateId] : 'gray';
+
+                return [
+                    'title' => $directorate->title,
+                    'color' => $color,
+                ];
+            })->all();
+
             return [
                 'id' => $department->id,
+                'directorates' => $directorates,
                 'title' => $department->title,
             ];
         })->all();
@@ -36,7 +69,7 @@ class DepartmentController extends Controller
             'routePrefix' => 'admin.department',
             'actions' => ['view', 'edit', 'delete'],
             'deleteConfirmationMessage' => 'Are you sure you want to delete this department?',
-            'arrayColumnColor' => 'blue',
+            'arrayColumnColor' => $directorateColors,
         ]);
     }
 

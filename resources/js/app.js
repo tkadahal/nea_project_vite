@@ -10,8 +10,6 @@ window.toastr = toastr;
 window.Gantt = Gantt;
 
 $(document).ready(function () {
-    console.log("jQuery version:", $.fn.jquery);
-
     // Set Toastr options
     toastr.options = {
         closeButton: true,
@@ -29,7 +27,6 @@ $(document).ready(function () {
         showDuration: 300,
         hideDuration: 300,
     };
-    console.log("Toastr initialized:", toastr);
 
     // Initialize Tiptap editor
     $("[data-tiptap-editor]").each(function () {
@@ -135,19 +132,20 @@ $(document).ready(function () {
     });
 
     // Hide sidebar instantly after clicking a menu item in mobile view
-    $(".js-sidebar ul a:not([href='#'])").on("click", function (e) {
+    $(".js-sidebar ul a").on("click", function (e) {
         if (window.innerWidth < 768) {
-            e.preventDefault(); // Prevent navigation until sidebar is hidden
             const href = $(this).attr("href");
-            console.log(
-                "Menu item clicked in mobile view, closing sidebar to:",
-                href,
-            );
+
+            // Always close sidebar
             updateSidebarState(false);
-            // Navigate after a brief delay to ensure sidebar hides
-            setTimeout(() => {
-                window.location.href = href;
-            }, 0);
+
+            if (href && href !== "#") {
+                // If real link, delay navigation until sidebar hides
+                e.preventDefault();
+                setTimeout(() => {
+                    window.location.href = href;
+                }, 150);
+            }
         }
     });
 

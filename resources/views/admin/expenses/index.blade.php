@@ -47,7 +47,7 @@
             </div>
         </form>
 
-        <x-table.dataTable :headers="$headers" :data="$data" :routePrefix="$routePrefix" :actions="$actions"
+        <x-table.dataTables.expenses :headers="$headers" :data="$data" :routePrefix="$routePrefix" :actions="$actions"
             :deleteConfirmationMessage="$deleteConfirmationMessage" />
     </div>
 

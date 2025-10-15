@@ -83,8 +83,24 @@ Route::group(
         Route::get('/projects/budget/create', [ProjectController::class, 'createBudget'])->name('project.budget.create');
         Route::resource('project', ProjectController::class);
 
-        Route::get('projectActivity', [ProjectActivityController::class, 'create']);
-        Route::post('projectActivity', [ProjectActivityController::class, 'store'])->name('project-activities.store');
+        Route::get('/project-activities/template', [ProjectActivityController::class, 'downloadTemplate'])->name('projectActivity.template');
+        Route::get('/project-activities/upload', [ProjectActivityController::class, 'showUploadForm'])
+            ->name('projectActivity.uploadForm');
+        Route::post('/project-activities/upload', [ProjectActivityController::class, 'uploadExcel'])
+            ->name('projectActivity.upload');
+
+        // Show route (GET)
+        Route::get('/projectActivity/show/{projectId}/{fiscalYearId}', [ProjectActivityController::class, 'show'])
+            ->name('projectActivity.show');
+
+        // Edit route (GET)
+        Route::get('/projectActivity/edit/{projectId}/{fiscalYearId}', [ProjectActivityController::class, 'edit'])
+            ->name('projectActivity.edit');
+
+        // Update route (PUT/PATCH)
+        Route::put('/projectActivity/{projectId}/{fiscalYearId}', [ProjectActivityController::class, 'update'])
+            ->name('projectActivity.update');
+        Route::resource('projectActivity', ProjectActivityController::class)->except('show', 'edit', 'update');
 
         Route::get('/contracts/projects/{directorate_id}', [ContractController::class, 'getProjects'])->name('contracts.projects');
         Route::resource('contract', ContractController::class);
@@ -120,9 +136,15 @@ Route::group(
 
         Route::resource('event', EventController::class);
 
-        // Route::resource('fiscalYear', FiscalYearController::class);
+        Route::resource('fiscalYear', FiscalYearController::class);
 
-        Route::get('/budget/{budget}/remaining', [BudgetController::class, 'remaining'])->name('budget.remaining');
+        // Specific routes first
+        Route::get('budget/download-template', [BudgetController::class, 'downloadTemplate'])->name('budget.download-template');
+        Route::get('budget/upload', [BudgetController::class, 'uploadIndex'])->name('budget.upload.index');
+        Route::post('budget/upload', [BudgetController::class, 'upload'])->name('budget.upload');
+        Route::get('budget/{budget}/remaining', [BudgetController::class, 'remaining'])->name('budget.remaining');
+
+        // Resource route last
         Route::resource('budget', BudgetController::class);
 
         Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');

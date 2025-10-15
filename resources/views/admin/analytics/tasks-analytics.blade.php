@@ -12,7 +12,10 @@
     <div class="flex flex-col gap-4 mb-6 px-4 sm:px-6 lg:px-8">
         <div class="w-full" style="z-index: 1001;">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                @if (auth()->user()->hasRole(\App\Models\Role::SUPERADMIN))
+                @php
+                    $roleIds = auth()->user()->roles->pluck('id')->toArray();
+                @endphp
+                @if (in_array(\App\Models\Role::SUPERADMIN, $roleIds) || in_array(\App\Models\Role::ADMIN, $roleIds))
                     <div class="w-full">
                         <label for="directorate_id"
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -81,7 +84,7 @@
 
     {{-- Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 px-4 sm:px-6 lg:px-8">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
             <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
                 {{ trans('global.analytics.task.fields.total_task') }}
             </h3>
@@ -89,7 +92,7 @@
                 {{ $summary['total_tasks'] ?? 0 }}
             </p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
             <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
                 {{ trans('global.analytics.task.fields.completed_task') }}
             </h3>
@@ -97,7 +100,7 @@
                 {{ $summary['completed_tasks'] ?? 0 }}
             </p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
             <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
                 {{ trans('global.analytics.task.fields.overdue_task') }}
             </h3>
@@ -105,7 +108,7 @@
                 {{ $summary['overdue_tasks'] ?? 0 }}
             </p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
             <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
                 {{ trans('global.analytics.task.fields.avg_progress') }}
             </h3>
@@ -120,29 +123,29 @@
         <!-- Charts (col-lg-1) -->
         <div class="lg:col-span-1">
             <div class="space-y-6">
-                <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
+                <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
                     <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
                         {{ trans('global.analytics.task.fields.task_status_distribution') }}
                     </h3>
-                    <div class="relative w-full max-w-[160px] sm:max-w-[200px] aspect-square mx-auto">
+                    <div class="relative w-full max-w-[160px] sm:max-w-[200px] lg:max-w-[240px] aspect-square mx-auto">
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="text-center">
-                                <p class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white"
+                                <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white"
                                     id="statusPercentage">
                                     {{ round(array_sum($charts['status']['data'] ?? []) ? (($charts['status']['data'][0] ?? 0) / array_sum($charts['status']['data'] ?? [])) * 100 : 0) }}%
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400" id="statusMainLabel">
+                                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400" id="statusMainLabel">
                                     {{ $charts['status']['labels'][0] ?? 'Main Status' }}
                                 </p>
                             </div>
                         </div>
                         <canvas id="statusChart" class="w-full h-full"></canvas>
                     </div>
-                    <div class="flex flex-wrap justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2"
+                    <div class="flex flex-wrap justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-4 gap-2"
                         id="statusLegend">
                         @foreach ($charts['status']['labels'] ?? [] as $index => $label)
-                            <div class="text-center mx-2">
-                                <div class="w-2 h-2 sm:w-3 sm:h-3 rounded-full inline-block mr-1 sm:mr-2"
+                            <div class="text-center mx-1 flex items-center">
+                                <div class="w-3 h-3 rounded-full inline-block mr-2"
                                     style="background-color: {{ $charts['status']['colors'][$index] ?? '#6B7280' }}">
                                 </div>
                                 <span>{{ $label }}</span>
@@ -150,29 +153,29 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
+                <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
                     <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
                         {{ trans('global.analytics.task.fields.task_priority_distribution') }}
                     </h3>
-                    <div class="relative w-full max-w-[160px] sm:max-w-[200px] aspect-square mx-auto">
+                    <div class="relative w-full max-w-[160px] sm:max-w-[200px] lg:max-w-[240px] aspect-square mx-auto">
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="text-center">
-                                <p class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white"
+                                <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white"
                                     id="priorityPercentage">
                                     {{ round(array_sum($charts['priority']['data'] ?? []) ? (($charts['priority']['data'][0] ?? 0) / array_sum($charts['priority']['data'] ?? [])) * 100 : 0) }}%
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400" id="priorityMainLabel">
+                                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400" id="priorityMainLabel">
                                     {{ $charts['priority']['labels'][0] ?? 'Main Priority' }}
                                 </p>
                             </div>
                         </div>
                         <canvas id="priorityChart" class="w-full h-full"></canvas>
                     </div>
-                    <div class="flex flex-wrap justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2"
+                    <div class="flex flex-wrap justify-around text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-4 gap-2"
                         id="priorityLegend">
                         @foreach ($charts['priority']['labels'] ?? [] as $index => $label)
-                            <div class="text-center mx-2">
-                                <div class="w-2 h-2 sm:w-3 sm:h-3 rounded-full inline-block mr-1 sm:mr-2"
+                            <div class="text-center mx-1 flex items-center">
+                                <div class="w-3 h-3 rounded-full inline-block mr-2"
                                     style="background-color: {{ $charts['priority']['colors'][$index] ?? '#6B7280' }}">
                                 </div>
                                 <span>{{ $label }}</span>
@@ -185,26 +188,28 @@
 
         <!-- Task Table (col-lg-3) -->
         <div class="lg:col-span-3">
-            <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow mb-6">
+            <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 dark:text-gray-200">
                         {{ trans('global.analytics.task.fields.task_details') }}
                     </h3>
                     <a href="{{ route('admin.tasks.analytics.export') }}"
-                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm sm:text-base">
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-sm sm:text-base transition-colors">
                         Export to CSV
                     </a>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-900">
+                <!-- Horizontally scrollable table container -->
+                <div
+                    class="overflow-x-auto overflow-y-auto max-h-[500px] lg:max-h-[600px] scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
+                    <table class="min-w-[1000px] w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                             <tr>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     {{ trans('global.task.fields.title') }}
                                 </th>
                                 <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider sm:table-cell">
+                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     {{ trans('global.task.fields.entity') }}
                                 </th>
                                 <th
@@ -212,15 +217,15 @@
                                     {{ trans('global.task.fields.status_id') }}
                                 </th>
                                 <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider md:table-cell">
+                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     {{ trans('global.task.fields.priority_id') }}
                                 </th>
                                 <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider lg:table-cell">
+                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     {{ trans('global.task.fields.due_date') }}
                                 </th>
                                 <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider xl:table-cell">
+                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     {{ trans('global.task.fields.user_id') }}
                                 </th>
                             </tr>
@@ -229,13 +234,13 @@
                             id="taskTableBody">
                             @if (isset($tableData) && is_array($tableData) && count($tableData) > 0)
                                 @foreach ($tableData as $row)
-                                    <tr>
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                         <td
-                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px] sm:max-w-[200px]">
                                             {{ $row['title'] ?? 'N/A' }}
                                         </td>
                                         <td
-                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 sm:table-cell">
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                             <span
                                                 class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">
                                                 {{ $row['entity'] ?? 'N/A' }}
@@ -248,17 +253,17 @@
                                                 style="background-color: {{ $row['status']['color'] ?? 'gray' }}">{{ $row['status']['title'] ?? 'N/A' }}</span>
                                         </td>
                                         <td
-                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 md:table-cell">
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                             <span
                                                 class="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs"
                                                 style="background-color: {{ $row['priority']['color'] ?? 'gray' }}">{{ $row['priority']['title'] ?? 'N/A' }}</span>
                                         </td>
                                         <td
-                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 lg:table-cell">
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                                             {{ $row['due_date'] ?? 'N/A' }}
                                         </td>
                                         <td
-                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 xl:table-cell">
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                             <div class="flex flex-wrap gap-2">
                                                 @if (isset($row['users']) && is_array($row['users']) && count($row['users']) > 0)
                                                     @foreach ($row['users'] as $user)
@@ -285,15 +290,77 @@
                             @endif
                         </tbody>
                     </table>
-                    <div class="mt-4" id="pagination">
-                        @if (isset($tasks))
-                            {{ $tasks->links() }}
-                        @endif
-                    </div>
+                </div>
+                <div class="mt-4" id="pagination">
+                    @if (isset($tasks))
+                        {{ $tasks->links() }}
+                    @endif
                 </div>
             </div>
         </div>
     </div>
+
+    @push('styles')
+        <style>
+            /* Custom scrollbar styling for better visibility */
+            .scrollbar-thin {
+                scrollbar-width: thin;
+                scrollbar-color: #9CA3AF #F3F4F6;
+            }
+
+            .scrollbar-thin::-webkit-scrollbar {
+                height: 8px;
+                width: 8px;
+            }
+
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: #9CA3AF;
+                border-radius: 4px;
+            }
+
+            .scrollbar-thin::-webkit-scrollbar-track {
+                background-color: #F3F4F6;
+            }
+
+            .dark .scrollbar-thin {
+                scrollbar-color: #4B5563 #1F2937;
+            }
+
+            .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: #4B5563;
+            }
+
+            .dark .scrollbar-thin::-webkit-scrollbar-track {
+                background-color: #1F2937;
+            }
+
+            /* Ensure table cells don't wrap unnecessarily */
+            table {
+                table-layout: auto;
+            }
+
+            td,
+            th {
+                min-width: 120px;
+                /* Ensure columns have a minimum width to force scrolling */
+            }
+
+            /* Adjust for smaller screens */
+            @media (max-width: 640px) {
+
+                td,
+                th {
+                    min-width: 100px;
+                    font-size: 0.75rem;
+                    /* Smaller text on mobile */
+                }
+
+                .max-w-[150px] {
+                    max-w: 120px;
+                }
+            }
+        </style>
+    @endpush
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -302,7 +369,6 @@
             try {
                 window.initialData = @json($data ?? null);
                 console.log('Initial Data:', window.initialData);
-                // Log users data specifically
                 if (window.initialData?.tableData) {
                     console.log('Table Data Users:', window.initialData.tableData.map(row => row.users));
                 }
@@ -314,9 +380,29 @@
             let statusChartInstance = null;
             let priorityChartInstance = null;
 
+            // Function to render pagination links
+            function renderPagination(links) {
+                if (!Array.isArray(links) || links.length === 0) {
+                    return '<span class="text-gray-500 dark:text-gray-400 text-sm">No pagination available</span>';
+                }
+
+                // Create Bootstrap-compatible pagination HTML
+                let html = '<nav aria-label="Page navigation"><ul class="pagination flex flex-wrap justify-center">';
+                links.forEach(link => {
+                    if (link.url === null) {
+                        html +=
+                            `<li class="page-item disabled"><span class="page-link px-3 py-2 mx-1 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">${link.label}</span></li>`;
+                    } else {
+                        html +=
+                            `<li class="page-item${link.active ? ' active' : ''}"><a class="page-link px-3 py-2 mx-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded" href="${link.url}">${link.label}</a></li>`;
+                    }
+                });
+                html += '</ul></nav>';
+                return html;
+            }
+
             function updateChartsAndTable(data) {
                 try {
-                    // Log data for debugging
                     console.log('updateChartsAndTable called with:', data);
 
                     // Update summary with fallbacks
@@ -337,7 +423,6 @@
                         '#6B7280'
                     ];
 
-                    // Log chart data
                     console.log('Status Chart Data:', {
                         labels: statusLabels,
                         data: statusData,
@@ -384,8 +469,8 @@
                     // Update status legend
                     const statusLegend = document.getElementById('statusLegend');
                     statusLegend.innerHTML = statusLabels.length ? statusLabels.map((label, index) => `
-                        <div class="text-center mx-2">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 rounded-full inline-block mr-1 sm:mr-2" style="background-color: ${statusColors[index] || '#6B7280'}"></div>
+                        <div class="text-center mx-1 flex items-center">
+                            <div class="w-3 h-3 rounded-full inline-block mr-2" style="background-color: ${statusColors[index] || '#6B7280'}"></div>
                             <span>${label || 'Unknown'}</span>
                         </div>
                     `).join('') : '<span class="text-gray-500 dark:text-gray-400 text-xs">No status data</span>';
@@ -433,8 +518,8 @@
                     // Update priority legend
                     const priorityLegend = document.getElementById('priorityLegend');
                     priorityLegend.innerHTML = priorityLabels.length ? priorityLabels.map((label, index) => `
-                        <div class="text-center mx-2">
-                            <div class="w-2 h-2 sm:w-3 sm:h-3 rounded-full inline-block mr-1 sm:mr-2" style="background-color: ${priorityColors[index] || '#6B7280'}"></div>
+                        <div class="text-center mx-1 flex items-center">
+                            <div class="w-3 h-3 rounded-full inline-block mr-2" style="background-color: ${priorityColors[index] || '#6B7280'}"></div>
                             <span>${label || 'Unknown'}</span>
                         </div>
                     `).join('') : '<span class="text-gray-500 dark:text-gray-400 text-xs">No priority data</span>';
@@ -450,22 +535,21 @@
                     // Update table
                     const taskTableBody = document.getElementById('taskTableBody');
                     taskTableBody.innerHTML = (data?.tableData?.length ?? 0) ? data.tableData.map(row => {
-                        // Ensure users is an array of objects with initials
                         const users = Array.isArray(row.users) ? row.users : [];
                         return `
-                        <tr>
-                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">${row.title || 'N/A'}</td>
-                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 sm:table-cell">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px] sm:max-w-[200px]">${row.title || 'N/A'}</td>
+                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${row.entity || 'N/A'}</span>
                             </td>
                             <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <span class="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs" style="background-color: ${row.status?.color || 'gray'}">${row.status?.title || 'N/A'}</span>
                             </td>
-                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 md:table-cell">
+                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <span class="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs" style="background-color: ${row.priority?.color || 'gray'}">${row.priority?.title || 'N/A'}</span>
                             </td>
-                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 lg:table-cell">${row.due_date || 'N/A'}</td>
-                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 xl:table-cell">
+                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">${row.due_date || 'N/A'}</td>
+                            <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <div class="flex flex-wrap gap-2">
                                     ${users.length ? users.map(user => `
                                                         <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-200 text-black dark:bg-gray-700 dark:text-white text-xs">${user.initials || 'N/A'}</span>
@@ -481,9 +565,10 @@
                             </td>
                         </tr>
                     `;
+
                     // Update pagination
                     const pagination = document.getElementById('pagination');
-                    pagination.innerHTML = data?.tasks?.links || '';
+                    pagination.innerHTML = renderPagination(data?.tasks?.links || []);
                 } catch (error) {
                     console.error('Error in updateChartsAndTable:', error);
                     console.warn('Preserving existing table content due to error');
@@ -491,7 +576,6 @@
             }
 
             document.addEventListener('DOMContentLoaded', function() {
-                // Verify Chart.js is loaded
                 if (typeof Chart === 'undefined') {
                     console.error('Chart.js not loaded');
                     document.getElementById('statusLegend').innerHTML =
@@ -508,9 +592,27 @@
                     updateChartsAndTable(window.initialData);
                 } else {
                     console.error('Initial data invalid or incomplete:', window.initialData);
-                    // Preserve Blade-rendered table
-                    document.getElementById('taskTableBody').innerHTML = document.getElementById('taskTableBody')
-                        .innerHTML;
+                    updateChartsAndTable({
+                        summary: {
+                            total_tasks: {{ $summary['total_tasks'] ?? 0 }},
+                            completed_tasks: {{ $summary['completed_tasks'] ?? 0 }},
+                            overdue_tasks: {{ $summary['overdue_tasks'] ?? 0 }},
+                            average_progress: {{ $summary['average_progress'] ?? 0 }}
+                        },
+                        charts: {
+                            status: {
+                                data: @json($charts['status']['data'] ?? []),
+                                labels: @json($charts['status']['labels'] ?? []),
+                                colors: @json($charts['status']['colors'] ?? [])
+                            },
+                            priority: {
+                                data: @json($charts['priority']['data'] ?? []),
+                                labels: @json($charts['priority']['labels'] ?? []),
+                                colors: @json($charts['priority']['colors'] ?? [])
+                            }
+                        },
+                        tableData: @json($tableData ?? [])
+                    });
                 }
 
                 // Filter handling with AJAX
@@ -572,6 +674,52 @@
                             });
                     }
                 }, true);
+
+                // Handle pagination clicks
+                document.getElementById('pagination').addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const target = event.target.closest('.page-link');
+                    if (!target || target.parentElement.classList.contains('disabled')) return;
+
+                    const url = target.getAttribute('href');
+                    if (!url) return;
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute(
+                        'content');
+                    if (!csrfToken) {
+                        console.error('CSRF token not found');
+                        alert('CSRF token missing. Please refresh the page.');
+                        return;
+                    }
+
+                    fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.text().then(text => {
+                                    throw new Error(
+                                        `HTTP error! Status: ${response.status}, Body: ${text.substring(0, 200)}...`
+                                    );
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Pagination Data Loaded:', data);
+                            updateChartsAndTable(data);
+                            window.history.pushState({}, '', url);
+                        })
+                        .catch(error => {
+                            console.error('Pagination request failed:', error);
+                            alert('Failed to load page: ' + error.message);
+                        });
+                });
             });
         </script>
     @endpush

@@ -41,19 +41,22 @@
             </button>
             <div id="{{ $dropdownId }}"
                 class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-300 dark:border-gray-600 z-10">
-                @if (in_array('view', $actions))
+
+                @can('project_show')
                     <a href="{{ route($routePrefix . '.show', $id) }}"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                         {{ trans('global.view') }}
                     </a>
-                @endif
-                @if (in_array('edit', $actions))
+                @endcan
+
+                @can('project_edit')
                     <a href="{{ route($routePrefix . '.edit', $id) }}"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                         {{ trans('global.edit') }}
                     </a>
-                @endif
-                @if (in_array('delete', $actions))
+                @endcan
+
+                @can('project_delete')
                     <form action="{{ route($routePrefix . '.destroy', $id) }}" method="POST"
                         onsubmit="return confirm('{{ $deleteConfirmationMessage }}');">
                         @csrf
@@ -63,11 +66,12 @@
                             {{ trans('global.delete') }}
                         </button>
                     </form>
-                @endif
+                @endcan
+
                 @can('budget_create')
                     <a href="{{ route('admin.budget.create') }}?project_id={{ $id }}"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        Add Budget
+                        {{ trans('global.add') }} {{ trans('global.budget.title_singular') }}
                     </a>
                 @endcan
             </div>
@@ -92,19 +96,46 @@
     <!-- Buttons and Accordion -->
     <div class="mt-4">
         <div class="flex justify-end items-center gap-2">
-            <button type="button"
-                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white accordion-toggle"
-                data-accordion="{{ $accordionId }}" aria-expanded="false" aria-controls="{{ $accordionId }}">
-                {{ trans('global.view_details') }}
-            </button>
-            <a href="{{ route('admin.task.create') }}?project_id={{ $id }}"
-                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
-                Add Task
-            </a>
-            <a href="{{ route('admin.contract.create') }}?project_id={{ $id }}"
-                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
-                Add Contract
-            </a>
+
+            @can('project_show')
+                <button type="button"
+                    class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white accordion-toggle"
+                    data-accordion="{{ $accordionId }}" aria-expanded="false" aria-controls="{{ $accordionId }}">
+                    {{ trans('global.view_details') }}
+                </button>
+            @endcan
+
+            @can('task_create')
+                <a href="{{ route('admin.task.create') }}?project_id={{ $id }}"
+                    class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
+                    {{ trans('global.add') }} {{ trans('global.task.title_singular') }}
+                </a>
+            @endcan
+
+            @php
+                $user = Auth::user();
+                $roleIds = $user->roles->pluck('id')->toArray();
+                $isAdminOrSpecialUser =
+                    in_array(\App\Models\Role::SUPERADMIN, $roleIds) ||
+                    in_array(\App\Models\Role::ADMIN, $roleIds) ||
+                    in_array(\App\Models\Role::DIRECTORATE_USER, $roleIds) ||
+                    in_array(\App\Models\Role::DEPARTMENT_USER, $roleIds);
+            @endphp
+
+            @if ($isAdminOrSpecialUser)
+                <a href="{{ route('admin.contract.index', ['project_id' => $id]) }}"
+                    class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
+                    {{ trans('global.show') }} {{ trans('global.contract.title') }}
+                </a>
+            @else
+                @can('contract_create')
+                    <a href="{{ route('admin.contract.create') }}?project_id={{ $id }}"
+                        class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
+                        {{ trans('global.add') }} {{ trans('global.contract.title_singular') }}
+                    </a>
+                @endcan
+            @endif
+
             <a href="{{ route($routePrefix . '.show', $id) }}"
                 class="relative text-blue-500 hover:text-blue-700 dark:hover:text-blue-300" title="Messages">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -118,7 +149,10 @@
                     {{ $comment_count }}
                 </span>
             </a>
+
         </div>
+
+
         <div id="{{ $accordionId }}" class="hidden mt-2 grid grid-cols-1 gap-2">
             @foreach ($fields as $field)
                 @if ($field['label'] !== trans('global.project.fields.title'))

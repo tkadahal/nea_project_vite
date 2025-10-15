@@ -21,8 +21,8 @@
     </div>
 
     <div class="mb-6">
-        <x-table.dataTable :headers="$headers" :data="$data" :routePrefix="$routePrefix" :actions="$actions" :deleteConfirmationMessage="$deleteConfirmationMessage"
-            :arrayColumnColor="$arrayColumnColor" />
+        <x-table.dataTables.departments :headers="$headers" :data="$data" :routePrefix="$routePrefix" :actions="$actions"
+            :deleteConfirmationMessage="$deleteConfirmationMessage" :arrayColumnColor="$arrayColumnColor" />
     </div>
 
 </x-layouts.app>

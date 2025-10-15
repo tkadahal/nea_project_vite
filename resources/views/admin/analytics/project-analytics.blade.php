@@ -13,7 +13,10 @@
     <div class="flex flex-col gap-4 mb-6 px-4 sm:px-6 lg:px-8">
         <div class="w-full" style="z-index: 1001;">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                @if (auth()->user()->hasRole(\App\Models\Role::SUPERADMIN))
+                @php
+                    $roleIds = auth()->user()->roles->pluck('id')->toArray();
+                @endphp
+                @if (in_array(\App\Models\Role::SUPERADMIN, $roleIds) || in_array(\App\Models\Role::ADMIN, $roleIds))
                     <div class="w-full">
                         <x-forms.select label="{{ trans('global.directorate.title') }}" name="directorate_id"
                             :options="collect($directorates)
@@ -157,83 +160,87 @@
                     </a>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-900">
-                            <tr>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    {{ trans('global.project.fields.title') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
-                                    {{ trans('global.project.fields.directorate_id') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    {{ trans('global.project.fields.status_id') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                                    {{ trans('global.project.fields.priority_id') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                                    {{ trans('global.project.fields.physical_progress') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
-                                    {{ trans('global.project.fields.financial_progress') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                                    {{ trans('global.analytics.project.fields.remaining_budget') }}
-                                </th>
-                                <th
-                                    class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                                    {{ trans('global.analytics.project.fields.remaining_days') }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($projects as $project)
-                                <?php
-                                $totalBudget = $project->total_budget;
-                                $remainingBudget = $totalBudget - ($project->expenses()->sum('amount') + $project->contracts()->sum('contract_amount'));
-                                $daysRemaining = $project->end_date ? max(0, $project->end_date->diffInDays(now()) * ($project->end_date > now() ? 1 : -1)) : 0;
-                                ?>
+                    <div class="inline-block min-w-[1200px]">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
-                                    <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                        {{ $project->title }}</td>
-                                    <td
-                                        class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden sm:table-cell">
-                                        {{ $project->directorate->title ?? 'N/A' }}
-                                    </td>
-                                    <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                        {{ $project->status->title ?? 'N/A' }}</td>
-                                    <td
-                                        class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
-                                        {{ $project->priority->title ?? 'N/A' }}
-                                    </td>
-                                    <td
-                                        class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
-                                        {{ $project->progress }}%
-                                    </td>
-                                    <td
-                                        class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden lg:table-cell">
-                                        {{ $project->financial_progress }}%
-                                    </td>
-                                    <td
-                                        class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden xl:table-cell">
-                                        ${{ number_format($remainingBudget, 2) }}
-                                    </td>
-                                    <td
-                                        class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden xl:table-cell">
-                                        {{ $daysRemaining }} days
-                                    </td>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.project.fields.title') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.project.fields.directorate_id') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.project.fields.status_id') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.project.fields.priority_id') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.project.fields.physical_progress') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.project.fields.financial_progress') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.analytics.project.fields.remaining_budget') }}
+                                    </th>
+                                    <th
+                                        class="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ trans('global.analytics.project.fields.remaining_days') }}
+                                    </th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                @foreach ($projects as $project)
+                                    <?php
+                                    $totalBudget = $project->total_budget;
+                                    $remainingBudget = $totalBudget - ($project->expenses()->sum('amount') + $project->contracts()->sum('contract_amount'));
+                                    $daysRemaining = $project->end_date ? max(0, $project->end_date->diffInDays(now()) * ($project->end_date > now() ? 1 : -1)) : 0;
+                                    ?>
+                                    <tr>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $project->title }}</td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $project->directorate->title ?? 'N/A' }}
+                                        </td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $project->status->title ?? 'N/A' }}</td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $project->priority->title ?? 'N/A' }}
+                                        </td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $project->progress }}%
+                                        </td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $project->financial_progress }}%
+                                        </td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            ${{ number_format($remainingBudget, 2) }}
+                                        </td>
+                                        <td
+                                            class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            {{ $daysRemaining }} days
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                     <div class="mt-4">
                         {{ $projects->links() }}
                     </div>

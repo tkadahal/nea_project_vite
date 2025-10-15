@@ -89,36 +89,53 @@
                         </div>
                     </div>
 
-                    <div
-                        class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                        <h3
-                            class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                            {{ __('Assignments') }}
-                        </h3>
-                        <div class="grid grid-cols-1 gap-6">
-                            @if (!$isDirectorateOrProjectUser)
+                    @php
+                        $authUser = Auth::user();
+                        $isSameUser = $authUser->id === $user->id;
+
+                        $isRole4 = $authUser->roles->contains('id', 4);
+
+                        $isProjectManager = isset($project) && $authUser->id === optional($project->projectManager)->id;
+                    @endphp
+
+                    @if (!$isSameUser && (!$isRole4 || $isProjectManager))
+                        <div
+                            class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <h3
+                                class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                {{ __('Assignments') }}
+                            </h3>
+                            <div class="grid grid-cols-1 gap-6">
+                                @if (!$isDirectorateOrProjectUser)
+                                    <div>
+                                        <x-forms.select label="{{ trans('global.user.fields.directorate_id') }}"
+                                            name="directorate_id" id="directorate_id" :options="collect($directorates)
+                                                ->map(
+                                                    fn($label, $value) => [
+                                                        'value' => (string) $value,
+                                                        'label' => $label,
+                                                    ],
+                                                )
+                                                ->values()
+                                                ->all()"
+                                            :selected="old('directorate_id', (string) $user->directorate_id)" placeholder="Select directorate" :error="$errors->first('directorate_id')" />
+                                    </div>
+                                @endif
                                 <div>
-                                    <x-forms.select label="{{ trans('global.user.fields.directorate_id') }}"
-                                        name="directorate_id" id="directorate_id" :options="collect($directorates)
+                                    <x-forms.multi-select label="{{ trans('global.user.fields.projects') }}"
+                                        name="projects[]" id="projects" :options="collect($projects)
                                             ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                             ->values()
-                                            ->all()" :selected="old('directorate_id', (string) $user->directorate_id)"
-                                        placeholder="Select directorate" :error="$errors->first('directorate_id')" />
+                                            ->all()" :selected="old(
+                                            'projects',
+                                            $user->projects->pluck('id')->map(fn($id) => (string) $id)->toArray(),
+                                        )"
+                                        placeholder="Select projects" :error="$errors->first('projects')" />
                                 </div>
-                            @endif
-                            <div>
-                                <x-forms.multi-select label="{{ trans('global.user.fields.projects') }}"
-                                    name="projects[]" id="projects" :options="collect($projects)
-                                        ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
-                                        ->values()
-                                        ->all()" :selected="old(
-                                        'projects',
-                                        $user->projects->pluck('id')->map(fn($id) => (string) $id)->toArray(),
-                                    )"
-                                    placeholder="Select projects" :error="$errors->first('projects')" />
                             </div>
                         </div>
-                    </div>
+                    @endif
+
 
                     <div class="flex space-x-2">
                         <x-buttons.primary>

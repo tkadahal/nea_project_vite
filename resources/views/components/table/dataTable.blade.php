@@ -9,14 +9,28 @@
 ])
 
 <div class="overflow-x-auto">
-    <div class="mb-4">
+    <div class="mb-4 flex justify-between items-center">
         <input type="text" id="searchInput" placeholder="{{ trans('global.search') }}"
             class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+        <div>
+            <label for="perPageSelect" class="mr-2 text-gray-600 dark:text-gray-300 text-sm md:text-base">
+                Records Per Page
+            </label>
+            <select id="perPageSelect"
+                class="p-2 border border-gray-300 dark:border-gray-700 rounded-md
+                bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
+                <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
+                <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
+            </select>
+        </div>
     </div>
 
-    <table class="min-w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md">
+    <table
+        class="min-w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md">
         <thead>
             <tr class="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-sm leading-normal">
                 @foreach ($headers as $index => $header)
@@ -100,7 +114,7 @@
 
 <script>
     let currentPage = 1;
-    const rowsPerPage = {{ $perPage }};
+    let rowsPerPage = {{ $perPage }};
     let sortIndex = -1;
     let sortDirection = 1;
 
@@ -228,5 +242,10 @@
     }
 
     document.getElementById('searchInput').addEventListener('input', updateTable);
+    document.getElementById('perPageSelect').addEventListener('change', function() {
+        rowsPerPage = parseInt(this.value);
+        currentPage = 1;
+        updateTable();
+    });
     window.addEventListener('load', updateTable);
 </script>

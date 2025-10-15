@@ -4,29 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Contract;
-use App\Models\Project;
+use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Models\Project;
+use App\Models\Contract;
 use Illuminate\View\View;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Activity;
 
 class DashboardController extends Controller
 {
-    // Role ID constants for better maintainability
-    private const ROLE_ADMIN = 1;
-
-    private const ROLE_DIRECTORATE_USER = 3;
-
-    private const ROLE_PROJECT_USER = 4;
-
-    /**
-     * Handle the incoming request.
-     */
     public function index(): View
     {
         $user = Auth::user();
@@ -35,29 +26,21 @@ class DashboardController extends Controller
         $number_blocks = [];
         $tasks = collect([]);
         $project_status = ['completed' => 0, 'in_progress' => 0, 'behind' => 0];
-        // $sprint_data = $this->getSprintData(); // New method for sprint data
         $activity_logs = $this->getActivityLogs($user);
 
-        $userProjectIds = in_array(self::ROLE_PROJECT_USER, $roles)
+        $userProjectIds = in_array(Role::PROJECT_USER, $roles)
             ? $user->projects()->pluck('id')
             : collect([]);
 
-        if (in_array(self::ROLE_ADMIN, $roles)) {
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             $number_blocks = $this->getAdminNumberBlocks();
-            // $tasks = $this->getTasks();
-            // $project_status = $this->getProjectStatus();
-        } elseif (in_array(self::ROLE_DIRECTORATE_USER, $roles)) {
+        } elseif (in_array(Role::DIRECTORATE_USER, $roles)) {
             $number_blocks = $this->getDirectorateNumberBlocks($user);
             $directorateId = $user->directorate_id;
-            // $tasks = $directorateId ? $this->getTasks($directorateId) : collect([]);
-            // $project_status = $this->getProjectStatus($directorateId);
-        } elseif (in_array(self::ROLE_PROJECT_USER, $roles)) {
+        } elseif (in_array(Role::PROJECT_USER, $roles)) {
             $number_blocks = $this->getProjectNumberBlocks($user, $userProjectIds);
-            // $tasks = $userProjectIds->isNotEmpty() ? $this->getTasks(null, $userProjectIds) : collect([]);
-            // $project_status = $this->getProjectStatus(null, $userProjectIds);
         }
 
-        // Ensure project_status has valid numeric values
         $project_status = array_map(function ($value) {
             return is_numeric($value) ? (int) $value : 0;
         }, $project_status);
@@ -65,9 +48,6 @@ class DashboardController extends Controller
         return view('dashboard', compact('number_blocks', 'activity_logs'));
     }
 
-    /**
-     * Get number blocks for Admin role.
-     */
     private function getAdminNumberBlocks(): array
     {
         return [
@@ -78,9 +58,6 @@ class DashboardController extends Controller
         ];
     }
 
-    /**
-     * Get number blocks for Directorate User role.
-     */
     private function getDirectorateNumberBlocks(User $user): array
     {
         $directorateId = $user->directorate_id;
@@ -102,9 +79,6 @@ class DashboardController extends Controller
         ];
     }
 
-    /**
-     * Get number blocks for Project User role.
-     */
     private function getProjectNumberBlocks(User $user, Collection $projectIds): array
     {
         $distinctUserCount = $projectIds->isEmpty()
@@ -131,9 +105,6 @@ class DashboardController extends Controller
         ];
     }
 
-    /**
-     * Get activity logs for the authenticated user.
-     */
     private function getActivityLogs(User $user): Collection
     {
         return Activity::where('causer_type', 'App\Models\User')
@@ -150,16 +121,5 @@ class DashboardController extends Controller
                     'created_at' => $activity->created_at->format('Y-m-d H:i:s'),
                 ];
             });
-    }
-
-    /**
-     * Generate random time spent for placeholder data.
-     */
-    private function generateRandomTime(): string
-    {
-        $hours = rand(1, 100);
-        $minutes = rand(0, 59);
-
-        return "{$hours}h {$minutes}min";
     }
 }

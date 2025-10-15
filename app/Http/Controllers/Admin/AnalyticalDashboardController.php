@@ -31,7 +31,6 @@ class AnalyticalDashboardController extends Controller
             $user = Auth::user();
             $roles = $user->roles->pluck('id')->toArray();
 
-            // Initialize query with necessary relations
             $query = Task::with([
                 'priority',
                 'projects' => fn($q) => $q->withPivot('status_id', 'progress')->with('directorate'),
@@ -40,38 +39,31 @@ class AnalyticalDashboardController extends Controller
                 'department',
             ]);
 
-            // Apply role-based filters
-            if (in_array(Role::SUPERADMIN, $roles)) {
-                // Superadmin: Allow directorate filter from request
+            if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
                 if ($request->filled('directorate_id')) {
                     $query->where('directorate_id', $request->directorate_id);
                 }
             } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
-                // Directorate User: Filter by user's directorate
                 $query->where('directorate_id', $user->directorate_id);
             } elseif (in_array(Role::DEPARTMENT_USER, $roles) && $user->directorate_id) {
-                // Department User: Filter by departments under user's directorate
                 $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
                     ->pluck('id');
                 if ($departmentIds->isEmpty()) {
-                    $query->whereRaw('1 = 0'); // Force empty result if no departments
+                    $query->whereRaw('1 = 0');
                 } else {
                     $query->whereIn('department_id', $departmentIds);
                 }
             } elseif (in_array(Role::PROJECT_USER, $roles)) {
-                // Project User: Filter by user's projects
                 $projectIds = $user->projects()->pluck('id');
                 if ($projectIds->isEmpty()) {
-                    $query->whereRaw('1 = 0'); // Force empty result if no projects
+                    $query->whereRaw('1 = 0');
                 } else {
                     $query->whereHas('projects', fn($q) => $q->whereIn('projects.id', $projectIds));
                 }
             } else {
-                // Fallback: Limit to tasks assigned to the user
                 $query->whereHas('users', fn($q) => $q->where('users.id', $user->id));
             }
 
-            // Apply additional filters
             if ($request->filled('project_id')) {
                 $query->whereHas('projects', fn($q) => $q->where('id', $request->project_id));
             }
@@ -88,7 +80,6 @@ class AnalyticalDashboardController extends Controller
             // Optional: Exclude subtasks (uncomment to enable)
             // $query->whereNull('tasks.parent_id');
 
-            // Fetch tasks and join with project_task for status
             $projectTasks = $query->get()->flatMap(function ($task) {
                 $taskProjects = $task->projects->map(function ($project) use ($task) {
                     return (object) [
@@ -101,7 +92,6 @@ class AnalyticalDashboardController extends Controller
                         'entity' => $project->title,
                     ];
                 });
-                // Include tasks without projects
                 if ($taskProjects->isEmpty() && ($task->directorate_id || $task->department_id)) {
                     $taskProjects->push((object) [
                         'task' => $task,
@@ -116,7 +106,6 @@ class AnalyticalDashboardController extends Controller
                 return $taskProjects;
             })->filter(fn($projectTask) => !is_null($projectTask->status_id));
 
-            // Paginate project tasks
             $perPage = 10;
             $currentPage = $request->input('page', 1);
             $paginatedTasks = $projectTasks->slice(($currentPage - 1) * $perPage, $perPage)->values();
@@ -128,7 +117,6 @@ class AnalyticalDashboardController extends Controller
                 ['path' => $request->url(), 'query' => $request->query()]
             );
 
-            // Calculate summary
             $statusCounts = $projectTasks->groupBy('status_id')->map->count()->toArray();
             $completedStatusId = Status::where('title', 'Completed')->first()?->id;
             $summary = [
@@ -140,7 +128,6 @@ class AnalyticalDashboardController extends Controller
                 'average_progress' => round($projectTasks->avg('progress') ?? 0, 1),
             ];
 
-            // Use Status model colors (hex codes)
             $statusColors = Status::pluck('color', 'id')->toArray();
             $priorityColors = [
                 'Urgent' => '#EF4444',
@@ -149,7 +136,6 @@ class AnalyticalDashboardController extends Controller
                 'Low' => '#6B7280',
             ];
 
-            // Prepare chart data
             $charts = [
                 'status' => [
                     'labels' => Status::pluck('title')->toArray(),
@@ -163,14 +149,14 @@ class AnalyticalDashboardController extends Controller
                 ],
             ];
 
-            // Fetch filter options
-            $directorates = in_array(Role::SUPERADMIN, $roles) ? Directorate::all() : collect();
+            $directorates = (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles))
+                ? Directorate::all()
+                : collect();
             $projectIds = $projectTasks->pluck('project_id')->unique()->filter();
             $projects = Project::whereIn('id', $projectIds)->get();
             $statuses = Status::all();
             $priorities = Priority::all();
 
-            // Prepare table data
             $tableData = $paginatedTasks->map(function ($projectTask) use ($statusColors, $priorityColors) {
                 $task = $projectTask->task;
                 return [
@@ -210,13 +196,13 @@ class AnalyticalDashboardController extends Controller
             $query = Project::withoutGlobalScopes()->with(['directorate', 'status', 'priority', 'tasks', 'contracts', 'expenses', 'budgets', 'users']);
             $user = Auth::user();
 
-            if ($user && !$user->roles->contains('id', 3) && !$user->roles->contains('id', 4)) {
+            if ($user && !$user->roles->contains('id', Role::DIRECTORATE_USER) && !$user->roles->contains('id', Role::PROJECT_USER)) {
                 $query->withTrashed();
             }
 
-            if ($user && $user->roles->contains('id', 3)) {
+            if ($user && $user->roles->contains('id', Role::DIRECTORATE_USER)) {
                 $query->where('directorate_id', $user->directorate_id);
-            } elseif ($user && $user->roles->contains('id', 4)) {
+            } elseif ($user && $user->roles->contains('id', Role::PROJECT_USER)) {
                 $query->whereIn('id', function ($query) use ($user) {
                     $query->select('project_id')
                         ->from('project_user')
@@ -259,12 +245,12 @@ class AnalyticalDashboardController extends Controller
             ];
 
             $chartQuery = Project::withoutGlobalScopes()->with(['directorate', 'status', 'priority', 'tasks', 'contracts', 'expenses', 'budgets', 'users']);
-            if ($user && !$user->roles->contains('id', 3) && !$user->roles->contains('id', 4)) {
+            if ($user && !$user->roles->contains('id', Role::DIRECTORATE_USER) && !$user->roles->contains('id', Role::PROJECT_USER)) {
                 $chartQuery->withTrashed();
             }
-            if ($user && $user->roles->contains('id', 3)) {
+            if ($user && $user->roles->contains('id', Role::DIRECTORATE_USER)) {
                 $chartQuery->where('directorate_id', $user->directorate_id);
-            } elseif ($user && $user->roles->contains('id', 4)) {
+            } elseif ($user && $user->roles->contains('id', Role::PROJECT_USER)) {
                 $chartQuery->whereIn('id', function ($query) use ($user) {
                     $query->select('project_id')
                         ->from('project_user')
@@ -347,40 +333,33 @@ class AnalyticalDashboardController extends Controller
                 ->leftJoin('project_task', 'tasks.id', '=', 'project_task.task_id')
                 ->addSelect(DB::raw('COALESCE(project_task.status_id, tasks.status_id) as status_id'));
 
-            // Role-based filtering
-            if (in_array(Role::SUPERADMIN, $roles)) {
-                // Superadmin: Allow directorate filter from request
+            if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
                 if ($request->filled('directorate_id')) {
                     $taskQuery->where('directorate_id', $request->directorate_id)
                         ->orWhereHas('projects', fn($q) => $q->where('directorate_id', $request->directorate_id));
                 }
             } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
-                // Directorate User: Filter by user's directorate
                 $taskQuery->where('directorate_id', $user->directorate_id)
                     ->orWhereHas('projects', fn($q) => $q->where('directorate_id', $user->directorate_id));
             } elseif (in_array(Role::DEPARTMENT_USER, $roles) && $user->directorate_id) {
-                // Department User: Filter by departments under user's directorate
                 $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
                     ->pluck('id');
                 if ($departmentIds->isEmpty()) {
-                    $taskQuery->whereRaw('1 = 0'); // Force empty result if no departments
+                    $taskQuery->whereRaw('1 = 0');
                 } else {
                     $taskQuery->whereIn('department_id', $departmentIds);
                 }
             } elseif (in_array(Role::PROJECT_USER, $roles)) {
-                // Project User: Filter by user's projects
                 $projectIds = $user->projects()->pluck('id');
                 if ($projectIds->isEmpty()) {
-                    $taskQuery->whereRaw('1 = 0'); // Force empty result if no projects
+                    $taskQuery->whereRaw('1 = 0');
                 } else {
                     $taskQuery->whereHas('projects', fn($q) => $q->whereIn('projects.id', $projectIds));
                 }
             } else {
-                // Fallback: Limit to tasks assigned to the user
                 $taskQuery->whereHas('users', fn($q) => $q->where('users.id', $user->id));
             }
 
-            // Request-based filtering
             if ($request->filled('project_id')) {
                 $taskQuery->whereHas('projects', fn($q) => $q->where('id', $request->project_id));
             }
@@ -397,7 +376,6 @@ class AnalyticalDashboardController extends Controller
             // Optional: Exclude subtasks (uncomment to enable)
             // $taskQuery->whereNull('tasks.parent_id');
 
-            // Ensure unique tasks
             $taskQuery->distinct('tasks.id');
 
             return Excel::download(new TasksExport($taskQuery), 'tasks_' . now()->format('Y-m-d_H-i-s') . '.csv');
@@ -415,9 +393,9 @@ class AnalyticalDashboardController extends Controller
             $projectQuery->withTrashed();
         }
 
-        if ($user && $user->roles->contains('id', 3)) {
+        if ($user && $user->roles->contains('id', Role::DIRECTORATE_USER)) {
             $projectQuery->where('directorate_id', $user->directorate_id);
-        } elseif ($user && $user->roles->contains('id', 4)) {
+        } elseif ($user && $user->roles->contains('id', Role::PROJECT_USER)) {
             $projectQuery->whereIn('id', function ($query) use ($user) {
                 $query->select('project_id')
                     ->from('project_user')
@@ -443,21 +421,23 @@ class AnalyticalDashboardController extends Controller
 
     public function summary(Request $request): View|JsonResponse
     {
-        // Get filter inputs
+        $user = Auth::user();
+        $roleIds = $user->roles->pluck('id')->toArray();
         $directorateId = $request->input('directorate_id');
         $projectId = $request->input('project_id');
         $statusId = $request->input('status_id');
         $priorityId = $request->input('priority_id');
 
-        // Base query for projects with filters
         $projectQuery = Project::query()
             ->when($directorateId, fn($query) => $query->where('projects.directorate_id', $directorateId))
             ->when($projectId, fn($query) => $query->where('projects.id', $projectId))
             ->when($statusId, fn($query) => $query->where('projects.status_id', $statusId))
             ->when($priorityId, fn($query) => $query->where('projects.priority_id', $priorityId))
-            ->when(auth()->user()->hasRole(Role::SUPERADMIN) === false, fn($query) => $query->filterByRole(auth()->user()));
+            ->when(
+                !in_array(Role::SUPERADMIN, $roleIds) && !in_array(Role::ADMIN, $roleIds),
+                fn($query) => $query->filterByRole($user)
+            );
 
-        // Summary Data
         $totalProjects = $projectQuery->clone()->count();
         $totalContracts = Contract::query()
             ->when($projectId, fn($query) => $query->where('contracts.project_id', $projectId))
@@ -478,7 +458,6 @@ class AnalyticalDashboardController extends Controller
             ->sum('budgets.total_budget');
         $averagePhysicalProgress = (float) $projectQuery->clone()->avg('projects.progress') ?? 0.0;
 
-        // Financial Progress
         $financialProgressData = $projectQuery->clone()
             ->leftJoin('budgets', function ($join) {
                 $join->on('projects.id', '=', 'budgets.project_id')
@@ -495,7 +474,6 @@ class AnalyticalDashboardController extends Controller
             ? $financialProgressData->avg(fn($project) => $project->total_budget > 0 ? ($project->total_spent / $project->total_budget) * 100 : 0.0)
             : 0.0;
 
-        // Chart Data
         $projectsByStatus = $projectQuery->clone()
             ->select('projects.status_id', DB::raw('COUNT(*) AS count'))
             ->groupBy('projects.status_id')
@@ -514,7 +492,6 @@ class AnalyticalDashboardController extends Controller
         $directorateProgress = $projectsByDirectorate->pluck('avg_progress')->toArray();
         $directorateColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
 
-        // Detailed Data (Paginated)
         $projects = $projectQuery->clone()
             ->with(['directorate', 'department', 'status', 'priority', 'projectManager', 'budgets'])
             ->paginate(10, ['*'], 'projects_page');
@@ -532,7 +509,6 @@ class AnalyticalDashboardController extends Controller
             ->with(['directorate', 'department', 'status', 'priority', 'assignedBy', 'users'])
             ->paginate(10, ['*'], 'tasks_page');
 
-        // Table Data for Projects
         $tableData = $projects->map(fn($project) => [
             'title' => $project->title,
             'entity' => $project->directorate?->title ?? 'N/A',
@@ -545,7 +521,6 @@ class AnalyticalDashboardController extends Controller
             'total_budget' => (float) ($project->total_budget ?? 0),
         ])->toArray();
 
-        // Data structure for view/JSON response
         $data = [
             'summary' => [
                 'total_projects' => $totalProjects,
@@ -571,7 +546,9 @@ class AnalyticalDashboardController extends Controller
             'projects' => $projects,
             'contracts' => $contracts,
             'tasks' => $tasks,
-            'directorates' => auth()->user()->hasRole(Role::SUPERADMIN) ? Directorate::all() : collect([]),
+            'directorates' => (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds))
+                ? Directorate::all()
+                : collect(),
             'projectsList' => Project::pluck('title', 'id'),
             'statuses' => Status::pluck('title', 'id'),
             'priorities' => Priority::pluck('title', 'id'),

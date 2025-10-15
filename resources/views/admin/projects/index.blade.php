@@ -33,25 +33,37 @@
         </div>
     </div>
 
-    <!-- Directorate Dropdown for Card View -->
     <div id="card-search" class="mb-4 hidden">
-        <select id="directorateFilter"
-            class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
-               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-               bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-            <option value="">All Directorates</option>
-            @foreach ($directorates as $id => $title)
-                <option value="{{ $id }}">{{ $title }}</option>
-            @endforeach
-        </select>
+        <div class="flex flex-col md:flex-row gap-4">
+            <select id="directorateFilter"
+                class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                   bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                <option value="">
+                    {{ trans('global.allDirectorate') }}
+                </option>
+                @foreach ($directorates as $id => $title)
+                    <option value="{{ $id }}">
+                        {{ $title }}
+                    </option>
+                @endforeach
+            </select>
+            <select id="projectFilter"
+                class="w-full max-w-md p-2 border border-gray-300 dark:border-gray-700 rounded-md
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                   bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                <option value="">
+                    {{ trans('global.allProjects') }}
+                </option>
+            </select>
+        </div>
     </div>
 
-    <!-- Card View -->
     <div id="card-view" class="mb-6 hidden">
         <div id="cardContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach ($data as $index => $item)
                 <div class="card-item" data-search="{{ collect($item)->flatten()->implode(' ') }}"
-                    data-directorate="{{ $item['directorate']['id'] }}">
+                    data-directorate="{{ $item['directorate']['id'] }}" data-project-id="{{ $item['id'] }}">
                     <x-forms.project-card :title="$item['title']" :description="$item['description']" :directorate="$item['directorate']" :fields="$item['fields']"
                         :routePrefix="$routePrefix" :actions="$actions" :deleteConfirmationMessage="$deleteConfirmationMessage" :arrayColumnColor="$arrayColumnColor" :uniqueId="$index"
                         :id="$item['id']" :comment_count="$item['comment_count']" />
@@ -60,13 +72,11 @@
         </div>
     </div>
 
-    <!-- List View (Datatable) -->
     <div id="list-view" class="mb-6">
-        <x-table.dataTable :headers="$tableHeaders" :data="$tableData" :routePrefix="$routePrefix" :actions="$actions"
+        <x-table.dataTables.projects :headers="$tableHeaders" :data="$tableData" :routePrefix="$routePrefix" :actions="$actions"
             :deleteConfirmationMessage="$deleteConfirmationMessage" />
     </div>
 
-    <!-- Pagination for Card View -->
     <div id="card-pagination" class="mt-4 flex justify-between items-center hidden">
         <div id="cardPaginationInfo" class="text-gray-600 dark:text-gray-300 text-sm md:text-base"></div>
         <div class="flex space-x-2" id="cardPaginationControls">
@@ -74,7 +84,6 @@
                 class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
                 onclick="changeCardPage(-1)">Previous</button>
             <div id="cardPageNumbers" class="flex space-x-2">
-                <!-- Page numbers will be rendered here by JavaScript -->
             </div>
             <button id="cardNextPage"
                 class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
@@ -85,6 +94,24 @@
     <script>
         let cardCurrentPage = 1;
         const cardRowsPerPage = 12;
+        const projectsData = @json($data); // Pass cardData to JavaScript
+
+        // Function to populate project dropdown based on directorate
+        function populateProjectDropdown(directorateId) {
+            const projectFilter = document.getElementById('projectFilter');
+            projectFilter.innerHTML = '<option value="">{{ trans('global.allProjects') }}</option>';
+
+            const filteredProjects = directorateId ?
+                projectsData.filter(project => project.directorate.id == directorateId) :
+                projectsData;
+
+            filteredProjects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.title;
+                projectFilter.appendChild(option);
+            });
+        }
 
         // Function to toggle views and their associated elements
         function toggleView(view) {
@@ -110,10 +137,13 @@
         // Update card view pagination
         function updateCardView() {
             const directorateFilter = document.getElementById('directorateFilter').value;
+            const projectFilter = document.getElementById('projectFilter').value;
             const cards = Array.from(document.querySelectorAll('#cardContainer .card-item'));
             let filteredCards = cards.filter(card => {
                 const directorateId = card.getAttribute('data-directorate');
-                return directorateFilter === '' || directorateId === directorateFilter;
+                const projectId = card.getAttribute('data-project-id');
+                return (directorateFilter === '' || directorateId === directorateFilter) &&
+                    (projectFilter === '' || projectId === projectFilter);
             });
 
             const totalPages = Math.ceil(filteredCards.length / cardRowsPerPage);
@@ -141,10 +171,13 @@
 
         function changeCardPage(delta) {
             const directorateFilter = document.getElementById('directorateFilter').value;
+            const projectFilter = document.getElementById('projectFilter').value;
             const cards = Array.from(document.querySelectorAll('#cardContainer .card-item'));
             const filteredCards = cards.filter(card => {
                 const directorateId = card.getAttribute('data-directorate');
-                return directorateFilter === '' || directorateId === directorateFilter;
+                const projectId = card.getAttribute('data-project-id');
+                return (directorateFilter === '' || directorateId === directorateFilter) &&
+                    (projectFilter === '' || projectId === projectFilter);
             });
             const totalPages = Math.ceil(filteredCards.length / cardRowsPerPage);
 
@@ -218,10 +251,19 @@
         // Attach event listener for directorate filter
         document.getElementById('directorateFilter').addEventListener('change', () => {
             cardCurrentPage = 1; // Reset to first page on filter change
+            const directorateId = document.getElementById('directorateFilter').value;
+            populateProjectDropdown(directorateId); // Populate project dropdown
             updateCardView();
         });
 
-        // Initialize with card view by default
+        // Attach event listener for project filter
+        document.getElementById('projectFilter').addEventListener('change', () => {
+            cardCurrentPage = 1; // Reset to first page on filter change
+            updateCardView();
+        });
+
+        // Initialize with card view and populate project dropdown
         toggleView('card');
+        populateProjectDropdown('');
     </script>
 </x-layouts.app>

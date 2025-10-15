@@ -43,8 +43,8 @@
     <div class="mb-6">
         <!-- List View -->
         <div id="listView" class="hidden">
-            <x-table.dataTable :headers="$headers" :data="$tableData" :routePrefix="$routePrefix" :actions="$actions" :deleteConfirmationMessage="$deleteConfirmationMessage"
-                :arrayColumnColor="$arrayColumnColor" />
+            <x-table.dataTables.contracts :headers="$headers" :data="$tableData" :routePrefix="$routePrefix" :actions="$actions"
+                :deleteConfirmationMessage="$deleteConfirmationMessage" :arrayColumnColor="$arrayColumnColor" />
         </div>
         <!-- Grid View -->
         <div id="gridView" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -53,36 +53,47 @@
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ $item['title'] }}</h3>
                     <p class="text-gray-600 dark:text-gray-400 mt-2">{{ $item['description'] }}</p>
                     @foreach ($item['fields'] as $field)
-                        <p class="text-gray-600 dark:text-gray-400 mt-1">
-                            <span class="font-semibold">{{ $field['label'] }}:</span>
-                            <span style="color: {{ $field['color'] ?? 'gray' }}">{{ $field['value'] }}</span>
-                        </p>
+                        @if ($field['key'] === 'directorate')
+                            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                                <span class="font-semibold">Directorate:</span>
+                                <x-forms.badge :title="$field['value']" :color="$field['color'] ?? 'gray'" />
+                            </p>
+                        @else
+                            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                                <span class="font-semibold">{{ $field['label'] }}:</span>
+                                <span style="color: {{ $field['color'] ?? 'gray' }}">{{ $field['value'] }}</span>
+                            </p>
+                        @endif
                     @endforeach
                     <div class="mt-4 flex space-x-2">
-                        <a href="{{ route('admin.contract.extensions.create', $item['id']) }}">Add Extension</a>
-                        @if (in_array('view', $actions) && Gate::allows('contract_view'))
+                        @can('add_contract_extension')
+                            <a href="{{ route('admin.contract.extensions.create', $item['id']) }}"
+                                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
+                                Add Extension
+                            </a>
+                        @endcan
+                        @can('contract_show')
                             <a href="{{ route($routePrefix . '.show', $item['id']) }}"
-                                class="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
                                 {{ trans('global.view') }}
                             </a>
-                        @endif
-                        @if (in_array('edit', $actions) && Gate::allows('contract_edit'))
+                        @endcan
+                        @can('contract_edit')
                             <a href="{{ route($routePrefix . '.edit', $item['id']) }}"
-                                class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                class="border border-blue-500 text-blue-500 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white">
                                 {{ trans('global.edit') }}
                             </a>
-                        @endif
-                        @if (in_array('delete', $actions) && Gate::allows('contract_delete'))
+                        @endcan
+                        @can('contract_delete')
                             <form action="{{ route($routePrefix . '.destroy', $item['id']) }}" method="POST"
                                 onsubmit="return confirm('{{ $deleteConfirmationMessage }}');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit"
-                                    class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
                                     {{ trans('global.delete') }}
                                 </button>
                             </form>
-                        @endif
+                        @endcan
                     </div>
                 </div>
             @endforeach

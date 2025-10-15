@@ -28,20 +28,18 @@ class ContractController extends Controller
         abort_if(Gate::denies('contract_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $user = Auth::user();
-        $contractQuery = Contract::with(['directorate', 'status', 'priority'])->latest();
+        $contractQuery = Contract::with(['directorate', 'status', 'priority', 'project'])->latest();
 
-        // Role-based filtering
         $roleIds = $user->roles->pluck('id')->toArray();
 
-        $contractQuery->when(!in_array(Role::SUPERADMIN, $roleIds), function ($query) use ($user, $roleIds) {
+        $contractQuery->when(!(in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)), function ($query) use ($user, $roleIds) {
             if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
                 if ($user->directorate_id) {
                     $query->where('directorate_id', $user->directorate_id);
                 } else {
-                    $query->where('id', 0); // No contracts returned
+                    $query->where('id', 0);
                 }
             } else {
-                // Project user: filter by projects associated with the user
                 $query->whereHas('project.users', function ($subQuery) use ($user) {
                     $subQuery->where('users.id', $user->id);
                 });
@@ -64,33 +62,15 @@ class ContractController extends Controller
             ]);
         }
 
-        // Directorate colors (extendable for new directorates)
-        $directorateColors = [
-            1 => 'red',
-            2 => 'green',
-            3 => 'blue',
-            4 => 'yellow',
-            5 => 'purple',
-            6 => 'pink',
-            7 => 'gray',
-            8 => 'teal',
-            9 => 'orange',
-        ];
+        $directorateColors = config('colors.directorate');
+        $priorityColors = config('colors.priority');
 
-        // Fallback for unmapped directorate IDs
         $allDirectorates = Directorate::pluck('id')->toArray();
         foreach ($allDirectorates as $id) {
             if (!isset($directorateColors[$id])) {
-                $directorateColors[$id] = 'gray'; // Default color for new directorates
+                $directorateColors[$id] = 'gray';
             }
         }
-
-        $priorityColors = [
-            'Urgent' => '#EF4444',
-            'High' => '#F59E0B',
-            'Medium' => '#10B981',
-            'Low' => '#6B7280',
-        ];
 
         $headers = [
             trans('global.contract.fields.id'),
@@ -120,6 +100,7 @@ class ContractController extends Controller
             $directorateId = $contract->directorate?->id ?? null;
             $priorityValue = $contract->priority?->title ?? 'N/A';
             $priorityColor = $priorityColors[$priorityValue] ?? '#6B7280';
+            $projectTitle = $contract->project?->title ?? 'N/A';
 
             return [
                 'id' => $contract->id,
@@ -127,14 +108,15 @@ class ContractController extends Controller
                 'description' => $contract->description ?? 'No description available',
                 'directorate' => ['title' => $directorateTitle, 'id' => $directorateId],
                 'fields' => [
-                    ['label' => trans('global.contract.fields.contract_agreement_date'), 'key' => 'contract_agreement_date', 'value' => $contract->contract_agreement_date?->format('Y-m-d') ?? 'N/A'],
-                    ['label' => trans('global.contract.fields.agreement_effective_date'), 'key' => 'agreement_effective_date', 'value' => $contract->agreement_effective_date?->format('Y-m-d') ?? 'N/A'],
-                    ['label' => trans('global.contract.fields.agreement_completion_date'), 'key' => 'agreement_completion_date', 'value' => $contract->agreement_completion_date?->format('Y-m-d') ?? 'N/A'],
-                    ['label' => trans('global.contract.fields.contract_amount'), 'key' => 'contract_amount', 'value' => is_numeric($contract->contract_amount) ? number_format((float) $contract->contract_amount, 2) : 'N/A'],
-                    ['label' => trans('global.contract.fields.progress'), 'key' => 'progress', 'value' => is_numeric($contract->progress) ? $contract->progress . '%' : 'N/A'],
+                    ['label' => trans('global.contract.fields.contract_agreement_date'), 'key' => 'contract_agreement_date', 'value' => $contract->contract_agreement_date?->format('Y-m-d') ?? 'N/A', 'color' => 'yellow'],
+                    ['label' => trans('global.contract.fields.agreement_effective_date'), 'key' => 'agreement_effective_date', 'value' => $contract->agreement_effective_date?->format('Y-m-d') ?? 'N/A', 'color' => 'green'],
+                    ['label' => trans('global.contract.fields.agreement_completion_date'), 'key' => 'agreement_completion_date', 'value' => $contract->agreement_completion_date?->format('Y-m-d') ?? 'N/A', 'color' => 'red'],
+                    ['label' => trans('global.contract.fields.contract_amount'), 'key' => 'contract_amount', 'value' => is_numeric($contract->contract_amount) ? number_format((float) $contract->contract_amount, 2) : 'N/A', 'color' => 'orange'],
+                    ['label' => trans('global.contract.fields.progress'), 'key' => 'progress', 'value' => is_numeric($contract->progress) ? $contract->progress . '%' : 'N/A', 'color' => 'yellow'],
                     ['label' => trans('global.contract.fields.status_id'), 'key' => 'status', 'value' => $contract->status?->title ?? 'N/A'],
                     ['label' => trans('global.contract.fields.priority_id'), 'key' => 'priority', 'value' => $priorityValue, 'color' => $priorityColor],
                     ['label' => trans('global.contract.fields.directorate_id'), 'key' => 'directorate', 'value' => $directorateTitle, 'color' => $directorateColors[$directorateId] ?? 'gray'],
+                    ['label' => trans('global.contract.fields.project_id'), 'key' => 'project', 'value' => $projectTitle, 'color' => 'yellow'],
                 ],
             ];
         })->all();
@@ -152,6 +134,7 @@ class ContractController extends Controller
                 'progress' => 'green',
                 'directorate' => $directorateColors,
                 'priority' => $priorityColors,
+                'project' => 'blue',
             ],
             'headers' => $headers,
         ]);
@@ -167,9 +150,7 @@ class ContractController extends Controller
         $project = null;
         $selectedDirectorate = null;
 
-        // Initialize directorates and projects based on user role
         if (in_array(Role::SUPERADMIN, $roleIds)) {
-            // Superadmin: All directorates, projects fetched via AJAX
             $directorates = Directorate::pluck('title', 'id');
             $projects = collect();
             if ($projectId) {
@@ -187,7 +168,6 @@ class ContractController extends Controller
                 }
             }
         } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
-            // Directorate User: Only their directorate, pre-fetch projects
             $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
             $projectsQuery = Project::without(['tasks', 'expenses', 'contracts'])
                 ->where('directorate_id', $user->directorate_id)
@@ -211,7 +191,6 @@ class ContractController extends Controller
                 ];
             });
         } elseif (in_array(Role::PROJECT_USER, $roleIds) && $user->directorate_id) {
-            // Project User: Only their directorate, only their assigned projects
             $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
             $projectsQuery = $user->projects()->whereNull('deleted_at');
             if ($projectId) {
@@ -233,7 +212,6 @@ class ContractController extends Controller
                 ];
             });
         } else {
-            // Fallback: No directorate or projects if user has no valid role or directorate_id
             $directorates = collect();
             $projects = collect();
             if ($projectId) {
@@ -285,12 +263,9 @@ class ContractController extends Controller
         $directorates = collect();
         $projects = collect();
 
-        // Initialize directorates and projects based on user role
         if (in_array(Role::SUPERADMIN, $roleIds)) {
-            // Superadmin: All directorates, projects fetched via AJAX
             $directorates = Directorate::pluck('title', 'id');
         } elseif (in_array(Role::DIRECTORATE_USER, $roleIds)) {
-            // Directorate User: Only their directorate, pre-fetch projects
             if ($user->directorate_id) {
                 $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
                 $projects = Project::without(['tasks', 'expenses', 'contracts'])
@@ -320,7 +295,6 @@ class ContractController extends Controller
                 Log::warning('Directorate user has no directorate_id (edit)', ['user_id' => $user->id, 'contract_id' => $contract->id]);
             }
         } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
-            // Project User: Only their directorate, only their assigned projects
             if ($user->directorate_id) {
                 $directorates = collect([$user->directorate_id => Directorate::find($user->directorate_id)?->title ?? 'N/A']);
                 $projects = $user->projects()
@@ -350,7 +324,6 @@ class ContractController extends Controller
                 Log::warning('Project user has no directorate_id (edit)', ['user_id' => $user->id, 'contract_id' => $contract->id]);
             }
         } else {
-            // Fallback: No valid role
             Log::warning('No valid role for contract editing', ['user_id' => $user->id, 'contract_id' => $contract->id, 'roles' => $roleIds]);
         }
 

@@ -20,7 +20,9 @@ class DirectorateController extends Controller
     {
         abort_if(Gate::denies('directorate_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $directorates = Directorate::with('departments:id,title')->latest()->get();
+        $directorates = Directorate::with('departments:id,title')
+            ->latest()
+            ->get();
 
         $headers = [trans('global.directorate.fields.id'), trans('global.directorate.fields.title'), trans('global.directorate.fields.departments')];
         $data = $directorates->map(function ($directorate) {

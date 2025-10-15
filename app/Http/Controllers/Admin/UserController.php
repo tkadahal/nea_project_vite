@@ -12,10 +12,8 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -31,29 +29,22 @@ class UserController extends Controller
         try {
             $roleIds = $user->roles->pluck('id')->toArray();
 
-            if (!in_array(1, $roleIds)) { // Not a super admin
-                if (in_array(3, $roleIds)) { // Directorate user
+            if (!in_array(Role::SUPERADMIN, $roleIds) && !in_array(Role::ADMIN, $roleIds)) {
+                if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
                     $directorateId = $user->directorate ? [$user->directorate->id] : [];
-                    if (empty($directorateId)) {
-                        Log::warning('No directorate assigned to user', ['user_id' => $user->id]);
-                    }
                     $userQuery->whereHas('directorate', function ($query) use ($directorateId) {
                         $query->whereIn('directorate_id', $directorateId);
                     });
-                } elseif (in_array(4, $roleIds)) { // Project user
+                } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
                     $projectIds = $user->projects()->pluck('projects.id')->toArray();
-                    if (empty($projectIds)) {
-                        Log::warning('No projects assigned to user', ['user_id' => $user->id]);
-                    }
                     $userQuery->whereHas('projects', function ($query) use ($projectIds) {
                         $query->whereIn('projects.id', $projectIds);
                     });
-                } else { // Fallback for other roles
+                } else {
                     $userQuery->where('id', $user->id);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error in user filtering', ['user_id' => $user->id, 'error' => $e->getMessage()]);
             $data['error'] = 'Unable to load users due to an error.';
         }
 
@@ -85,6 +76,7 @@ class UserController extends Controller
             'actions' => ['view', 'edit', 'delete'],
             'deleteConfirmationMessage' => 'Are you sure you want to delete this user?',
             'arrayColumnColor' => 'purple',
+            'projectManager' => $user->isProjectManager(),
         ]);
     }
 
@@ -94,23 +86,20 @@ class UserController extends Controller
 
         $user = Auth::user();
         $roleIds = $user->roles->pluck('id')->toArray();
-        $isDirectorateOrProjectUser = in_array(3, $roleIds) || in_array(4, $roleIds); // Directorate (3) or Project (4) user
+        $isDirectorateOrProjectUser = in_array(3, $roleIds) || in_array(4, $roleIds);
         $directorateId = $user->directorate_id;
 
-        $roles = $isDirectorateOrProjectUser ? collect([]) : Role::pluck('title', 'id'); // Empty if directorate/project user
-        $directorates = $isDirectorateOrProjectUser ? collect([]) : Directorate::pluck('title', 'id'); // Empty if directorate/project user
+        $roles = $isDirectorateOrProjectUser ? collect([]) : Role::pluck('title', 'id');
+        $directorates = $isDirectorateOrProjectUser ? collect([]) : Directorate::pluck('title', 'id');
         $projects = collect([]);
 
         if ($isDirectorateOrProjectUser) {
-            if (in_array(3, $roleIds)) {
-                // Directorate user: Load all projects under their directorate
+            if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
                 $projects = Project::where('directorate_id', $directorateId)->pluck('title', 'id');
-            } elseif (in_array(4, $roleIds)) {
-                // Project user: Load only their assigned projects
+            } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
                 $projects = $user->projects()->pluck('title', 'id');
             }
         } else {
-            // Admin or other roles: Load all projects (or none, depending on your logic)
             $projects = Project::pluck('title', 'id');
         }
 
@@ -123,11 +112,9 @@ class UserController extends Controller
 
         $user = Auth::user();
         $roleIds = $user->roles->pluck('id')->toArray();
-        $isDirectorateOrProjectUser = in_array(3, $roleIds) || in_array(4, $roleIds);
+        $isDirectorateOrProjectUser = in_array(Role::DIRECTORATE_USER, $roleIds) || in_array(Role::PROJECT_USER, $roleIds);
 
         $validated = $request->validated();
-
-        // dd($validated);
 
         if ($isDirectorateOrProjectUser) {
             $validated['roles'] = [4];
@@ -154,20 +141,16 @@ class UserController extends Controller
 
         $authUser = Auth::user();
         $roleIds = $authUser->roles->pluck('id')->toArray();
-        $isDirectorateOrProjectUser = in_array(3, $roleIds) || in_array(4, $roleIds);
+        $isDirectorateOrProjectUser = in_array(Role::DIRECTORATE_USER, $roleIds) || in_array(Role::PROJECT_USER, $roleIds);
 
-        // Load the user to edit with relationships
         $user = User::with(['roles', 'directorate', 'projects'])->findOrFail($id);
 
-        // Restrict access for directorate/project users
         if ($isDirectorateOrProjectUser) {
-            if (in_array(3, $roleIds)) {
-                // Directorate user: Ensure the user to edit belongs to the same directorate
+            if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
                 if ($user->directorate_id !== $authUser->directorate_id) {
                     abort(Response::HTTP_FORBIDDEN, 'You can only edit users in your directorate.');
                 }
-            } elseif (in_array(4, $roleIds)) {
-                // Project user: Ensure the user to edit shares at least one project
+            } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
                 $authUserProjectIds = $authUser->projects()->pluck('projects.id')->toArray();
                 $userProjectIds = $user->projects()->pluck('projects.id')->toArray();
                 if (empty(array_intersect($authUserProjectIds, $userProjectIds))) {
@@ -176,33 +159,19 @@ class UserController extends Controller
             }
         }
 
-        // Set roles and directorates (empty for directorate/project users)
         $roles = $isDirectorateOrProjectUser ? collect([]) : Role::pluck('title', 'id');
         $directorates = $isDirectorateOrProjectUser ? collect([]) : Directorate::pluck('title', 'id');
 
-        // Set projects based on user role
         $projects = collect([]);
         if ($isDirectorateOrProjectUser) {
-            if (in_array(3, $roleIds)) {
-                // Directorate user: Load all projects under their directorate
+            if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
                 $projects = Project::where('directorate_id', $authUser->directorate_id)->pluck('title', 'id');
-            } elseif (in_array(4, $roleIds)) {
-                // Project user: Load only their assigned projects
+            } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
                 $projects = $authUser->projects()->pluck('title', 'id');
             }
         } else {
-            // Admin or other roles: Load all projects to ensure edited user's projects are included
             $projects = Project::pluck('title', 'id');
         }
-
-        // Log data for debugging
-        \Illuminate\Support\Facades\Log::info('Edit user data', [
-            'user_id' => $user->id,
-            'auth_user_roles' => $roleIds,
-            'is_directorate_or_project_user' => $isDirectorateOrProjectUser,
-            'projects' => $projects->toArray(),
-            'selected_projects' => $user->projects->pluck('id')->toArray(),
-        ]);
 
         return view('admin.users.edit', compact('user', 'roles', 'directorates', 'projects', 'isDirectorateOrProjectUser'));
     }
@@ -217,30 +186,24 @@ class UserController extends Controller
 
         $validated = $request->validated();
 
-        // Set default role and directorate for directorate/project users
         if ($isDirectorateOrProjectUser) {
-            $validated['roles'] = [4]; // Default role: Project User (ID 4)
-            $validated['directorate_id'] = $authUser->directorate_id; // Use authenticated user's directorate
+            $validated['roles'] = [4];
+            $validated['directorate_id'] = $authUser->directorate_id;
         }
-
-        // Handle password: Only update if provided
         if (isset($validated['password']) && !empty($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
         } else {
-            unset($validated['password']); // Remove password from update if not provided
+            unset($validated['password']);
         }
 
-        // Ensure directorate_id is not null for non-directorate/project users
         if (!$isDirectorateOrProjectUser && !isset($validated['directorate_id'])) {
-            $validated['directorate_id'] = $user->directorate_id; // Retain existing directorate_id
+            $validated['directorate_id'] = $user->directorate_id;
         }
 
         $user->update($validated);
 
-        // Sync roles (if provided, otherwise empty array to detach)
         $user->roles()->sync($validated['roles'] ?? []);
 
-        // Sync projects (if provided, otherwise empty array to detach)
         $user->projects()->sync($validated['projects'] ?? []);
 
         return redirect()->route('admin.user.index')
@@ -249,7 +212,7 @@ class UserController extends Controller
 
     public function show(User $user): View
     {
-        // abort_if(Gate::denies('user_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('user_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $user->load(['roles', 'directorate', 'projects']);
 
@@ -265,7 +228,7 @@ class UserController extends Controller
         return back()->with('message', 'User deleted successfully.');
     }
 
-    public function getProjects(Request $request, $directorateId)
+    public function getProjects($directorateId)
     {
         try {
             $projects = Project::where('directorate_id', $directorateId)
@@ -277,18 +240,8 @@ class UserController extends Controller
                 ->values()
                 ->all();
 
-            Log::info('Projects fetched for directorate_id: ' . $directorateId, [
-                'count' => count($projects),
-                'projects' => $projects,
-            ]);
-
             return response()->json($projects);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch projects for directorate_id: ' . $directorateId, [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
             return response()->json([
                 'message' => 'Failed to fetch projects: ' . $e->getMessage(),
             ], 500);

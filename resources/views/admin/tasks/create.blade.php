@@ -157,8 +157,7 @@
                                     id="status_id" :options="collect($statuses)
                                         ->map(fn($label, $value) => ['value' => (string) $value, 'label' => $label])
                                         ->values()
-                                        ->all()" :selected="old('status_id', '')"
-                                    placeholder="{{ trans('global.pleaseSelect') }}" :error="$errors->first('status_id')"
+                                        ->all()" :selected="old('status_id', collect($statuses)->keys()->first())" :error="$errors->first('status_id')"
                                     class="js-single-select" />
                             </div>
                             <div>

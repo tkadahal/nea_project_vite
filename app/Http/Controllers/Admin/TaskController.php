@@ -46,9 +46,8 @@ class TaskController extends Controller
         $statusColors = $statuses->pluck('color', 'id')->toArray();
         $priorityColors = config('colors.priority');
 
-        // Load directorates based on role
         $directorates = collect();
-        if (in_array(Role::SUPERADMIN, $roleIds)) {
+        if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
             $directorates = Directorate::all();
         } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
             $directorates = Directorate::where('id', $user->directorate_id)->get();
@@ -79,38 +78,31 @@ class TaskController extends Controller
         $taskQuery = Task::with($withRelations)->latest();
 
         try {
-            // Apply role-based filters
-            if (in_array(Role::SUPERADMIN, $roleIds)) {
-                // Superadmin: Allow directorate filter from request
+            if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
                 if ($request->filled('directorate_id')) {
                     $taskQuery->where('directorate_id', $request->input('directorate_id'));
                 }
             } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
-                // Directorate User: Filter by user's directorate
                 $taskQuery->where('directorate_id', $user->directorate_id);
             } elseif (in_array(Role::DEPARTMENT_USER, $roleIds) && $user->directorate_id) {
-                // Department User: Filter by departments under user's directorate
                 $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
                     ->pluck('id');
                 if ($departmentIds->isEmpty()) {
-                    $taskQuery->whereRaw('1 = 0'); // Force empty result if no departments
+                    $taskQuery->whereRaw('1 = 0');
                 } else {
                     $taskQuery->whereIn('department_id', $departmentIds);
                 }
             } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
-                // Project User: Filter by user's projects
                 $projectIds = $user->projects()->whereNull('deleted_at')->pluck('id');
                 if ($projectIds->isEmpty()) {
-                    $taskQuery->whereRaw('1 = 0'); // Force empty result if no projects
+                    $taskQuery->whereRaw('1 = 0');
                 } else {
                     $taskQuery->whereHas('projects', fn($q) => $q->whereIn('projects.id', $projectIds)->whereNull('deleted_at'));
                 }
             } else {
-                // Fallback: Limit to tasks assigned to the user
                 $taskQuery->whereHas('users', fn($q) => $q->where('users.id', $user->id));
             }
 
-            // Apply additional filters
             if ($request->filled('department_id')) {
                 $taskQuery->where('department_id', $request->input('department_id'));
             }
@@ -139,7 +131,6 @@ class TaskController extends Controller
 
             $tasks = $taskQuery->get();
 
-            // Load directorates for tasks to ensure view compatibility
             $taskDirectorateIds = $tasks->pluck('directorate_id')->filter()->unique()->toArray();
             $data['directorates'] = $directorates->isEmpty() && !empty($taskDirectorateIds)
                 ? Directorate::whereIn('id', $taskDirectorateIds)->get()
@@ -372,7 +363,7 @@ class TaskController extends Controller
         if ($projectId) {
             $project = Project::where('id', $projectId)
                 ->whereNull('deleted_at')
-                ->when(!in_array(Role::SUPERADMIN, $roleIds), function ($query) use ($user, $roleIds) {
+                ->when(!(in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)), function ($query) use ($user, $roleIds) {
                     if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
                         $query->where('directorate_id', $user->directorate_id);
                     } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
@@ -404,7 +395,7 @@ class TaskController extends Controller
         }
 
         if (!$projectId) {
-            if (in_array(Role::SUPERADMIN, $roleIds)) {
+            if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
                 $directorates = Directorate::pluck('title', 'id');
                 $departments = Department::pluck('title', 'id');
                 $projects = Project::whereNull('deleted_at')->pluck('title', 'id');
@@ -566,7 +557,7 @@ class TaskController extends Controller
 
             $query = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $directorateId));
 
-            if (in_array(Role::SUPERADMIN, $roleIds)) {
+            if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
                 // No additional filtering needed
             } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
                 if ($user->directorate_id != $directorateId) {
@@ -607,7 +598,7 @@ class TaskController extends Controller
 
             $query = User::query();
 
-            if (in_array(Role::SUPERADMIN, $roleIds)) {
+            if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
                 // SUPERADMIN can see all users
             } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
                 $query->where('directorate_id', $user->directorate_id);
@@ -665,7 +656,7 @@ class TaskController extends Controller
         $roleIds = $user->roles->pluck('id')->toArray();
 
         if ($project) {
-            if (!in_array(Role::SUPERADMIN, $roleIds)) {
+            if (!(in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds))) {
                 $canAccess = false;
                 if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id && $project->directorate_id == $user->directorate_id) {
                     $canAccess = true;
@@ -788,7 +779,7 @@ class TaskController extends Controller
         $roleIds = $user->roles->pluck('id')->toArray();
 
         if ($project) {
-            if (!in_array(Role::SUPERADMIN, $roleIds)) {
+            if (!(in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds))) {
                 $canAccess = false;
                 if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id && $project->directorate_id == $user->directorate_id) {
                     $canAccess = true;
@@ -809,7 +800,7 @@ class TaskController extends Controller
         $statuses = Status::pluck('title', 'id');
         $priorities = Priority::pluck('title', 'id');
 
-        if (in_array(Role::SUPERADMIN, $roleIds)) {
+        if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
             $directorates = Directorate::pluck('title', 'id');
             $departments = Department::pluck('title', 'id');
             $projects = Project::whereNull('deleted_at')->pluck('title', 'id');
@@ -996,7 +987,7 @@ class TaskController extends Controller
 
             $query = Project::where('directorate_id', $directorateId)->whereNull('deleted_at');
 
-            if (in_array(Role::SUPERADMIN, $roleIds)) {
+            if (in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds)) {
                 // No additional filtering needed
             } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
                 if ($user->directorate_id != $directorateId) {
@@ -1042,7 +1033,7 @@ class TaskController extends Controller
 
             $query = User::whereHas('projects', fn($q) => $q->whereIn('projects.id', $projectIds)->whereNull('projects.deleted_at'));
 
-            if (!in_array(Role::SUPERADMIN, $roleIds)) {
+            if (!(in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds))) {
                 if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
                     $validProjectIds = Project::whereIn('id', $projectIds)
                         ->where('directorate_id', $user->directorate_id)
@@ -1095,7 +1086,7 @@ class TaskController extends Controller
 
             $canAccess = false;
 
-            if (in_array(Role::SUPERADMIN, $roleIds)) {
+            if (in_array(Role::SUPERADMIN, $roleIds) || in_arry(Role::ADMIN, $roleIds)) {
                 $canAccess = true;
             } elseif (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id == $project->directorate_id) {
                 $canAccess = true;
@@ -1131,7 +1122,7 @@ class TaskController extends Controller
         $query = Task::with(['directorate', 'department', 'status', 'priority', 'assignedBy', 'projects']);
 
         // Apply role-based filtering
-        if (in_array(Role::SUPERADMIN, $roles)) {
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             // Superadmin: Allow request-based directorate filter if provided
             if ($request->filled('directorate_id')) {
                 $query->where('directorate_id', $request->directorate_id);
@@ -1238,7 +1229,7 @@ class TaskController extends Controller
 
         // Load available directorates and priorities (only for Superadmin and Directorate User)
         $availableDirectorates = [];
-        if (in_array(Role::SUPERADMIN, $roles)) {
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             $availableDirectorates = Directorate::all()->pluck('title', 'id')->toArray();
         } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
             $availableDirectorates = Directorate::where('id', $user->directorate_id)
@@ -1311,7 +1302,7 @@ class TaskController extends Controller
 
         $user = Auth::user();
         $roleIds = $user->roles->pluck('id')->toArray();
-        if (!in_array(Role::SUPERADMIN, $roleIds)) {
+        if (!(in_array(Role::SUPERADMIN, $roleIds) || in_array(Role::ADMIN, $roleIds))) {
             $query->where(function ($query) use ($user, $roleIds) {
                 if (in_array(Role::DIRECTORATE_USER, $roleIds) && $user->directorate_id) {
                     $query->where('directorate_id', $user->directorate_id);

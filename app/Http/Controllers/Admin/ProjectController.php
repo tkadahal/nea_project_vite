@@ -13,7 +13,6 @@ use Illuminate\View\View;
 use App\Models\Department;
 use App\Models\FiscalYear;
 use App\Models\Directorate;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -39,7 +38,7 @@ class ProjectController extends Controller
         try {
             $roleIds = $user->roles->pluck('id')->toArray();
 
-            if (!in_array(Role::SUPERADMIN, $roleIds)) {
+            if (!in_array(Role::SUPERADMIN, $roleIds) && !in_array(Role::ADMIN, $roleIds)) {
                 if (in_array(Role::DIRECTORATE_USER, $roleIds)) {
                     if ($user->directorate_id) {
                         $projectQuery->where('directorate_id', $user->directorate_id);
@@ -120,7 +119,6 @@ class ProjectController extends Controller
             trans('global.details'),
         ];
 
-        // Fetch directorates for the dropdown
         $directorates = Directorate::pluck('title', 'id');
 
         return view('admin.projects.index', [
@@ -169,6 +167,8 @@ class ProjectController extends Controller
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
+        abort_if(Gate::denies('project_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         try {
             /** @var \Illuminate\Http\Request $request */
             $data = $request->validated();
@@ -203,6 +203,8 @@ class ProjectController extends Controller
 
     public function show(Project $project): View
     {
+        abort_if(Gate::denies('project_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $project->load([
             'directorate',
             'department',
@@ -225,7 +227,6 @@ class ProjectController extends Controller
             $user->comments()->updateExistingPivot($commentId, ['read_at' => now()]);
         }
 
-        // Calculate total_budget and get latest budget ID
         $latestBudget = $project->budgets->sortByDesc('id')->first();
         $totalBudget = $latestBudget ? (float) $latestBudget->total_budget : 0.0;
         $latestBudgetId = $latestBudget ? $latestBudget->id : null;
@@ -286,6 +287,8 @@ class ProjectController extends Controller
 
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
+        abort_if(Gate::denies('project_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         try {
             /** @var \Illuminate\Http\Request $request */
             $data = $request->validated();

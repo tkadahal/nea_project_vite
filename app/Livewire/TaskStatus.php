@@ -37,7 +37,7 @@ class TaskStatus extends Component
         $user = Auth::user();
         $roles = $user->roles->pluck('id')->toArray();
 
-        if (in_array(Role::SUPERADMIN, $roles)) {
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             $this->availableDirectorates = Directorate::pluck('title', 'id')->toArray();
         } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
             $this->availableDirectorates = Directorate::where('id', $user->directorate_id)
@@ -52,23 +52,18 @@ class TaskStatus extends Component
         $user = Auth::user();
         $roles = $user->roles->pluck('id')->toArray();
 
-        if (in_array(Role::SUPERADMIN, $roles)) {
-            // Superadmin: Show all tasks
+        if (in_array(Role::SUPERADMIN, $roles) || in_array(Role::ADMIN, $roles)) {
             $this->tasks = $this->getTasks();
         } elseif (in_array(Role::DIRECTORATE_USER, $roles) && $user->directorate_id) {
-            // Directorate User: Show tasks for user's directorate only
             $this->tasks = $this->getTasks(directorateId: $user->directorate_id);
         } elseif (in_array(Role::DEPARTMENT_USER, $roles) && $user->directorate_id) {
-            // Department User: Show tasks for departments under user's directorate
             $departmentIds = Department::whereHas('directorates', fn($q) => $q->where('directorates.id', $user->directorate_id))
                 ->pluck('id');
             $this->tasks = $departmentIds->isNotEmpty() ? $this->getTasks(departmentIds: $departmentIds) : collect([]);
         } elseif (in_array(Role::PROJECT_USER, $roles)) {
-            // Project User: Show tasks for user's projects only
             $userProjectIds = $user->projects()->pluck('id');
             $this->tasks = $userProjectIds->isNotEmpty() ? $this->getTasks(projectIds: $userProjectIds) : collect([]);
         } else {
-            // Fallback: No tasks if no matching role
             $this->tasks = collect([]);
         }
     }
@@ -95,7 +90,6 @@ class TaskStatus extends Component
             }
         ])->whereNull('parent_id');
 
-        // Apply filters based on parameters
         if ($directorateId) {
             $query->where('directorate_id', $directorateId);
         } elseif ($departmentIds && $departmentIds->isNotEmpty()) {
@@ -107,7 +101,6 @@ class TaskStatus extends Component
         }
 
         return $query->latest()->take(5)->get()->map(function ($task) {
-            // If project exists, take status from pivot
             if ($task->projects->isNotEmpty() && $task->projects->first()->pivot->status_id) {
                 $pivotStatus = Status::find($task->projects->first()->pivot->status_id);
                 $status = (object) [
@@ -116,7 +109,6 @@ class TaskStatus extends Component
                     'color' => $pivotStatus?->color ?? '#DC143C',
                 ];
             } else {
-                // Fallback to task->status
                 $status = (object) [
                     'id' => $task->status?->id ?? 1,
                     'title' => $task->status?->title ?? 'Not Started',
@@ -124,7 +116,6 @@ class TaskStatus extends Component
                 ];
             }
 
-            // Subtasks mapping
             $subTasks = $task->subTasks->map(function ($subTask) {
                 if ($subTask->projects->isNotEmpty() && $subTask->projects->first()->pivot->status_id) {
                     $pivotStatus = Status::find($subTask->projects->first()->pivot->status_id);

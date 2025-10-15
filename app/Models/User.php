@@ -82,6 +82,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Project::class, 'project_user', 'user_id', 'project_id');
     }
 
+    public function isProjectManager(): bool
+    {
+        return Project::where('project_manager', $this->id)->exists();
+    }
+
     public function assignRole(Role $role): mixed
     {
         return $this->roles()->save($role);
