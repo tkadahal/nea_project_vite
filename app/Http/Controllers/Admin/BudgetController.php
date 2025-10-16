@@ -12,6 +12,7 @@ use Illuminate\View\View;
 use App\Models\FiscalYear;
 use Illuminate\Http\Request;
 use App\Imports\BudgetImport;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +44,7 @@ class BudgetController extends Controller
                     });
                 } elseif (in_array(Role::PROJECT_USER, $roleIds)) {
                     $projectIds = $user->projects()->pluck('projects.id')->toArray();
-                    $budgetQuery->whereHas('projects', function ($query) use ($projectIds) {
+                    $budgetQuery->whereHas('project', function ($query) use ($projectIds) {
                         $query->whereIn('projects.id', $projectIds);
                     });
                 } else {
@@ -454,5 +455,64 @@ class BudgetController extends Controller
 
         $budget->load('project', 'fiscalYear');
         return view('admin.budgets.remaining', compact('budget'));
+    }
+
+    // 1️⃣ List duplicates
+    public function listDuplicates()
+    {
+        $budgets = Budget::withCount('revisions')
+            ->has('revisions', '>', 1)
+            ->with('project:id,title')
+            ->get();
+
+        return view('admin.budgets.duplicates', compact('budgets'));
+    }
+
+    // 2️⃣ Clean duplicates (keep latest revision)
+    public function cleanDuplicates()
+    {
+        DB::beginTransaction();
+        $deletedCount = 0;
+
+        try {
+            $budgets = Budget::has('revisions', '>', 1)->get();
+
+            foreach ($budgets as $budget) {
+                $revisions = $budget->revisions()->orderBy('created_at')->get();
+
+                if ($revisions->count() > 1) {
+                    // Keep only the last revision (latest one)
+                    $toKeep = $revisions->last();
+                    $toDelete = $revisions->slice(0, -1);
+
+                    foreach ($toDelete as $rev) {
+                        $rev->delete();
+                        $deletedCount++;
+                    }
+
+                    // 🧩 Optional: Update main budget values with latest revision data
+                    $budget->update([
+                        'total_budget'           => $toKeep->total_budget ?? $budget->total_budget,
+                        'internal_budget'        => $toKeep->internal_budget ?? $budget->internal_budget,
+                        'government_share'       => $toKeep->government_share ?? $budget->government_share,
+                        'government_loan'        => $toKeep->government_loan ?? $budget->government_loan,
+                        'foreign_loan_budget'    => $toKeep->foreign_loan_budget ?? $budget->foreign_loan_budget,
+                        'foreign_subsidy_budget' => $toKeep->foreign_subsidy_budget ?? $budget->foreign_subsidy_budget,
+                        'budget_revision'        => 1,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.budget.duplicates')
+                ->with('success', "✅ Cleaned $deletedCount duplicate revision(s) and synced latest data.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->route('admin.budget.duplicates')
+                ->with('error', '❌ Cleanup failed: ' . $e->getMessage());
+        }
     }
 }

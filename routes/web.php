@@ -145,6 +145,8 @@ Route::group(
         Route::get('budget/{budget}/remaining', [BudgetController::class, 'remaining'])->name('budget.remaining');
 
         // Resource route last
+        Route::get('budgets/duplicates', [BudgetController::class, 'listDuplicates'])->name('budget.duplicates');
+        Route::post('budgets/clean-duplicates', [BudgetController::class, 'cleanDuplicates'])->name('budget.cleanDuplicates');
         Route::resource('budget', BudgetController::class);
 
         Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');

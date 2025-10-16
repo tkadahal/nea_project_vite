@@ -315,16 +315,15 @@ class ProjectActivityController extends Controller
     {
         $validated = $request->validated();
 
-        // Delete existing activities for the submitted project and fiscal year (allows changes)
-        ProjectActivity::where('project_id', $validated['project_id'])
-            ->where('fiscal_year_id', $validated['fiscal_year_id'])
-            ->delete();
+        // Ensure project and fiscal year match
+        $project = Project::findOrFail($projectId);
+        if ($validated['project_id'] != $projectId || $validated['fiscal_year_id'] != $fiscalYearId) {
+            return back()->withErrors(['error' => 'Project or fiscal year mismatch.']);
+        }
 
         DB::beginTransaction();
 
         try {
-            $project = Project::findOrFail($validated['project_id']);
-
             $sections = ['capital', 'recurrent'];
 
             foreach ($sections as $section) {
@@ -334,19 +333,35 @@ class ProjectActivityController extends Controller
 
                 $expenditureId = ($section === 'capital') ? 1 : 2;
                 $activities = $validated[$section];
-                $savedMap = []; // Map form index → saved ID
+                $savedMap = []; // Map form index → saved/updated ID
+                $submittedIds = collect($activities)->pluck('id')->filter()->toArray(); // For cleanup
 
-                // 1️⃣ Save parent activities first (top-level: no parent_id)
+                // Soft-delete all existing for this project/fy/section
+                ProjectActivity::where('project_id', $project->id)
+                    ->where('fiscal_year_id', $fiscalYearId)
+                    ->where('expenditure_id', $expenditureId)
+                    ->delete(); // Soft delete
+
+                // 1️⃣ Process parent activities first (top-level: no parent_id)
                 foreach ($activities as $index => $activityData) {
                     if (
                         !array_key_exists('parent_id', $activityData) ||
                         $activityData['parent_id'] === null ||
                         $activityData['parent_id'] === ''
                     ) {
+                        $activityId = $activityData['id'] ?? null;
 
-                        $activity = ProjectActivity::create([
+                        // Update if existing ID (restore from soft-deleted), else create new
+                        if ($activityId) {
+                            $activity = ProjectActivity::withTrashed()->findOrFail($activityId);
+                            $activity->restore(); // Restore if soft-deleted
+                        } else {
+                            $activity = new ProjectActivity();
+                        }
+
+                        $activity->update([
                             'project_id' => $project->id,
-                            'fiscal_year_id' => $validated['fiscal_year_id'],
+                            'fiscal_year_id' => $fiscalYearId,
                             'expenditure_id' => $expenditureId,
                             'program' => $activityData['program'],
                             'total_budget' => $activityData['total_budget'] ?? 0,
@@ -363,25 +378,51 @@ class ProjectActivityController extends Controller
                     }
                 }
 
-                // 2️⃣ Save child activities after all parents exist
+                // 2️⃣ Process child activities after all parents exist
                 foreach ($activities as $index => $activityData) {
                     if (
                         !array_key_exists('parent_id', $activityData) ||
                         $activityData['parent_id'] === null ||
                         $activityData['parent_id'] === ''
                     ) {
-                        continue; // Already saved above
+                        continue; // Already processed above
                     }
 
-                    $parentFormIndex = $activityData['parent_id'];
-                    if (!isset($savedMap[$parentFormIndex])) {
-                        Log::warning("Invalid parent_form_index '{$parentFormIndex}' for row {$index} in {$section}");
+                    $parentFormIndex = $activityData['parent_id']; // This is now real DB ID? Wait, no—in form, it's form index? Wait.
+                    // In our updated view/JS: parent_id is real DB ID for existing/new.
+                    // But in loop, $activityData['parent_id'] is the submitted value: for children, it's the parent's real DB ID.
+                    // So, no need for $savedMap[$parentFormIndex]—directly use $activityData['parent_id'] as parent DB ID.
+                    // But to ensure parent exists, we can verify it's in $savedMap or recent saves.
+
+                    // Since we process top-level first, parents are saved/updated.
+                    // For children: parent_id is direct DB ID of parent (from form).
+                    $parentDbId = $activityData['parent_id'];
+
+                    // Verify parent exists (quick check)
+                    $parentActivity = ProjectActivity::where('id', $parentDbId)
+                        ->where('project_id', $project->id)
+                        ->where('fiscal_year_id', $fiscalYearId)
+                        ->where('expenditure_id', $expenditureId)
+                        ->first();
+
+                    if (!$parentActivity) {
+                        Log::warning("Invalid parent_id '{$parentDbId}' for row {$index} in {$section}");
                         continue;
                     }
 
-                    $activity = ProjectActivity::create([
+                    $activityId = $activityData['id'] ?? null;
+
+                    // Update if existing ID (restore from soft-deleted), else create new
+                    if ($activityId) {
+                        $activity = ProjectActivity::withTrashed()->findOrFail($activityId);
+                        $activity->restore(); // Restore if soft-deleted
+                    } else {
+                        $activity = new ProjectActivity();
+                    }
+
+                    $activity->update([
                         'project_id' => $project->id,
-                        'fiscal_year_id' => $validated['fiscal_year_id'],
+                        'fiscal_year_id' => $fiscalYearId,
                         'expenditure_id' => $expenditureId,
                         'program' => $activityData['program'],
                         'total_budget' => $activityData['total_budget'] ?? 0,
@@ -391,11 +432,18 @@ class ProjectActivityController extends Controller
                         'q2' => $activityData['q2'] ?? 0,
                         'q3' => $activityData['q3'] ?? 0,
                         'q4' => $activityData['q4'] ?? 0,
-                        'parent_id' => $savedMap[$parentFormIndex],
+                        'parent_id' => $parentDbId, // Direct DB ID
                     ]);
 
                     $savedMap[$index] = $activity->id;
                 }
+
+                // 3️⃣ Permanent delete truly removed ones (not resubmitted)
+                ProjectActivity::where('project_id', $project->id)
+                    ->where('fiscal_year_id', $fiscalYearId)
+                    ->where('expenditure_id', $expenditureId)
+                    ->whereNotIn('id', $submittedIds)
+                    ->forceDelete();
             }
 
             DB::commit();
@@ -404,7 +452,8 @@ class ProjectActivityController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error("Failed to update project activities: " . $e->getMessage(), [
-                'project_id' => $validated['project_id'] ?? null,
+                'project_id' => $projectId,
+                'fiscal_year_id' => $fiscalYearId,
                 'trace' => $e->getTraceAsString()
             ]);
             return back()->withErrors(['error' => 'Failed to update project activities: ' . $e->getMessage()]);

@@ -143,13 +143,15 @@
                             <tbody id="capital-tbody">
                                 @php $capitalFormIndex = 1; @endphp
                                 @foreach ($capitalActivities->whereNull('parent_id') as $topActivity)
-                                    <tr class="projectActivity-row" data-depth="0"
-                                        data-index="{{ $capitalFormIndex }}">
+                                    <tr class="projectActivity-row" data-depth="0" data-index="{{ $capitalFormIndex }}"
+                                        data-id="{{ $topActivity->id }}" data-parent-id="">
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200">
                                             {{-- Numbering handled by JS --}}
                                         </td>
                                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
+                                            <input type="hidden" name="capital[{{ $capitalFormIndex }}][id]"
+                                                value="{{ $topActivity->id }}" />
                                             <input name="capital[{{ $capitalFormIndex }}][program]" type="text"
                                                 value="{{ old('capital.' . $capitalFormIndex . '.program', $topActivity->program) }}"
                                                 class="w-full border-0 p-1 tooltip-error" />
@@ -205,16 +207,18 @@
                                     {{-- Level 1 Children --}}
                                     @foreach ($topActivity->children as $level1Activity)
                                         <tr class="projectActivity-row" data-depth="1"
-                                            data-index="{{ $capitalFormIndex }}"
-                                            data-parent="{{ $capitalFormIndex - 1 }}">
+                                            data-index="{{ $capitalFormIndex }}" data-id="{{ $level1Activity->id }}"
+                                            data-parent-id="{{ $topActivity->id }}">
                                             <td
                                                 class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200">
                                                 {{-- Numbering by JS --}}
                                             </td>
                                             <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
+                                                <input type="hidden" name="capital[{{ $capitalFormIndex }}][id]"
+                                                    value="{{ $level1Activity->id }}" />
                                                 <input type="hidden"
                                                     name="capital[{{ $capitalFormIndex }}][parent_id]"
-                                                    value="{{ $capitalFormIndex - 1 }}">
+                                                    value="{{ $topActivity->id }}" />
                                                 <input name="capital[{{ $capitalFormIndex }}][program]"
                                                     type="text"
                                                     value="{{ old('capital.' . $capitalFormIndex . '.program', $level1Activity->program) }}"
@@ -291,15 +295,18 @@
                                         @foreach ($level1Activity->children as $level2Activity)
                                             <tr class="projectActivity-row" data-depth="2"
                                                 data-index="{{ $capitalFormIndex }}"
-                                                data-parent="{{ $capitalFormIndex - 2 }}">
+                                                data-id="{{ $level2Activity->id }}"
+                                                data-parent-id="{{ $level1Activity->id }}">
                                                 <td
                                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200">
                                                     {{-- Numbering by JS --}}
                                                 </td>
                                                 <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
+                                                    <input type="hidden" name="capital[{{ $capitalFormIndex }}][id]"
+                                                        value="{{ $level2Activity->id }}" />
                                                     <input type="hidden"
                                                         name="capital[{{ $capitalFormIndex }}][parent_id]"
-                                                        value="{{ $capitalFormIndex - 2 }}">
+                                                        value="{{ $level1Activity->id }}" />
                                                     <input name="capital[{{ $capitalFormIndex }}][program]"
                                                         type="text"
                                                         value="{{ old('capital.' . $capitalFormIndex . '.program', $level2Activity->program) }}"
@@ -387,7 +394,7 @@
                 </div>
             </div>
 
-            <!-- Recurrent Expenditure Section - Similar structure -->
+            <!-- Recurrent Expenditure Section -->
             <div class="mb-8">
                 <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                     <h3
@@ -398,7 +405,6 @@
                         <table id="recurrent-activities"
                             class="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
                             <thead>
-                                <!-- Same thead as capital -->
                                 <tr class="bg-gray-200 dark:bg-gray-600">
                                     <th
                                         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200 w-12">
@@ -446,12 +452,15 @@
                                 @php $recurrentFormIndex = 1; @endphp
                                 @foreach ($recurrentActivities->whereNull('parent_id') as $topActivity)
                                     <tr class="projectActivity-row" data-depth="0"
-                                        data-index="{{ $recurrentFormIndex }}">
+                                        data-index="{{ $recurrentFormIndex }}" data-id="{{ $topActivity->id }}"
+                                        data-parent-id="">
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200">
                                             {{-- Numbering handled by JS --}}
                                         </td>
                                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
+                                            <input type="hidden" name="recurrent[{{ $recurrentFormIndex }}][id]"
+                                                value="{{ $topActivity->id }}" />
                                             <input name="recurrent[{{ $recurrentFormIndex }}][program]"
                                                 type="text"
                                                 value="{{ old('recurrent.' . $recurrentFormIndex . '.program', $topActivity->program) }}"
@@ -509,15 +518,19 @@
                                     @foreach ($topActivity->children as $level1Activity)
                                         <tr class="projectActivity-row" data-depth="1"
                                             data-index="{{ $recurrentFormIndex }}"
-                                            data-parent="{{ $recurrentFormIndex - 1 }}">
+                                            data-id="{{ $level1Activity->id }}"
+                                            data-parent-id="{{ $topActivity->id }}">
                                             <td
                                                 class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200">
                                                 {{-- Numbering by JS --}}
                                             </td>
                                             <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
                                                 <input type="hidden"
+                                                    name="recurrent[{{ $recurrentFormIndex }}][id]"
+                                                    value="{{ $level1Activity->id }}" />
+                                                <input type="hidden"
                                                     name="recurrent[{{ $recurrentFormIndex }}][parent_id]"
-                                                    value="{{ $recurrentFormIndex - 1 }}">
+                                                    value="{{ $topActivity->id }}" />
                                                 <input name="recurrent[{{ $recurrentFormIndex }}][program]"
                                                     type="text"
                                                     value="{{ old('recurrent.' . $recurrentFormIndex . '.program', $level1Activity->program) }}"
@@ -594,15 +607,19 @@
                                         @foreach ($level1Activity->children as $level2Activity)
                                             <tr class="projectActivity-row" data-depth="2"
                                                 data-index="{{ $recurrentFormIndex }}"
-                                                data-parent="{{ $recurrentFormIndex - 2 }}">
+                                                data-id="{{ $level2Activity->id }}"
+                                                data-parent-id="{{ $level1Activity->id }}">
                                                 <td
                                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200">
                                                     {{-- Numbering by JS --}}
                                                 </td>
                                                 <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
                                                     <input type="hidden"
+                                                        name="recurrent[{{ $recurrentFormIndex }}][id]"
+                                                        value="{{ $level2Activity->id }}" />
+                                                    <input type="hidden"
                                                         name="recurrent[{{ $recurrentFormIndex }}][parent_id]"
-                                                        value="{{ $recurrentFormIndex - 2 }}">
+                                                        value="{{ $level1Activity->id }}" />
                                                     <input name="recurrent[{{ $recurrentFormIndex }}][program]"
                                                         type="text"
                                                         value="{{ old('recurrent.' . $recurrentFormIndex . '.program', $level2Activity->program) }}"
@@ -729,209 +746,241 @@
                 padding-left: 40px;
             }
         </style>
+
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://unpkg.com/@popperjs/core@2"></script>
         <script src="https://unpkg.com/tippy.js@6"></script>
+
         <script>
             $(document).ready(function() {
                 const $ = jQuery;
-
                 let capitalIndex = {{ $capitalMaxIndex + 1 }};
                 let recurrentIndex = {{ $recurrentMaxIndex + 1 }};
                 const tippyInstances = new WeakMap();
 
-                $('#project_id').on('change', function() {
+                // Helper to parse numeric input safely (handle integers/decimals)
+                function parseNumeric(val) {
+                    return parseFloat(val.replace(/,/g, '')) || 0;
+                }
+
+                // Updated selector for project_id change
+                $('.js-single-select[data-name="project_id"] .js-hidden-input').on('change', function() {
                     $('#projectActivity-form').attr('action',
                         '{{ route('admin.projectActivity.update', [$project->id, $fiscalYear->id]) }}');
                 });
 
-                // Check if all rows in a section have valid planned_budget = Q1 + Q2 + Q3 + Q4
-                function isTableValid(section) {
-                    let isValid = true;
+                // Check for partial exceeds (sum of entered quarters > planned, empty as 0)
+                function hasPartialExceed(section) {
+                    let hasExceed = false;
                     $(`#${section}-activities .projectActivity-row`).each(function() {
                         const $row = $(this);
-                        const index = $row.data('index');
-                        const plannedBudget = parseFloat($row.find('.planned-budget-input').val()) || 0;
-                        const quarterSum = Array.from($row.find('.quarter-input')).reduce((sum, input) => {
-                            return sum + (parseFloat($(input).val()) || 0);
-                        }, 0);
-                        if (Math.abs(plannedBudget - quarterSum) > 0.01) {
-                            isValid = false;
-                            validateRow(section, index); // Update error state
+                        const $plannedBudget = $row.find('.planned-budget-input');
+                        const plannedBudget = parseNumeric($plannedBudget.val());
+
+                        if (plannedBudget === 0) return true; // Skip if planned not entered
+
+                        let quarterSum = 0;
+                        $row.find('.quarter-input').each(function() {
+                            quarterSum += parseNumeric($(this).val());
+                        });
+
+                        if (quarterSum > plannedBudget + 0.01) {
+                            hasExceed = true;
+                            const message =
+                                `Partial quarters sum (${quarterSum.toFixed(2)}) already exceeds planned budget (${plannedBudget.toFixed(2)})`;
+                            $plannedBudget.addClass('error-border');
+                            $row.find('.quarter-input').addClass('error-border');
+                            updateTooltip($plannedBudget, message);
+                            $row.find('.quarter-input').each(function() {
+                                updateTooltip($(this), message);
+                            });
                         }
                     });
-                    console.log(`Table ${section} validation: ${isValid}`);
-                    return isValid;
+                    return hasExceed;
                 }
 
-                function addRow(section, parentIndex = null, depth = 0) {
-                    // Prevent adding row if table has invalid planned_budget sums
+                // Check if table is valid
+                function isTableValid(section) {
+                    $(`#${section}-activities .projectActivity-row`).each(function() {
+                        const index = $(this).data('index');
+                        validateRow(section, index);
+                    });
+                    validateParentRows(section);
+
+                    const hasFullErrors = $(`#${section}-activities .error-border`).length > 0;
+                    const hasPartial = hasPartialExceed(section);
+                    const hasErrors = hasFullErrors || hasPartial;
+
+                    console.log(`Table ${section} validation: ${!hasErrors}`);
+                    return !hasErrors;
+                }
+
+                function addRow(section, parentId = null, depth = 0) {
                     if (!isTableValid(section)) {
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text(
-                            "Cannot add row: Please ensure all rows have Planned Budget equal to the sum of Q1 + Q2 + Q3 + Q4."
+                            "Cannot add row: Please correct validation errors (Planned Budget must equal sum of quarters; child sums must not exceed parent)."
                         );
-                        console.warn(`Cannot add row in ${section}: Invalid planned budget sums`);
+                        console.warn(`Cannot add row in ${section}: Validation errors present`);
                         return;
                     }
+
                     if (depth > 2) {
                         console.warn(`Cannot add row in ${section}: Maximum depth (2) reached`);
                         return;
                     }
+
                     const type = section === 'capital' ? 'capital' : 'recurrent';
                     const index = type === 'capital' ? capitalIndex++ : recurrentIndex++;
                     const $tbody = $(`#${section}-tbody`);
+
                     if (!$tbody.length) {
                         console.error(`tbody for ${section} not found`);
                         return;
                     }
+
                     let hiddenParentInput = '';
-                    if (parentIndex !== null) {
+                    if (parentId !== null && parentId !== '') {
                         hiddenParentInput =
-                            `<input type="hidden" name="${type}[${index}][parent_id]" value="${parentIndex}">`;
+                            `<input type="hidden" name="${type}[${index}][parent_id]" value="${parentId}">`;
                     }
+
                     const html = `
-                        <tr class="projectActivity-row" data-depth="${depth}" data-index="${index}" ${parentIndex !== null ? `data-parent="${parentIndex}"` : ''}>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200"></td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
-                                ${hiddenParentInput}
-                                <input name="${type}[${index}][program]" type="text" class="w-full border-0 p-1 tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][total_budget]" type="number" step="0.01" class="w-full border-0 p-1 text-right total-budget-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][total_expense]" type="number" step="0.01" class="w-full border-0 p-1 text-right expenses-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][planned_budget]" type="number" step="0.01" class="w-full border-0 p-1 text-right planned-budget-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][q1]" type="number" step="0.01" class="w-full border-0 p-1 text-right quarter-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][q2]" type="number" step="0.01" class="w-full border-0 p-1 text-right quarter-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][q3]" type="number" step="0.01" class="w-full border-0 p-1 text-right quarter-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
-                                <input name="${type}[${index}][q4]" type="number" step="0.01" class="w-full border-0 p-1 text-right quarter-input tooltip-error" />
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">
-                                <div class="flex space-x-2 justify-center">
-                                    ${depth < 2 ? `<span class="add-sub-row cursor-pointer text-2xl text-blue-500">+</span>` : ''}
-                                    ${(depth > 0 || index > 1) ? `
-                                                                                        <span class="remove-row cursor-pointer text-2xl text-red-500">
-                                                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                                            </svg>
-                                                                                        </span>
-                                                                                    ` : ''}
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    if (parentIndex !== null) {
-                        const $parentRow = $tbody.find(`tr[data-index="${parentIndex}"]`);
+                    <tr class="projectActivity-row" data-depth="${depth}" data-index="${index}" ${parentId !== null && parentId !== '' ? `data-parent-id="${parentId}"` : 'data-parent-id=""'}>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200"></td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
+                            ${hiddenParentInput}
+                            <input name="${type}[${index}][program]" type="text" class="w-full border-0 p-1 tooltip-error" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][total_budget]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right total-budget-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][total_expense]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right expenses-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][planned_budget]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right planned-budget-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][q1]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right quarter-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][q2]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right quarter-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][q3]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right quarter-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
+                            <input name="${type}[${index}][q4]" type="text" pattern="[0-9]+(\.[0-9]{1,2})?" class="w-full border-0 p-1 text-right quarter-input tooltip-error numeric-input" />
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">
+                            <div class="flex space-x-2 justify-center">
+                                ${depth < 2 ? `<span class="add-sub-row cursor-pointer text-2xl text-blue-500">+</span>` : ''}
+                                ${(depth > 0 || index > 1) ? `<span class="remove-row cursor-pointer text-2xl text-red-500">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
+                    let subTreeRows = [];
+                    if (parentId !== null && parentId !== '') {
+                        const $parentRow = $tbody.find(`tr[data-id="${parentId}"]`);
                         if (!$parentRow.length) {
-                            console.error(`Parent row ${parentIndex} not found for insertion in ${section}`);
+                            console.error(`Parent row ${parentId} not found for insertion in ${section}`);
                             return;
                         }
-                        // Find all rows in the parent's subtree (direct children and their descendants)
-                        const subTreeRows = [];
-                        const collectSubTree = (index) => {
-                            const $children = $tbody.find(`tr[data-parent="${index}"]`);
+
+                        const collectSubTree = (pId) => {
+                            const $children = $tbody.find(`tr[data-parent-id="${pId}"]`);
                             $children.each(function() {
-                                const childIndex = $(this).data('index');
+                                const childId = $(this).data('id') || '';
                                 subTreeRows.push($(this));
-                                collectSubTree(childIndex);
+                                collectSubTree(childId);
                             });
                         };
-                        collectSubTree(parentIndex);
-                        // Insert after the last row in the subtree, or after the parent if no children
+                        collectSubTree(parentId);
+
                         const $lastRow = subTreeRows.length ? subTreeRows[subTreeRows.length - 1] : $parentRow;
                         console.log(
-                            `Inserting row ${index} in ${section} after row with index ${$lastRow.data('index')} (depth: ${depth}, parent: ${parentIndex})`
+                            `Inserting row ${index} in ${section} after ${$lastRow.data('id')} (depth: ${depth})`
                         );
                         $lastRow.after(html);
                     } else {
-                        console.log(`Appending row ${index} to ${section} tbody (depth: ${depth}, no parent)`);
+                        console.log(`Appending row ${index} to ${section}`);
                         $tbody.append(html);
                     }
+
                     const $newRow = $tbody.find(`tr[data-index="${index}"]`);
-                    console.log(`New row ${index} added to DOM in ${section}, depth: ${depth}, parent: ${parentIndex}`);
+                    console.log(`New row ${index} added, depth: ${depth}`);
+
                     updateRowNumbers(section);
                     updateTotals();
-                    validateRow(section, index);
-                    initializeTooltips($newRow.find('.tooltip-error'));
-                    if (parentIndex !== null) {
-                        restrictChildInputs(section, index, parentIndex);
-                        validateParentRow(section, parentIndex);
+
+                    if (parentId !== null && parentId !== '') {
+                        validateParentRow(section, parentId);
                     }
+
+                    initializeTooltips($newRow.find('.tooltip-error'));
                 }
 
                 function addSubRow($row) {
                     const section = $row.closest('table').attr('id').replace('-activities', '');
-                    const parentIndex = $row.data('index');
+                    const parentId = $row.data('id');
                     const depth = $row.data('depth') + 1;
+
                     if (depth > 2) {
-                        console.warn(
-                            `Cannot add sub-row in ${section}: Maximum depth (2) reached for parent ${parentIndex}`);
+                        console.warn(`Max depth reached for ${parentId}`);
                         return;
                     }
+
                     if (!isTableValid(section)) {
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text(
-                            "Cannot add sub-row: Please ensure all rows have Planned Budget equal to the sum of Q1 + Q2 + Q3 + Q4."
+                            "Cannot add sub-row: Please correct validation errors (Planned Budget must equal sum of quarters; child sums must not exceed parent)."
                         );
-                        console.warn(`Cannot add sub-row in ${section}: Invalid planned budget sums`);
+                        console.warn(`Cannot add sub-row in ${section}: Validation errors present`);
                         return;
                     }
-                    console.log(`Adding sub-row in ${section} under parent ${parentIndex} at depth ${depth}`);
-                    addRow(section, parentIndex, depth);
+
+                    console.log(`Adding sub-row under ${parentId} at depth ${depth}`);
+                    addRow(section, parentId, depth);
                 }
 
-                // Ensure event delegation for dynamically added rows
                 $(document).off('click', '.add-sub-row').on('click', '.add-sub-row', function(e) {
                     e.preventDefault();
-                    console.log('Add Sub Row clicked');
                     addSubRow($(this).closest('tr'));
                 });
 
                 $('#add-capital-row').on('click', function() {
-                    console.log('Add Capital Row clicked');
                     addRow('capital');
                 });
 
                 $('#add-recurrent-row').on('click', function() {
-                    console.log('Add Recurrent Row clicked');
                     addRow('recurrent');
                 });
 
                 $(document).on('click', '.remove-row', function() {
                     const $row = $(this).closest('tr');
                     const section = $row.closest('table').attr('id').replace('-activities', '');
-                    const parentIndex = $row.data('parent');
+                    const parentId = $row.data('parent-id');
                     const index = $row.data('index');
-                    // Remove this row and its sub-rows
-                    $(`tr[data-parent="${index}"]`).remove();
+
+                    $(`tr[data-parent-id="${$row.data('id')}"]`).remove();
                     $row.remove();
-                    console.log(`Removed row ${index} in ${section}, parent: ${parentIndex}`);
+                    console.log(`Removed row ${index} in ${section}`);
+
                     updateRowNumbers(section);
                     updateTotals();
                     validateParentRows(section);
-                    if (parentIndex) {
-                        validateParentRow(section, parentIndex);
-                        // After removal, update parents up the chain for all fields
-                        updateParentAfterRemoval(section, parentIndex);
+
+                    if (parentId) {
+                        validateParentRow(section, parentId);
                     }
                 });
-
-                function updateParentAfterRemoval(section, parentIndex) {
-                    const fields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
-                    fields.forEach(field => updateParentField(section, parentIndex, field));
-                }
 
                 function updateRowNumbers(section) {
                     const $rows = $(`#${section}-activities tbody tr`);
@@ -942,7 +991,7 @@
                     $rows.each(function() {
                         const $row = $(this);
                         const depth = $row.data('depth');
-                        const parentIndex = $row.data('parent');
+                        const parentId = $row.data('parent-id');
                         let number = '';
 
                         if (depth === 0) {
@@ -950,113 +999,74 @@
                             number = topLevelCount.toString();
                             levelOneCounts[topLevelCount] = 0;
                         } else if (depth === 1) {
-                            const parentRow = $rows.filter(`[data-index="${parentIndex}"]`);
+                            const parentRow = $rows.filter(`[data-id="${parentId}"]`);
                             const parentNumber = parentRow.find('td:first').text();
                             levelOneCounts[parentNumber] = (levelOneCounts[parentNumber] || 0) + 1;
                             number = `${parentNumber}.${levelOneCounts[parentNumber]}`;
                             levelTwoCounts[number] = 0;
                         } else if (depth === 2) {
-                            const parentRow = $rows.filter(`[data-index="${parentIndex}"]`);
+                            const parentRow = $rows.filter(`[data-id="${parentId}"]`);
                             const parentNumber = parentRow.find('td:first').text();
                             levelTwoCounts[parentNumber] = (levelTwoCounts[parentNumber] || 0) + 1;
                             number = `${parentNumber}.${levelTwoCounts[parentNumber]}`;
                         }
+
                         $row.find('td:first').text(number);
                     });
-                    console.log(`Updated row numbers for ${section}:`, $rows.map((i, el) => $(el).find('td:first')
-                        .text()).get());
                 }
 
                 function updateTotals() {
                     let capitalTotal = 0;
                     $('#capital-activities .projectActivity-row[data-depth="0"] .total-budget-input').each(function() {
-                        const value = parseFloat($(this).val()) || 0;
-                        capitalTotal += value;
+                        capitalTotal += parseNumeric($(this).val());
                     });
                     $('#capital-total').text(capitalTotal.toFixed(2));
 
                     let recurrentTotal = 0;
                     $('#recurrent-activities .projectActivity-row[data-depth="0"] .total-budget-input').each(
                         function() {
-                            const value = parseFloat($(this).val()) || 0;
-                            recurrentTotal += value;
+                            recurrentTotal += parseNumeric($(this).val());
                         });
                     $('#recurrent-total').text(recurrentTotal.toFixed(2));
                 }
 
-                function updateParentField(section, rowIndex, field) {
-                    const $row = $(`#${section}-activities tr[data-index="${rowIndex}"]`);
-                    const parentIndex = $row.data('parent');
-                    if (!parentIndex) {
-                        console.log(`No parent for row ${rowIndex} in ${section}`);
-                        return;
-                    }
-                    const $parentRow = $(`#${section}-activities tr[data-index="${parentIndex}"]`);
-                    if (!$parentRow.length) {
-                        console.error(`Parent row ${parentIndex} not found in ${section}`);
-                        return;
-                    }
-                    const $childRows = $(`#${section}-activities tr[data-parent="${parentIndex}"]`);
-                    if ($childRows.length === 0) {
-                        console.log(`No child rows for parent ${parentIndex} in ${section}`);
-                        return;
-                    }
-                    let childSum = 0;
-                    let selector;
-                    switch (field) {
-                        case 'total_budget':
-                            selector = '.total-budget-input';
-                            break;
-                        case 'total_expense':
-                            selector = '.expenses-input';
-                            break;
-                        case 'planned_budget':
-                            selector = '.planned-budget-input';
-                            break;
-                        case 'q1':
-                            selector = 'input[name*="[q1]"].quarter-input';
-                            break;
-                        case 'q2':
-                            selector = 'input[name*="[q2]"].quarter-input';
-                            break;
-                        case 'q3':
-                            selector = 'input[name*="[q3]"].quarter-input';
-                            break;
-                        case 'q4':
-                            selector = 'input[name*="[q4]"].quarter-input';
-                            break;
-                    }
-                    $childRows.each(function() {
-                        const $childInput = $(this).find(selector);
-                        const childValue = parseFloat($childInput.val()) || 0;
-                        childSum += childValue;
-                    });
-                    const $parentInput = $parentRow.find(selector);
-                    $parentInput.val(childSum.toFixed(2));
-                    console.log(`Updated parent ${parentIndex} ${field} to ${childSum.toFixed(2)} in ${section}`);
-                    // Recurse to grandparent
-                    updateParentField(section, parentIndex, field);
-                }
-
+                // Updated validateRow: Only show error when Q4 is filled (cleaner UX)
                 function validateRow(section, index) {
                     const $row = $(`#${section}-activities tr[data-index="${index}"]`);
                     const $plannedBudget = $row.find('.planned-budget-input');
                     const $quarters = $row.find('.quarter-input');
+                    const $q4 = $row.find('.quarter-input[name*="[q4]"]');
+
                     let quarterSum = 0;
                     $quarters.each(function() {
-                        quarterSum += parseFloat($(this).val()) || 0;
+                        quarterSum += parseNumeric($(this).val());
                     });
-                    const plannedBudget = parseFloat($plannedBudget.val()) || 0;
-                    if (Math.abs(quarterSum - plannedBudget) > 0.01) {
+
+                    const plannedBudget = parseNumeric($plannedBudget.val());
+
+                    let message = '';
+                    let isError = false;
+
+                    // Only validate and show error if Q4 has been filled
+                    const q4Filled = $q4.val().trim() !== '';
+
+                    if (q4Filled && Math.abs(quarterSum - plannedBudget) > 0.01) {
+                        isError = true;
+                        if (quarterSum > plannedBudget) {
+                            message =
+                                `Quarters sum (${quarterSum.toFixed(2)}) exceeds planned budget (${plannedBudget.toFixed(2)})`;
+                        } else {
+                            message =
+                                `Quarters sum (${quarterSum.toFixed(2)}) is less than planned budget (${plannedBudget.toFixed(2)}). Planned budget must equal sum of quarters.`;
+                        }
+                    }
+
+                    if (isError) {
                         $plannedBudget.addClass('error-border');
                         $quarters.addClass('error-border');
-                        updateTooltip($plannedBudget,
-                            `Quarters sum (${quarterSum.toFixed(2)}) does not match planned budget (${plannedBudget.toFixed(2)})`
-                        );
+                        updateTooltip($plannedBudget, message);
                         $quarters.each(function() {
-                            updateTooltip($(this),
-                                `Quarters sum (${quarterSum.toFixed(2)}) does not match planned budget (${plannedBudget.toFixed(2)})`
-                            );
+                            updateTooltip($(this), message);
                         });
                     } else {
                         $plannedBudget.removeClass('error-border');
@@ -1066,8 +1076,9 @@
                             updateTooltip($(this), '');
                         });
                     }
+
                     console.log(
-                        `Validated row ${index} in ${section}, quarters sum: ${quarterSum}, planned: ${plannedBudget}`
+                        `Row ${index} validated: quarters ${quarterSum}, planned ${plannedBudget}, Q4 filled: ${q4Filled}, error: ${isError}`
                     );
                 }
 
@@ -1083,93 +1094,80 @@
                     return null;
                 }
 
-                function validateParentRow(section, parentIndex, $changedRow = null) {
-                    if (!parentIndex) {
-                        console.log(`No parent for row in ${section}`);
-                        return;
-                    }
-                    const $parentRow = $(`#${section}-activities tr[data-index="${parentIndex}"]`);
+                function validateParentRow(section, parentId) {
+                    if (!parentId) return;
+
+                    const $parentRow = $(`#${section}-activities tr[data-id="${parentId}"]`);
                     if (!$parentRow.length) {
-                        console.error(`Parent row with index ${parentIndex} not found in ${section}`);
+                        console.error(`Parent ${parentId} not found`);
                         return;
                     }
-                    const $childRows = $(`#${section}-activities tr[data-parent="${parentIndex}"]`);
-                    if ($childRows.length === 0) {
-                        console.log(`No child rows found for parent index ${parentIndex} in ${section}`);
-                        return;
-                    }
-                    console.log(
-                        `Validating parent ${$parentRow.find('td:first').text()} in ${section} with ${$childRows.length} children`
-                    );
+
+                    const $childRows = $(`#${section}-activities tr[data-parent-id="${parentId}"]`);
+                    if ($childRows.length === 0) return;
 
                     const childInputs = {
                         'total_budget': '.total-budget-input',
                         'total_expense': '.expenses-input',
                         'planned_budget': '.planned-budget-input',
-                        'q1': 'input[name*="[q1]"].quarter-input',
-                        'q2': 'input[name*="[q2]"].quarter-input',
-                        'q3': 'input[name*="[q3]"].quarter-input',
-                        'q4': 'input[name*="[q4]"].quarter-input'
+                        'q1': '.quarter-input[name*="[q1]"]',
+                        'q2': '.quarter-input[name*="[q2]"]',
+                        'q3': '.quarter-input[name*="[q3]"]',
+                        'q4': '.quarter-input[name*="[q4]"]'
                     };
 
                     for (const [field, selector] of Object.entries(childInputs)) {
                         const $parentInput = $parentRow.find(selector);
-                        if ($parentInput.length === 0) {
-                            console.error(`Parent input for ${field} not found in row ${parentIndex}`);
-                            continue;
-                        }
+                        if (!$parentInput.length) continue;
+
                         let childSum = 0;
                         $childRows.each(function() {
                             const $childInput = $(this).find(selector);
-                            if ($childInput.length === 0) {
-                                console.error(
-                                    `Child input for ${field} not found in row ${$(this).find('td:first').text()}`
-                                );
-                                return;
-                            }
-                            const childValue = parseFloat($childInput.val()) || 0;
-                            childSum += childValue;
-                            console.log(`Child ${$(this).find('td:first').text()} ${field}: ${childValue}`);
+                            childSum += parseNumeric($childInput.val());
                         });
-                        const parentValue = parseFloat($parentInput.val()) || 0;
-                        console.log(
-                            `Parent ${$parentRow.find('td:first').text()} ${field}: ${parentValue}, Child Sum: ${childSum}`
-                        );
-                        if (Math.abs(childSum - parentValue) > 0.01) {
+
+                        const parentValue = parseNumeric($parentInput.val());
+
+                        if (childSum > parentValue + 0.01) {
+                            // Only error on exceed for parent-child
+                            const message =
+                                `Children sum (${childSum.toFixed(2)}) exceeds parent ${field} (${parentValue.toFixed(2)})`;
                             $parentInput.addClass('error-border');
                             $childRows.find(selector).addClass('error-border');
-                            updateTooltip($parentInput,
-                                `Parent ${field} (${parentValue.toFixed(2)}) must equal sum of children (${childSum.toFixed(2)})`
-                            );
+                            updateTooltip($parentInput, message);
                             $childRows.each(function() {
                                 const $childInput = $(this).find(selector);
-                                updateTooltip($childInput,
-                                    `Parent ${field} (${parentValue.toFixed(2)}) must equal sum of children (${childSum.toFixed(2)})`
-                                );
+                                updateTooltip($childInput, message);
                             });
                         } else {
-                            $parentInput.removeClass('error-border');
-                            $childRows.find(selector).removeClass('error-border');
-                            updateTooltip($parentInput, '');
+                            // Don't clear errors on parent input - it may have its own validation errors
+                            // Only clear errors on child inputs if they don't have their own validation errors
                             $childRows.each(function() {
-                                const $childInput = $(this).find(selector);
-                                updateTooltip($childInput, '');
+                                const $childRow = $(this);
+                                const $childInput = $childRow.find(selector);
+
+                                // Check if this child has its own validation error (quarters != planned)
+                                // Only clear if it's specifically a parent-child error
+                                const currentTooltip = tippyInstances.get($childInput[0])?.props.content || '';
+                                if (currentTooltip.includes('Children sum') || currentTooltip.includes(
+                                        'exceeds parent')) {
+                                    $childInput.removeClass('error-border');
+                                    updateTooltip($childInput, '');
+                                }
                             });
                         }
                     }
 
-                    // Validate grandparent if parent is a sub-row
-                    validateParentRow(section, $parentRow.data('parent'), $changedRow);
+                    validateParentRow(section, $parentRow.data('parent-id')); // Recurse
                 }
 
                 function validateParentRows(section) {
-                    const $rows = $(`#${section}-activities tr[data-parent]`);
-                    const parentIndexes = new Set();
+                    const $rows = $(`#${section}-activities tr[data-parent-id]`);
+                    const parentIds = new Set();
                     $rows.each(function() {
-                        parentIndexes.add($(this).data('parent'));
+                        parentIds.add($(this).data('parent-id'));
                     });
-                    console.log(`Validating ${parentIndexes.size} parent rows in ${section}`);
-                    parentIndexes.forEach(parentIndex => validateParentRow(section, parentIndex));
+                    parentIds.forEach(pId => validateParentRow(section, pId));
                 }
 
                 function initializeTooltips($elements) {
@@ -1189,8 +1187,8 @@
                 function updateTooltip($element, message) {
                     const tippyInstance = tippyInstances.get($element[0]);
                     if (tippyInstance) {
+                        tippyInstance.setContent(message);
                         if (message) {
-                            tippyInstance.setContent(message);
                             tippyInstance.show();
                         } else {
                             tippyInstance.hide();
@@ -1198,170 +1196,175 @@
                     }
                 }
 
-                function restrictChildInputs(section, childIndex, parentIndex) {
-                    const $childRow = $(`#${section}-activities tr[data-index="${childIndex}"]`);
-                    const $parentRow = $(`#${section}-activities tr[data-index="${parentIndex}"]`);
-                    const childInputs = {
-                        'total_budget': '.total-budget-input',
-                        'total_expense': '.expenses-input',
-                        'planned_budget': '.planned-budget-input',
-                        'q1': 'input[name*="[q1]"].quarter-input',
-                        'q2': 'input[name*="[q2]"].quarter-input',
-                        'q3': 'input[name*="[q3]"].quarter-input',
-                        'q4': 'input[name*="[q4]"].quarter-input'
-                    };
-
-                    $childRow.find('.tooltip-error').on('input', function() {
-                        const $input = $(this);
-                        const field = getFieldFromInput($input);
-                        if (!field) return;
-
-                        const $parentInput = $parentRow.find(childInputs[field]);
-                        const parentValue = parseFloat($parentInput.val()) || 0;
-                        let childValue = parseFloat($input.val()) || 0;
-
-                        if (childValue > parentValue && parentValue !== 0) {
-                            childValue = parentValue;
-                            $input.val(childValue.toFixed(2));
-                            $input.addClass('error-border');
-                            updateTooltip($input,
-                                `Value (${childValue.toFixed(2)}) cannot exceed parent value (${parentValue.toFixed(2)})`
-                            );
-                            updateTooltip($parentInput,
-                                `Child value (${childValue.toFixed(2)}) cannot exceed parent value (${parentValue.toFixed(2)})`
-                            );
-                        } else {
-                            $input.removeClass('error-border');
-                            updateTooltip($input, '');
-                            updateTooltip($parentInput, '');
-                        }
-
-                        validateParentRow(section, parentIndex);
-                    });
-                }
-
+                // REFACTORED: Single global handler for all validation + capping (no auto-calc)
                 $(document).on('input', '.total-budget-input, .expenses-input, .planned-budget-input, .quarter-input',
                     function() {
                         const $input = $(this);
                         const $row = $input.closest('tr');
                         const section = $row.closest('table').attr('id').replace('-activities', '');
                         const index = $row.data('index');
+                        const depth = $row.data('depth') || 0;
                         const field = getFieldFromInput($input);
-                        console.log(`Input changed in ${section} row ${index}:`, $input.attr('name'), $input
-                            .val());
-                        if ($input.hasClass('quarter-input')) {
-                            // Auto-update planned_budget to sum of quarters
-                            const quarters = $row.find('.quarter-input');
-                            let sum = 0;
-                            quarters.each(function() {
-                                sum += parseFloat($(this).val()) || 0;
+
+                        console.log(
+                            `Global input in ${section} row ${index} (depth ${depth}): ${field} = ${$input.val()}`
+                        );
+
+                        // CAPS FOR CHILDREN ONLY (merged from restrictChildInputs)
+                        if (depth > 0 && field && ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2',
+                                'q3', 'q4'
+                            ].includes(field)) {
+                            const parentId = $row.data('parent-id');
+                            const $parentRow = $(`#${section}-activities tr[data-id="${parentId}"]`);
+                            const $siblingRows = $(`#${section}-activities tr[data-parent-id="${parentId}"]`).not(
+                                $row);
+
+                            const selector = field === 'total_budget' ? '.total-budget-input' :
+                                field === 'total_expense' ? '.expenses-input' :
+                                field === 'planned_budget' ? '.planned-budget-input' :
+                                `.quarter-input[name*="[${field}]"]`;
+
+                            const $parentInput = $parentRow.find(selector);
+                            const parentValue = parseNumeric($parentInput.val());
+                            let childValue = parseNumeric($input.val());
+                            let sumSiblings = 0;
+
+                            $siblingRows.each(function() {
+                                sumSiblings += parseNumeric($(this).find(selector).val());
                             });
-                            $row.find('.planned-budget-input').val(sum.toFixed(2));
-                            // Trigger input on planned_budget to propagate if needed
-                            $row.find('.planned-budget-input').trigger('input');
+
+                            const maxAllowed = Math.max(0, parentValue - sumSiblings);
+
+                            if (childValue > maxAllowed + 0.01) {
+                                childValue = maxAllowed;
+                                $input.val(childValue.toFixed(childValue % 1 === 0 ? 0 : 2));
+                                $input.addClass('error-border');
+                                updateTooltip($input,
+                                    `Capped at remaining (${maxAllowed.toFixed(2)}) for ${field}`);
+                                $parentInput.addClass('error-border');
+                                updateTooltip($parentInput, `Children sum for ${field} exceeds parent`);
+                            } else {
+                                $input.removeClass('error-border');
+                                updateTooltip($input, '');
+                            }
+
+                            console.log(
+                                `Child capping applied for ${field}: max ${maxAllowed}, set to ${childValue}`);
                         }
+
+                        // ALWAYS VALIDATE PARENTS FIRST (hierarchy)
+                        validateParentRows(section);
+
+                        // THEN VALIDATE ROW (equality: sum == planned, catches < and >)
+                        // This ensures row validation happens after parent-child validation
                         validateRow(section, index);
-                        validateParentRows(section); // Validate all parents to ensure recursive sum checks
-                        // If this row has a parent, update the parent field and propagate up
-                        if ($row.data('depth') > 0 && field) {
-                            updateParentField(section, index, field);
-                        }
+
+                        // UPDATE TOTALS
                         updateTotals();
                     });
 
-                // Initialize tooltips for existing inputs
-                initializeTooltips($('.tooltip-error'));
-
-                // Restrict existing child inputs
-                $('.projectActivity-row[data-parent]').each(function() {
-                    const $row = $(this);
-                    const section = $row.closest('table').attr('id').replace('-activities', '');
-                    const index = $row.data('index');
-                    const parentIndex = $row.data('parent');
-                    restrictChildInputs(section, index, parentIndex);
+                // Validate numerics on blur (optional, for submission)
+                $(document).on('blur', '.numeric-input', function() {
+                    const val = $(this).val();
+                    const num = parseNumeric(val);
+                    if (!isNaN(num) && num >= 0) {
+                        $(this).val(num.toFixed(num % 1 === 0 ? 0 : 2)); // Format without forced decimals
+                    }
                 });
 
-                // Form submission handling
+                initializeTooltips($('.tooltip-error'));
+
+                // FORCE VALIDATE ALL ON LOAD (catches existing mismatches)
+                ['capital', 'recurrent'].forEach(section => {
+                    $(`#${section}-activities .projectActivity-row`).each(function() {
+                        const index = $(this).data('index');
+                        validateRow(section, index);
+                    });
+                    validateParentRows(section);
+                });
+
+                // Form submission
                 const $form = $('#projectActivity-form');
                 const $submitButton = $('#submit-button');
 
                 $form.on('submit', function(e) {
                     e.preventDefault();
+
                     if ($submitButton.prop('disabled')) return;
 
                     let hasErrors = false;
+
                     ['capital', 'recurrent'].forEach(section => {
                         $(`#${section}-activities .projectActivity-row`).each(function() {
                             const $row = $(this);
                             const index = $row.data('index');
                             const $inputs = $row.find(
-                                'input[name*="[program]"], input[name*="[total_budget]"], input[name*="[total_expense]"], input[name*="[planned_budget]"], input[name*="[q1]"], input[name*="[q2]"], input[name*="[q3]"], input[name*="[q4]"]'
-                            );
+                                'input[name*="[program]"], .numeric-input');
+
                             $inputs.each(function() {
                                 const $input = $(this);
-                                const value = $input.val();
-                                const isNumericField = $input.hasClass(
-                                    'total-budget-input') || $input.hasClass(
-                                    'expenses-input') || $input.hasClass(
-                                    'planned-budget-input') || $input.hasClass(
-                                    'quarter-input');
+                                const value = $input.val().trim();
 
-                                if (!value || (isNumericField && (isNaN(parseFloat(
-                                        value)) || parseFloat(value) < 0))) {
+                                if (!$input.is('[name*="[program]"]') && (!value ||
+                                        isNaN(parseNumeric(value)) || parseNumeric(
+                                            value) < 0)) {
                                     $input.addClass('error-border');
-                                    updateTooltip($input, isNumericField ?
-                                        'Please enter a valid non-negative number' :
-                                        'This field is required');
+                                    updateTooltip($input,
+                                        'Valid non-negative number required');
+                                    hasErrors = true;
+                                } else if (!$input.is('[name*="[program]"]') && value &&
+                                    !/^[0-9]+(\.[0-9]{1,2})?$/.test(value)) {
+                                    $input.addClass('error-border');
+                                    updateTooltip($input,
+                                        'Invalid format (up to 2 decimals)');
                                     hasErrors = true;
                                 } else {
                                     $input.removeClass('error-border');
                                     updateTooltip($input, '');
                                 }
                             });
+
+                            // For submission, force validation treating empty quarters as 0
+                            const $quarters = $row.find('.quarter-input');
+                            const originals = {};
+
+                            $quarters.each(function() {
+                                originals[$(this).attr('name')] = $(this).val();
+                                if ($(this).val().trim() === '') $(this).val('0');
+                            });
+
                             validateRow(section, index);
-                            if ($row.find('.error-border').length > 0) {
-                                hasErrors = true;
-                            }
+
+                            // Restore originals
+                            $quarters.each(function() {
+                                const name = $(this).attr('name');
+                                $(this).val(originals[name] || '');
+                            });
+
+                            if ($row.find('.error-border').length > 0) hasErrors = true;
                         });
+
                         validateParentRows(section);
-                        if ($(`#${section}-activities .error-border`).length > 0) {
-                            hasErrors = true;
-                        }
+
+                        if ($(`#${section}-activities .error-border`).length > 0) hasErrors = true;
                     });
 
-                    // if (!$('#project_id').val()) {
-                    //     $('#project_id').addClass('error-border');
-                    //     hasErrors = true;
-                    //     $("#error-message").removeClass("hidden");
-                    //     $("#error-text").text("Please select a project.");
-                    // }
-                    // if (!$('#fiscal_year_id').val()) {
-                    //     $('#fiscal_year_id').addClass('error-border');
-                    //     hasErrors = true;
-                    //     $("#error-message").removeClass("hidden");
-                    //     $("#error-text").text("Please select a fiscal year.");
-                    // }
+                    if (hasErrors) {
+                        $("#error-message").removeClass("hidden");
+                        $("#error-text").text("Please correct the validation errors before submitting.");
+                        return;
+                    }
 
-                    // if (hasErrors) {
-                    //     $("#error-message").removeClass("hidden");
-                    //     $("#error-text").text("Please correct the validation errors before submitting.");
-                    //     return;
-                    // }
+                    $submitButton.prop('disabled', true).addClass('opacity-50 cursor-not-allowed').text(
+                        '{{ trans('global.saving') }}...');
 
-                    $submitButton
-                        .prop('disabled', true)
-                        .addClass('opacity-50 cursor-not-allowed')
-                        .text('{{ trans('global.saving') }}...');
-
-                    // The hidden parent_id inputs are now added at row creation, so no need to add them here anymore
-                    // But keep this for any potential edge cases or existing rows without it
-                    $('tr[data-parent]').each(function() {
+                    $('tr[data-parent-id]').each(function() {
                         const $row = $(this);
                         if ($row.find('input[name$="[parent_id]"]').length === 0) {
-                            const parentIndex = $row.data('parent');
+                            const parentId = $row.data('parent-id');
                             const type = $row.closest('table').attr('id').replace('-activities', '');
                             $row.find('td:nth-child(2)').append(
-                                `<input type="hidden" name="${type}[${$row.data('index')}][parent_id]" value="${parentIndex}">`
+                                `<input type="hidden" name="${type}[${$row.data('index')}][parent_id]" value="${parentId}">`
                             );
                         }
                     });
@@ -1380,27 +1383,31 @@
                             window.location.href = '{{ route('admin.projectActivity.index') }}';
                         },
                         error: function(xhr) {
-                            $submitButton
-                                .prop('disabled', false)
-                                .removeClass('opacity-50 cursor-not-allowed')
-                                .text('{{ trans('global.save') }}');
+                            $submitButton.prop('disabled', false).removeClass(
+                                'opacity-50 cursor-not-allowed').text(
+                                '{{ trans('global.save') }}');
+
                             let errorMessage = xhr.responseJSON?.message ||
                                 "Failed to update activities.";
+
                             if (xhr.responseJSON?.errors) {
                                 const errors = xhr.responseJSON.errors;
                                 let errorText = errorMessage + ":<br>";
-                                $('input.tooltip-error').removeClass('error-border');
+
+                                $('.tooltip-error').removeClass('error-border');
+
                                 for (const [index, messages] of Object.entries(errors)) {
                                     const section = messages.some(msg => msg.includes('capital')) ?
                                         'capital' : 'recurrent';
                                     const $row = $(
                                         `#${section}-activities tr[data-index="${index}"]`);
+
                                     messages.forEach(msg => {
-                                        errorText +=
-                                            `Row ${parseInt(index)}: ${msg}<br>`;
+                                        errorText += `Row ${parseInt(index)}: ${msg}<br>`;
                                         const fieldMatch = msg.match(
                                             /(program|total_budget|total_expense|planned_budget|q[1-4])/i
                                         );
+
                                         if (fieldMatch) {
                                             const field = fieldMatch[1];
                                             $row.find(`input[name*="[${field}]"]`).addClass(
@@ -1410,10 +1417,12 @@
                                         }
                                     });
                                 }
+
                                 $("#error-text").html(errorText);
                             } else {
                                 $("#error-text").text(errorMessage);
                             }
+
                             $("#error-message").removeClass("hidden");
                         }
                     });
@@ -1437,11 +1446,11 @@
         </script>
 
         <script>
-            // Auto-reload on project change: Append project_id to URL and reload
             document.addEventListener('DOMContentLoaded', function() {
-                const projectSelect = document.getElementById('project_id');
-                if (projectSelect) {
-                    projectSelect.addEventListener('change', function() {
+                const projectHidden = document.querySelector(
+                    '.js-single-select[data-name="project_id"] .js-hidden-input');
+                if (projectHidden) {
+                    projectHidden.addEventListener('change', function() {
                         const url = new URL(window.location);
                         if (this.value) {
                             url.searchParams.set('project_id', this.value);
@@ -1452,17 +1461,31 @@
                     });
                 }
 
-                // Optional: Same for fiscal year if needed
-                const fiscalSelect = document.getElementById('fiscal_year_id');
-                if (fiscalSelect) {
-                    fiscalSelect.addEventListener('change', function() {
-                        // If fiscal year change also needs reload, implement similarly
-                        // const url = new URL(window.location);
-                        // url.searchParams.set('fiscal_year_id', this.value);
-                        // window.location.href = url.toString();
+                const fiscalHidden = document.querySelector(
+                    '.js-single-select[data-name="fiscal_year_id"] .js-hidden-input');
+                if (fiscalHidden) {
+                    fiscalHidden.addEventListener('change', function() {
+                        // Add reload if needed
                     });
                 }
             });
+        </script>
+
+        <script>
+            function syncDownloadValues() {
+                const projectId = $('.js-single-select[data-name="project_id"] .js-hidden-input').val() || '';
+                const fiscalYearId = $('.js-single-select[data-name="fiscal_year_id"] .js-hidden-input').val() || '';
+
+                $('#download-project-hidden').val(projectId);
+                $('#download-fiscal-hidden').val(fiscalYearId);
+
+                if (!projectId || !fiscalYearId) {
+                    alert('Please select a project and fiscal year before downloading the template.');
+                    return false;
+                }
+
+                return true;
+            }
         </script>
     @endpush
 </x-layouts.app>
