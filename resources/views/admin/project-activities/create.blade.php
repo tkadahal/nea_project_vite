@@ -58,6 +58,12 @@
                         required />
                 </div>
             </div>
+
+            <div id="budget-display" class="mt-2">
+                <span class="block text-sm text-gray-500 dark:text-gray-400">
+                    Select a project and fiscal year to view budget details.
+                </span>
+            </div>
         </div>
 
         <div
@@ -153,7 +159,8 @@
                                     </td>
                                     <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
                                         <input name="capital[1][total_budget]" type="text"
-                                            pattern="[0-9]+(\.[0-9]{1,2})?" value="{{ old('capital.1.total_budget') }}"
+                                            pattern="[0-9]+(\.[0-9]{1,2})?"
+                                            value="{{ old('capital.1.total_budget') }}"
                                             class="w-full border-0 p-1 text-right total-budget-input tooltip-error numeric-input" />
                                     </td>
                                     <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right">
@@ -493,10 +500,10 @@
                         <div class="flex space-x-2 justify-center">
                             ${depth < 2 ? `<span class="add-sub-row cursor-pointer text-2xl text-blue-500">+</span>` : ''}
                             ${(depth > 0 || index > 1) ? `<span class="remove-row cursor-pointer text-2xl text-red-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </span>` : ''}
+                                                                                                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                                                                                                        </svg>
+                                                                                                                                                    </span>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -523,7 +530,7 @@
                         const $lastRow = subTreeRows.length ? subTreeRows[subTreeRows.length - 1] : $parentRow;
                         console.log(
                             `Inserting row ${index} in ${section} after ${$lastRow.data('index')} (depth: ${depth})`
-                            );
+                        );
                         $lastRow.after(html);
                     } else {
                         console.log(`Appending row ${index} to ${section}`);
@@ -640,9 +647,9 @@
 
                     let recurrentTotal = 0;
                     $('#recurrent-activities .projectActivity-row[data-depth="0"] .total-budget-input').each(
-                function() {
-                        recurrentTotal += parseNumeric($(this).val());
-                    });
+                        function() {
+                            recurrentTotal += parseNumeric($(this).val());
+                        });
                     $('#recurrent-total').text(recurrentTotal.toFixed(2));
                 }
 
@@ -695,7 +702,7 @@
 
                     console.log(
                         `Row ${index} validated: quarters ${quarterSum}, planned ${plannedBudget}, Q4 filled: ${q4Filled}, error: ${isError}`
-                        );
+                    );
                 }
 
                 function getFieldFromInput($input) {
@@ -824,7 +831,7 @@
 
                         console.log(
                             `Global input in ${section} row ${index} (depth ${depth}): ${field} = ${$input.val()}`
-                            );
+                        );
 
                         // CAPS FOR CHILDREN ONLY (merged from restrictChildInputs)
                         if (depth > 0 && field && ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2',
@@ -856,7 +863,7 @@
                                 $input.val(childValue.toFixed(childValue % 1 === 0 ? 0 : 2));
                                 $input.addClass('error-border');
                                 updateTooltip($input,
-                                `Capped at remaining (${maxAllowed.toFixed(2)}) for ${field}`);
+                                    `Capped at remaining (${maxAllowed.toFixed(2)}) for ${field}`);
                                 $parentInput.addClass('error-border');
                                 updateTooltip($parentInput, `Children sum for ${field} exceeds parent`);
                             } else {
@@ -1022,7 +1029,7 @@
                                         errorText += `Row ${parseInt(index)}: ${msg}<br>`;
                                         const fieldMatch = msg.match(
                                             /(program|total_budget|total_expense|planned_budget|q[1-4])/i
-                                            );
+                                        );
 
                                         if (fieldMatch) {
                                             const field = fieldMatch[1];
@@ -1103,6 +1110,183 @@
                 return true;
             }
         </script>
-    @endpush
 
+        <script>
+            // Updated: Use MutationObserver to detect hidden input value changes (bypasses event firing issues)
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const projectHidden = document.querySelector(
+                    '.js-single-select[data-name="project_id"] .js-hidden-input');
+                const fiscalHidden = document.querySelector(
+                    '.js-single-select[data-name="fiscal_year_id"] .js-hidden-input');
+                const budgetDisplay = document.getElementById('budget-display');
+
+                let lastProjectValue = projectHidden ? projectHidden.value : '';
+                let lastFiscalValue = fiscalHidden ? fiscalHidden.value : '';
+
+                function loadBudgetData(trigger = 'unknown') {
+                    const projectId = projectHidden.value;
+                    const fiscalYearId = fiscalHidden.value;
+
+                    console.log(
+                        `loadBudgetData triggered by ${trigger} - Project: ${projectId}, Fiscal: ${fiscalYearId}`
+                    ); // Debug
+
+                    if (!projectId) {
+                        budgetDisplay.innerHTML =
+                            '<span class="block text-sm text-gray-500 dark:text-gray-400">Select a project to view budget details.</span>';
+                        return;
+                    }
+
+                    // Show loading
+                    budgetDisplay.innerHTML =
+                        '<span class="block text-sm text-gray-500 dark:text-gray-400">Loading budget...</span>';
+
+                    const params = new URLSearchParams({
+                        project_id: projectId,
+                        fiscal_year_id: fiscalYearId || null
+                    });
+
+                    fetch(`{{ route('admin.projectActivity.budgetData') }}?${params}`, {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                    'content')
+                            }
+                        })
+                        .then(response => {
+                            console.log('Budget fetch response status:', response.status); // Debug
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Budget AJAX success:', data); // Debug
+                            if (data.success && data.data) {
+                                const d = data.data;
+                                let fyNote = '';
+                                if (!fiscalYearId && d.fiscal_year) {
+                                    fyNote = ` (using default FY: ${d.fiscal_year})`;
+                                }
+                                budgetDisplay.innerHTML = `
+                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-300 font-medium">Total Remaining Budget${fyNote}:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">${Number(d.total).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-300">Internal:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">${Number(d.internal).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-300">Government Share:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">${Number(d.government_share).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-300">Government Loan:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">${Number(d.government_loan).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-300">Foreign Loan:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">${Number(d.foreign_loan).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-300">Foreign Subsidy:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">${Number(d.foreign_subsidy).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">
+                                Cumulative (incl. prior years): ${Number(d.cumulative).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                            } else {
+                                budgetDisplay.innerHTML =
+                                    `<span class="block text-sm text-red-500 dark:text-red-400">${data.message || 'No budget data available.'}</span>`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Budget fetch error:', error); // Debug
+                            budgetDisplay.innerHTML =
+                                '<span class="block text-sm text-red-500 dark:text-red-400">Error loading budget data. Check console.</span>';
+                        });
+                }
+
+                // MutationObserver for project changes
+                if (projectHidden) {
+                    const projectObserver = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                                const newValue = projectHidden.value;
+                                if (newValue !== lastProjectValue) {
+                                    console.log('Project value changed via observer - Old:',
+                                        lastProjectValue, 'New:', newValue); // Debug
+                                    lastProjectValue = newValue;
+                                    loadBudgetData('project-observer');
+                                }
+                            }
+                        });
+                    });
+                    projectObserver.observe(projectHidden, {
+                        attributes: true
+                    });
+
+                    // Fallback: Also add event listener
+                    projectHidden.addEventListener('change', function() {
+                        console.log('Project change fired via event - Value:', this.value); // Debug
+                        lastProjectValue = this.value;
+                        loadBudgetData('project-event');
+                    });
+                }
+
+                // MutationObserver for fiscal changes
+                if (fiscalHidden) {
+                    const fiscalObserver = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                                const newValue = fiscalHidden.value;
+                                if (newValue !== lastFiscalValue) {
+                                    console.log('Fiscal value changed via observer - Old:',
+                                        lastFiscalValue, 'New:', newValue); // Debug
+                                    lastFiscalValue = newValue;
+                                    loadBudgetData('fiscal-observer');
+                                }
+                            }
+                        });
+                    });
+                    fiscalObserver.observe(fiscalHidden, {
+                        attributes: true
+                    });
+
+                    // Fallback: Also add event listener
+                    fiscalHidden.addEventListener('change', function() {
+                        console.log('Fiscal change fired via event - Value:', this.value); // Debug
+                        lastFiscalValue = this.value;
+                        loadBudgetData('fiscal-event');
+                    });
+                }
+
+                // Initial load
+                loadBudgetData('initial');
+
+                // Your old syncDownloadValues stays the same
+                window.syncDownloadValues = function() {
+                    const projectId = projectHidden ? projectHidden.value : '';
+                    const fiscalYearId = fiscalHidden ? fiscalHidden.value : '';
+                    document.getElementById('download-project-hidden').value = projectId;
+                    document.getElementById('download-fiscal-hidden').value = fiscalYearId;
+                    if (!projectId || !fiscalYearId) {
+                        alert('Please select a project and fiscal year before downloading the template.');
+                        return false;
+                    }
+                    return true;
+                };
+            });
+        </script>
+    @endpush
 </x-layouts.app>

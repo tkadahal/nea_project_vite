@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use Exception;
 use App\Models\Role;
+use App\Models\Budget;
 use App\Models\Project;
 use Illuminate\View\View;
 use App\Models\FiscalYear;
@@ -24,7 +25,7 @@ use App\Http\Requests\ProjectActivity\StoreProjectActivityRequest;
 
 class ProjectActivityController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
         abort_if(Gate::denies('projectActivity_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -98,7 +99,7 @@ class ProjectActivityController extends Controller
         ]);
     }
 
-    public function create(Request $request): view
+    public function create(Request $request): View
     {
         abort_if(Gate::denies('projectActivity_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -467,6 +468,55 @@ class ProjectActivityController extends Controller
         $projectActivity->delete();
 
         return response()->json(['message' => 'Project activity deleted successfully'], 200);
+    }
+
+    public function getBudgetData(Request $request)
+    {
+        Log::info('BudgetData called', $request->all());
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'fiscal_year_id' => 'nullable|exists:fiscal_years,id',
+        ]);
+
+        $fiscalYearId = $request->integer('fiscal_year_id');
+        if (!$fiscalYearId) {
+            // Default to latest fiscal year (adjust query as per your model; e.g., current or max start_date)
+            $fiscalYearId = FiscalYear::orderBy('start_date', 'desc')->first()?->id;
+            if (!$fiscalYearId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No fiscal year available.',
+                    'data' => null,
+                ]);
+            }
+        }
+
+        $budget = Budget::with(['project', 'fiscalYear'])
+            ->where('project_id', $request->project_id)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->first();
+
+        if (!$budget) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No budget found.',
+                'data' => null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total' => $budget->remaining_budget,
+                'internal' => $budget->remaining_internal_budget,
+                'government_share' => $budget->remaining_government_share,
+                'government_loan' => $budget->remaining_government_loan,
+                'foreign_loan' => $budget->remaining_foreign_loan_budget,
+                'foreign_subsidy' => $budget->remaining_foreign_subsidy_budget,
+                'cumulative' => Budget::getCumulativeBudget($budget->project, $budget->fiscalYear),
+                'fiscal_year' => $budget->fiscalYear->name ?? '', // Optional: Show which FY used
+            ],
+        ]);
     }
 
     public function downloadTemplate(Request $request): Response

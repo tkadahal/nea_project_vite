@@ -97,6 +97,9 @@ Route::group(
         Route::get('/projectActivity/edit/{projectId}/{fiscalYearId}', [ProjectActivityController::class, 'edit'])
             ->name('projectActivity.edit');
 
+        Route::get('/projectActivity/budgetData', [ProjectActivityController::class, 'getBudgetData'])
+            ->name('projectActivity.budgetData');
+
         // Update route (PUT/PATCH)
         Route::put('/projectActivity/{projectId}/{fiscalYearId}', [ProjectActivityController::class, 'update'])
             ->name('projectActivity.update');
