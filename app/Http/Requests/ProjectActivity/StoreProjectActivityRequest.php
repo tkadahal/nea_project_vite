@@ -34,6 +34,8 @@ class StoreProjectActivityRequest extends FormRequest
                 'array',
                 function (string $attribute, array $value, Closure $fail) {
                     $this->validateSectionHierarchy($value, 'capital', $fail);
+                    $this->validatePlannedBudgetEqualsQuarters($value, 'capital', $fail);
+                    $this->validateParentEqualsChildrenSum($value, 'capital', $fail);
                 },
             ],
             'capital.*.program' => 'required|string|max:255',
@@ -51,6 +53,8 @@ class StoreProjectActivityRequest extends FormRequest
                 'array',
                 function (string $attribute, array $value, Closure $fail) {
                     $this->validateSectionHierarchy($value, 'recurrent', $fail);
+                    $this->validatePlannedBudgetEqualsQuarters($value, 'recurrent', $fail);
+                    $this->validateParentEqualsChildrenSum($value, 'recurrent', $fail);
                 },
             ],
             'recurrent.*.program' => 'required|string|max:255',
@@ -65,33 +69,120 @@ class StoreProjectActivityRequest extends FormRequest
         ];
     }
 
+    /**
+     * Validate that planned_budget equals sum of quarters for each row
+     */
+    private function validatePlannedBudgetEqualsQuarters(array $data, string $section, Closure $fail): void
+    {
+        foreach ($data as $index => $row) {
+            $rowNum = $index + 1;
+
+            $q1 = (float) ($row['q1'] ?? 0);
+            $q2 = (float) ($row['q2'] ?? 0);
+            $q3 = (float) ($row['q3'] ?? 0);
+            $q4 = (float) ($row['q4'] ?? 0);
+            $plannedBudget = (float) ($row['planned_budget'] ?? 0);
+
+            $quarterSum = $q1 + $q2 + $q3 + $q4;
+
+            // Allow small floating point differences (0.01)
+            if (abs($quarterSum - $plannedBudget) > 0.01) {
+                $fail("Planned budget must equal sum of quarters for {$section} row {$rowNum}. " .
+                    "Quarters sum: {$quarterSum}, Planned budget: {$plannedBudget}");
+            }
+        }
+    }
+
+    /**
+     * Validate that parent values equal sum of direct children for all numeric columns
+     */
+    private function validateParentEqualsChildrenSum(array $data, string $section, Closure $fail): void
+    {
+        $numericFields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
+
+        // Build children mapping: parentIndex => [childIndex1, childIndex2, ...]
+        $childrenMap = [];
+        foreach ($data as $index => $row) {
+            if (isset($row['parent_id']) && $row['parent_id'] !== '' && $row['parent_id'] !== null) {
+                $parentIndex = (int) $row['parent_id'];
+                if (!isset($childrenMap[$parentIndex])) {
+                    $childrenMap[$parentIndex] = [];
+                }
+                $childrenMap[$parentIndex][] = $index;
+            }
+        }
+
+        // Validate each parent
+        foreach ($childrenMap as $parentIndex => $childIndices) {
+            if (!isset($data[$parentIndex])) {
+                continue; // Parent doesn't exist (will be caught by hierarchy validation)
+            }
+
+            $parentRow = $data[$parentIndex];
+            $rowNum = $parentIndex + 1;
+
+            foreach ($numericFields as $field) {
+                $parentValue = (float) ($parentRow[$field] ?? 0);
+                $childrenSum = 0;
+
+                foreach ($childIndices as $childIndex) {
+                    $childrenSum += (float) ($data[$childIndex][$field] ?? 0);
+                }
+
+                // Allow small floating point differences (0.01)
+                if (abs($parentValue - $childrenSum) > 0.01) {
+                    $fail("Parent must equal sum of children for {$section} row {$rowNum}, field '{$field}'. " .
+                        "Parent: {$parentValue}, Children sum: {$childrenSum}");
+                }
+            }
+        }
+    }
+
+    /**
+     * Validate hierarchy structure
+     */
     private function validateSectionHierarchy(array $data, string $section, Closure $fail): void
     {
         $indices = array_keys($data);
         Log::info('Section: ' . $section . ', Data keys: ' . json_encode($indices));
 
+        // Track depth to prevent more than 2 levels
+        $depthMap = [];
+
         foreach ($data as $index => $row) {
             $rowNum = $index + 1;
-            $parentId = $row['parent_id'] ?? 'N/A';
+            $parentId = $row['parent_id'] ?? null;
+
             Log::info("Row {$rowNum} (index {$index}), parent_id: " . json_encode($parentId) .
-                ", program: " . json_encode($row['program'] ?? '') .
-                ", has_budget: " . json_encode($this->any_budget_positive($row)));
+                ", program: " . json_encode($row['program'] ?? ''));
 
-            // Skip rows with no parent
-            if (!isset($row['parent_id']) || $row['parent_id'] === '' || $row['parent_id'] === null) {
-                continue;
-            }
+            // Calculate depth
+            if ($parentId === null || $parentId === '' || $parentId === 'null') {
+                $depthMap[$index] = 0; // Top level
+            } else {
+                $parentIndex = (int) $parentId;
 
-            $parentIndex = (int) $row['parent_id'];
+                // Validate parent exists
+                if ($parentIndex < 0 || !array_key_exists($parentIndex, $data)) {
+                    $fail("Invalid parent_id for {$section} row {$rowNum}: Parent activity not found");
+                    continue;
+                }
 
-            if ($parentIndex < 0 || !array_key_exists($parentIndex, $data)) {
-                $fail("Invalid parent_id for {$section} row {$rowNum}: Parent activity not found or not saved");
-                continue;
-            }
+                // Validate parent comes before child
+                if ($parentIndex >= $index) {
+                    $fail("Parent must precede child in {$section} row {$rowNum}");
+                    continue;
+                }
 
-            if ($parentIndex >= $index) {
-                $fail("Parent must precede child in {$section} row {$rowNum}");
-                continue;
+                // Calculate depth
+                $parentDepth = $depthMap[$parentIndex] ?? 0;
+                $depthMap[$index] = $parentDepth + 1;
+
+                // Validate max depth of 2 (0, 1, 2)
+                if ($depthMap[$index] > 2) {
+                    $fail("Maximum hierarchy depth exceeded for {$section} row {$rowNum}. Maximum allowed depth is 2.");
+                    continue;
+                }
             }
         }
     }
@@ -206,9 +297,9 @@ class StoreProjectActivityRequest extends FormRequest
         Log::info("Final {$sectionName} after mapping: " . json_encode(array_keys($filteredData)) .
             ", Sample parent_ids: " . json_encode($parentIds));
 
-        // 🔧 Fix: Clean and remap parent_ids properly
+        // Clean and remap parent_ids properly
         foreach ($filteredData as $newIndex => &$row) {
-            if (!isset($row['parent_id']) || $row['parent_id'] === '' || $row['parent_id'] === null) {
+            if (!isset($row['parent_id']) || $row['parent_id'] === '' || $row['parent_id'] === null || $row['parent_id'] === 'null') {
                 unset($row['parent_id']);
                 continue;
             }

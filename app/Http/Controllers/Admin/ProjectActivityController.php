@@ -33,13 +33,13 @@ class ProjectActivityController extends Controller
             ->select(
                 'project_id',
                 'fiscal_year_id',
-                DB::raw('SUM(CASE WHEN expenditure_id = 1 THEN total_budget ELSE 0 END) as capital_budget'),
-                DB::raw('SUM(CASE WHEN expenditure_id = 2 THEN total_budget ELSE 0 END) as recurrent_budget'),
-                DB::raw('SUM(total_budget) as total_budget'),
+                DB::raw('SUM(CASE WHEN parent_id IS NULL AND expenditure_id = 1 THEN total_budget ELSE 0 END) as capital_budget'),
+                DB::raw('SUM(CASE WHEN parent_id IS NULL AND expenditure_id = 2 THEN total_budget ELSE 0 END) as recurrent_budget'),
+                DB::raw('SUM(CASE WHEN parent_id IS NULL THEN total_budget ELSE 0 END) as total_budget'),
                 DB::raw('MAX(created_at) as latest_created_at')
             )
             ->groupBy('project_id', 'fiscal_year_id')
-            ->havingRaw('SUM(total_budget) > 0')
+            ->havingRaw('SUM(CASE WHEN parent_id IS NULL THEN total_budget ELSE 0 END) > 0')
             ->orderBy('latest_created_at', 'desc');
 
         try {
