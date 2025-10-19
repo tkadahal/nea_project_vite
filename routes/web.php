@@ -26,6 +26,7 @@ use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Admin\ProjectActivityController;
 use App\Http\Controllers\Admin\ContractExtensionController;
 use App\Http\Controllers\Admin\AnalyticalDashboardController;
+use App\Http\Controllers\Admin\BudgetQuaterAllocationController;
 
 // Route::get('/', function () {
 //     return redirect()->route('login');
@@ -151,6 +152,10 @@ Route::group(
         Route::get('budgets/duplicates', [BudgetController::class, 'listDuplicates'])->name('budget.duplicates');
         Route::post('budgets/clean-duplicates', [BudgetController::class, 'cleanDuplicates'])->name('budget.cleanDuplicates');
         Route::resource('budget', BudgetController::class);
+
+        //Budget Quater Allocation Routes
+        Route::post('/budget-quater-allocations/load-budgets', [BudgetQuaterAllocationController::class, 'loadBudgets'])->name('budgetQuaterAllocations.loadBudgets');
+        Route::resource('budgetQuaterAllocation', BudgetQuaterAllocationController::class);
 
         Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');
         Route::get('budgets/available', [ExpenseController::class, 'availableBudget'])->name('budgets.available');

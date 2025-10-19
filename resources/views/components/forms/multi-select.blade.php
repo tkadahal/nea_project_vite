@@ -147,7 +147,7 @@
             const $container = $('#{{ $uniqueId }}');
             const $dropdown = $container.find(".js-dropdown");
             const $optionsContainer = $container.find(".js-options-container");
-            const $searchInput = $container.find(".js-search-input");
+            const $searchInputs = $container.find(".js-search-input");
             const $noOptions = $container.find(".js-no-options");
             const name = $container.attr("data-name");
             const placeholder = $container.attr("data-placeholder");
@@ -189,8 +189,11 @@
             function renderOptions() {
                 console.log('Rendering options for #{{ $uniqueId }}:', options);
                 $optionsContainer.empty();
+
+                // Get search value from dropdown search input
+                const searchValue = $container.find('.js-dropdown .js-search-input').val() || '';
                 const filteredOptions = options.filter(opt =>
-                    opt.label.toLowerCase().includes($searchInput.val().toLowerCase())
+                    opt.label.toLowerCase().includes(searchValue.toLowerCase())
                 );
 
                 if (filteredOptions.length === 0) {
@@ -234,8 +237,12 @@
                     `);
                     $selectedContainer.prepend($optionSpan);
                 });
-                $searchInput.attr('placeholder', selected.length ? '' : placeholder);
-                $searchInput.trigger('change'); // Support Livewire or other frameworks
+
+                // Update placeholder for main search input
+                const $mainSearchInput = $container.find('.js-multi-select-container .js-search-input');
+                $mainSearchInput.attr('placeholder', selected.length ? '' : placeholder);
+                $mainSearchInput.trigger('change');
+
                 if (window.Livewire) {
                     window.Livewire.dispatch('input', {
                         name: name,
@@ -247,21 +254,24 @@
             renderOptions();
             updateSelected();
 
-            $searchInput.on('focus', function() {
+            // Open dropdown when clicking on main search input
+            $container.find('.js-multi-select-container .js-search-input').on('focus', function() {
                 $dropdown.removeClass('hidden');
                 renderOptions();
             });
 
-            $searchInput.on('input', function() {
+            // Handle search in dropdown
+            $container.find('.js-dropdown .js-search-input').on('input', function() {
                 renderOptions();
             });
 
-            $searchInput.on('keydown', function(e) {
+            $searchInputs.on('keydown', function(e) {
                 if (e.key === 'Escape') {
                     $dropdown.addClass("hidden");
                 }
             });
 
+            // FIXED: Clear search input after selection
             $optionsContainer.on('click', '.js-option', function(e) {
                 e.preventDefault();
                 const value = String($(this).data("value"));
@@ -272,7 +282,15 @@
                 }
                 $container.data("selected", selected);
                 updateSelected();
+
+                // Clear BOTH search inputs
+                $searchInputs.val('');
+
                 renderOptions();
+
+                // Optional: Keep dropdown open for multiple selections
+                // Comment out the next line if you want dropdown to close after each selection
+                // $dropdown.addClass("hidden");
             });
 
             $container.find('.js-select-all').on('click', function() {
@@ -317,6 +335,8 @@
                 const $target = $(e.target);
                 if (!$container.is($target) && $container.find($target).length === 0) {
                     $dropdown.addClass("hidden");
+                    // Clear search input when closing dropdown
+                    $searchInputs.val('');
                 }
             });
         }

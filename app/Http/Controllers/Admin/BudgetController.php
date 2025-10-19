@@ -73,6 +73,7 @@ class BudgetController extends Controller
         $data = $budgets->map(function ($budget) {
             return [
                 'id' => $budget->id,
+                'project_id' => $budget->project_id,
                 'fiscal_year' => $budget->fiscalYear->title,
                 'project' => $budget->project->title,
                 'total_budget' => $budget->total_budget,
@@ -90,7 +91,7 @@ class BudgetController extends Controller
             'data' => $data,
             'budgets' => $budgets,
             'routePrefix' => 'admin.budget',
-            'actions' => ['view', 'edit', 'delete'],
+            'actions' => ['view', 'edit', 'delete', 'quarterly'],
             'deleteConfirmationMessage' => 'Are you sure you want to delete this project budget?',
         ]);
     }

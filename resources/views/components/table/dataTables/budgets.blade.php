@@ -48,21 +48,23 @@
                 <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                     data-search="{{ collect($row)->flatten()->implode(' ') }}">
                     @foreach ($row as $key => $value)
-                        <td class="py-3 px-6 text-left">
-                            @if (is_array($value))
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach ($value as $item)
-                                        @if (is_array($item))
-                                            <x-forms.badge :title="$item['title']" :color="$item['color'] ?? $arrayColumnColor" />
-                                        @else
-                                            <x-forms.badge :title="$item" :color="$arrayColumnColor" />
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @else
-                                {{ $value }}
-                            @endif
-                        </td>
+                        @if ($key !== 'project_id')
+                            <td class="py-3 px-6 text-left">
+                                @if (is_array($value))
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach ($value as $item)
+                                            @if (is_array($item))
+                                                <x-forms.badge :title="$item['title']" :color="$item['color'] ?? $arrayColumnColor" />
+                                            @else
+                                                <x-forms.badge :title="$item" :color="$arrayColumnColor" />
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @else
+                                    {{ $value }}
+                                @endif
+                            </td>
+                        @endif
                     @endforeach
                     <td class="py-3 px-6 text-left">
                         <div class="flex space-x-2">
@@ -88,6 +90,12 @@
                                         {{ trans('global.delete') }}
                                     </button>
                                 </form>
+                            @endcan
+                            @can('budgetQuaterAllocation_create')
+                                <a href="{{ route('admin.budgetQuaterAllocation.create') }}?project_id={{ $row['project_id'] }}"
+                                    class="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700 text-sm">
+                                    Quarterly Allocation
+                                </a>
                             @endcan
                         </div>
                     </td>
