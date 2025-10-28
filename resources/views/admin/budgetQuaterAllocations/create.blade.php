@@ -2,7 +2,7 @@
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100" id="page-title">
             Quarterly Budget Allocation for {{ $firstProject->title ?? '' }} -
-            {{ $currentFiscalYear->title ?? 'Current Fiscal Year' }}
+            {{ $selectedFiscalYear->title ?? 'Current Fiscal Year' }}
         </h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
             {{ trans('global.create') }} Quarterly Budget Allocation
@@ -115,22 +115,26 @@
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
                                             <input type="number" name="q1_allocations[]" min="0" step="0.01"
-                                                value="" placeholder="0" class="excel-input" required>
+                                                value="{{ $row['q1'] ?? 0 }}" placeholder="0" class="excel-input"
+                                                required>
                                         </td>
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
                                             <input type="number" name="q2_allocations[]" min="0" step="0.01"
-                                                value="" placeholder="0" class="excel-input" required>
+                                                value="{{ $row['q2'] ?? 0 }}" placeholder="0" class="excel-input"
+                                                required>
                                         </td>
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
                                             <input type="number" name="q3_allocations[]" min="0" step="0.01"
-                                                value="" placeholder="0" class="excel-input" required>
+                                                value="{{ $row['q3'] ?? 0 }}" placeholder="0" class="excel-input"
+                                                required>
                                         </td>
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
                                             <input type="number" name="q4_allocations[]" min="0" step="0.01"
-                                                value="" placeholder="0" class="excel-input" required>
+                                                value="{{ $row['q4'] ?? 0 }}" placeholder="0" class="excel-input"
+                                                required>
                                         </td>
                                     </tr>
                                 @empty
@@ -409,16 +413,16 @@
                                 ${parseFloat(row.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                             </td>
                             <td class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
-                                <input type="number" name="q1_allocations[]" min="0" step="0.01" value="" placeholder="0" class="excel-input" required>
+                                <input type="number" name="q1_allocations[]" min="0" step="0.01" value="${(parseFloat(row.q1 || 0)).toFixed(2)}" placeholder="0" class="excel-input" required>
                             </td>
                             <td class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
-                                <input type="number" name="q2_allocations[]" min="0" step="0.01" value="" placeholder="0" class="excel-input" required>
+                                <input type="number" name="q2_allocations[]" min="0" step="0.01" value="${(parseFloat(row.q2 || 0)).toFixed(2)}" placeholder="0" class="excel-input" required>
                             </td>
                             <td class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
-                                <input type="number" name="q3_allocations[]" min="0" step="0.01" value="" placeholder="0" class="excel-input" required>
+                                <input type="number" name="q3_allocations[]" min="0" step="0.01" value="${(parseFloat(row.q3 || 0)).toFixed(2)}" placeholder="0" class="excel-input" required>
                             </td>
                             <td class="border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 relative">
-                                <input type="number" name="q4_allocations[]" min="0" step="0.01" value="" placeholder="0" class="excel-input" required>
+                                <input type="number" name="q4_allocations[]" min="0" step="0.01" value="${(parseFloat(row.q4 || 0)).toFixed(2)}" placeholder="0" class="excel-input" required>
                             </td>
                         `;
                             tbody.appendChild(tr);
@@ -537,7 +541,8 @@
 
                     if (!validateAllRows()) {
                         alert(
-                            'Please correct all validation errors before submitting. Sum of quarters must equal the amount for each row.');
+                            'Please correct all validation errors before submitting. Sum of quarters must equal the amount for each row.'
+                            );
                         return;
                     }
 

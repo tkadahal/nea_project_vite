@@ -13,13 +13,13 @@ use App\Models\FiscalYear;
 use Illuminate\Http\Request;
 use App\Models\ProjectActivity;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Exports\ProjectActivityTemplateExport;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Requests\ProjectActivity\StoreProjectActivityRequest;
 
@@ -140,6 +140,23 @@ class ProjectActivityController extends Controller
     {
         $validated = $request->validated();
 
+        $projectId = $validated['project_id'];
+        $fiscalYearId = $validated['fiscal_year_id'];
+        $totalPlannedBudget = (float) ($validated['total_planned_budget'] ?? 0);
+
+        $budget = Budget::where('project_id', $projectId)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->first();
+
+        $remainingBudget = $budget ? (float) $budget->total_budget : 0.0;
+
+        throw_if(
+            $totalPlannedBudget > $remainingBudget,
+            ValidationException::withMessages([
+                'total_planned_budget' => 'Planned budget is greater than the remaining budget for this fiscal year.'
+            ])
+        );
+
         DB::beginTransaction();
 
         try {
@@ -195,7 +212,6 @@ class ProjectActivityController extends Controller
 
                     $parentFormIndex = $activityData['parent_id'];
                     if (!isset($savedMap[$parentFormIndex])) {
-                        Log::warning("Invalid parent_form_index '{$parentFormIndex}' for row {$index} in {$section}");
                         continue;
                     }
 
@@ -223,10 +239,6 @@ class ProjectActivityController extends Controller
             return redirect()->route('admin.projectActivity.index')->with('success', 'Project activities saved successfully!');
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error("Failed to save project activities: " . $e->getMessage(), [
-                'project_id' => $validated['project_id'] ?? null,
-                'trace' => $e->getTraceAsString()
-            ]);
             return back()->withErrors(['error' => 'Failed to save project activities: ' . $e->getMessage()]);
         }
     }
@@ -389,12 +401,6 @@ class ProjectActivityController extends Controller
                         continue; // Already processed above
                     }
 
-                    $parentFormIndex = $activityData['parent_id']; // This is now real DB ID? Wait, no—in form, it's form index? Wait.
-                    // In our updated view/JS: parent_id is real DB ID for existing/new.
-                    // But in loop, $activityData['parent_id'] is the submitted value: for children, it's the parent's real DB ID.
-                    // So, no need for $savedMap[$parentFormIndex]—directly use $activityData['parent_id'] as parent DB ID.
-                    // But to ensure parent exists, we can verify it's in $savedMap or recent saves.
-
                     // Since we process top-level first, parents are saved/updated.
                     // For children: parent_id is direct DB ID of parent (from form).
                     $parentDbId = $activityData['parent_id'];
@@ -407,7 +413,6 @@ class ProjectActivityController extends Controller
                         ->first();
 
                     if (!$parentActivity) {
-                        Log::warning("Invalid parent_id '{$parentDbId}' for row {$index} in {$section}");
                         continue;
                     }
 
@@ -452,11 +457,6 @@ class ProjectActivityController extends Controller
             return redirect()->route('admin.projectActivity.index')->with('success', 'Project activities updated successfully!');
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error("Failed to update project activities: " . $e->getMessage(), [
-                'project_id' => $projectId,
-                'fiscal_year_id' => $fiscalYearId,
-                'trace' => $e->getTraceAsString()
-            ]);
             return back()->withErrors(['error' => 'Failed to update project activities: ' . $e->getMessage()]);
         }
     }
@@ -470,9 +470,8 @@ class ProjectActivityController extends Controller
         return response()->json(['message' => 'Project activity deleted successfully'], 200);
     }
 
-    public function getBudgetData(Request $request)
+    public function getBudgetData(Request $request): Response
     {
-        Log::info('BudgetData called', $request->all());
         $request->validate([
             'project_id' => 'required|exists:projects,id',
             'fiscal_year_id' => 'nullable|exists:fiscal_years,id',
@@ -480,15 +479,28 @@ class ProjectActivityController extends Controller
 
         $fiscalYearId = $request->integer('fiscal_year_id');
         if (!$fiscalYearId) {
-            // Default to latest fiscal year (adjust query as per your model; e.g., current or max start_date)
-            $fiscalYearId = FiscalYear::orderBy('start_date', 'desc')->first()?->id;
+            $fiscalYears = FiscalYear::getFiscalYearOptions();
+            foreach ($fiscalYears as $option) {
+                if (($option['selected'] ?? false) === true) {
+                    $fiscalYearId = (int) $option['value'];
+                    break;
+                }
+            }
             if (!$fiscalYearId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No fiscal year available.',
+                    'message' => 'No fiscal year selected or available.',
                     'data' => null,
                 ]);
             }
+        }
+
+        if (!FiscalYear::where('id', $fiscalYearId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid fiscal year.',
+                'data' => null,
+            ]);
         }
 
         $budget = Budget::with(['project', 'fiscalYear'])
@@ -514,7 +526,7 @@ class ProjectActivityController extends Controller
                 'foreign_loan' => $budget->remaining_foreign_loan_budget,
                 'foreign_subsidy' => $budget->remaining_foreign_subsidy_budget,
                 'cumulative' => Budget::getCumulativeBudget($budget->project, $budget->fiscalYear),
-                'fiscal_year' => $budget->fiscalYear->name ?? '', // Optional: Show which FY used
+                'fiscal_year' => $budget->fiscalYear->name ?? '',
             ],
         ]);
     }
@@ -576,12 +588,6 @@ class ProjectActivityController extends Controller
             $projectName = trim((string) $capitalSheet->getCell('A1')->getValue()); // Changed to getValue()
             $fiscalYearName = trim((string) $capitalSheet->getCell('G1')->getValue()); // Changed to G1 and getValue()
 
-            // Debug logging (remove after testing)
-            Log::info('Excel Debug - A1 Raw: ' . $capitalSheet->getCell('A1')->getValue());
-            Log::info('Excel Debug - G1 Raw: ' . $capitalSheet->getCell('G1')->getValue());
-            Log::info('Excel Debug - A1 Trimmed: ' . $projectName);
-            Log::info('Excel Debug - G1 Trimmed: ' . $fiscalYearName);
-
             if (empty($projectName)) {
                 throw new Exception('Project title missing in Excel cell A1 on Capital sheet. Please select a project before downloading the template.');
             }
@@ -635,7 +641,6 @@ class ProjectActivityController extends Controller
                 ->with('success', 'Excel uploaded and activities created successfully!');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Excel upload failed: ' . $e->getMessage());
 
             return back()->withErrors(['excel_file' => 'Upload failed: ' . $e->getMessage()]);
         }

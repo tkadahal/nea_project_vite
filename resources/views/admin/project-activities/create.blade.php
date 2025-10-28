@@ -41,6 +41,9 @@
         enctype="multipart/form-data">
         @csrf
 
+        <input type="hidden" name="total_budget" id="hidden-total-budget" value="0.00">
+        <input type="hidden" name="total_planned_budget" id="hidden-total-planned-budget" value="0.00">
+
         <div
             class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex flex-col md:flex-row gap-4">
@@ -206,8 +209,13 @@
                         class="mt-4 bg-green-500 text-white px-4 py-2 rounded">
                         Add New Row
                     </button>
-                    <div class="mt-4 text-lg font-bold">
-                        Total Capital Budget: <span id="capital-total">0.00</span>
+                    <div class="mt-4 flex justify-between">
+                        <div class="text-lg font-bold">
+                            Total Capital Budget: <span id="capital-total">0.00</span>
+                        </div>
+                        <div class="text-lg font-bold">
+                            Total Capital Planned Budget: <span id="capital-planned-total">0.00</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -326,9 +334,23 @@
                         class="mt-4 bg-green-500 text-white px-4 py-2 rounded">
                         Add New Row
                     </button>
-                    <div class="mt-4 text-lg font-bold">
-                        Total Recurrent Budget: <span id="recurrent-total">0.00</span>
+                    <div class="mt-4 flex justify-between">
+                        <div class="text-lg font-bold">
+                            Total Recurrent Budget: <span id="recurrent-total">0.00</span>
+                        </div>
+                        <div class="text-lg font-bold">
+                            Total Recurrent Planned Budget: <span id="recurrent-planned-total">0.00</span>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-between">
+                <div class="text-lg font-bold">
+                    Total Budget: <span id="overall-total">0.00</span>
+                </div>
+                <div class="text-lg font-bold">
+                    Total Planned Budget: <span id="overall-planned-total">0.00</span>
                 </div>
             </div>
 
@@ -500,10 +522,10 @@
                         <div class="flex space-x-2 justify-center">
                             ${depth < 2 ? `<span class="add-sub-row cursor-pointer text-2xl text-blue-500">+</span>` : ''}
                             ${(depth > 0 || index > 1) ? `<span class="remove-row cursor-pointer text-2xl text-red-500">
-                                                                                                                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                                                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                                                                                                                        </svg>
-                                                                                                                                                                    </span>` : ''}
+                                                                                                                                                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                                                                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                                                                                                                                                                </svg>
+                                                                                                                                                                                                            </span>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -645,12 +667,34 @@
                     });
                     $('#capital-total').text(capitalTotal.toFixed(2));
 
+                    let capitalPlannedTotal = 0;
+                    $('#capital-activities .projectActivity-row[data-depth="0"] .planned-budget-input').each(
+                        function() {
+                            capitalPlannedTotal += parseNumeric($(this).val());
+                        });
+                    $('#capital-planned-total').text(capitalPlannedTotal.toFixed(2));
+
                     let recurrentTotal = 0;
                     $('#recurrent-activities .projectActivity-row[data-depth="0"] .total-budget-input').each(
                         function() {
                             recurrentTotal += parseNumeric($(this).val());
                         });
                     $('#recurrent-total').text(recurrentTotal.toFixed(2));
+
+                    let recurrentPlannedTotal = 0;
+                    $('#recurrent-activities .projectActivity-row[data-depth="0"] .planned-budget-input').each(
+                        function() {
+                            recurrentPlannedTotal += parseNumeric($(this).val());
+                        });
+                    $('#recurrent-planned-total').text(recurrentPlannedTotal.toFixed(2));
+
+                    let overallTotal = capitalTotal + recurrentTotal;
+                    $('#overall-total').text(overallTotal.toFixed(2));
+                    $('#hidden-total-budget').val(overallTotal.toFixed(2));
+
+                    let overallPlannedTotal = capitalPlannedTotal + recurrentPlannedTotal;
+                    $('#overall-planned-total').text(overallPlannedTotal.toFixed(2));
+                    $('#hidden-total-planned-budget').val(overallPlannedTotal.toFixed(2));
                 }
 
                 // Updated validateRow: Only show error when Q4 is filled (cleaner UX)

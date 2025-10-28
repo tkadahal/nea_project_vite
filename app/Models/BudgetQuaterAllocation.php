@@ -60,7 +60,7 @@ class BudgetQuaterAllocation extends Model
             ->useLogName('quaterBudgetAllocation')
             ->setDescriptionForEvent(function (string $eventName) {
                 $user = Auth::user()?->name ?? 'System';
-                return "Quater Budget Allocation {$eventName} by {$user}";
+                return "Quarter Budget Allocation {$eventName} by {$user}";
             });
     }
 }

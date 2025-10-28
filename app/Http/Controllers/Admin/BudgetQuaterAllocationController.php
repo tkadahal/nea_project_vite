@@ -59,11 +59,19 @@ class BudgetQuaterAllocationController extends Controller
             abort(404, 'No current fiscal year found.');
         }
 
+        // Use selectedFiscalYearId if available, fallback to current
+        $fiscalYearId = $selectedFiscalYearId ?: $currentFiscalYear->id;
+        $selectedFiscalYear = FiscalYear::find($fiscalYearId) ?? $currentFiscalYear;
+
         $budgets = Budget::where('project_id', $selectedProjectId)
-            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->where('fiscal_year_id', $fiscalYearId)
             ->get();
 
-        $budgetData = $this->prepareBudgetData($budgets);
+        // Fetch existing allocations for pre-population
+        $allocations = BudgetQuaterAllocation::whereIn('budget_id', $budgets->pluck('id'))->get();
+        $allocationMap = $allocations->groupBy('budget_id')->map(fn($group) => $group->keyBy('quarter'));
+
+        $budgetData = $this->prepareBudgetData($budgets, $allocationMap);
 
         $projectOptions = $projects->map(fn(Project $project) => [
             'value' => $project->id,
@@ -75,7 +83,7 @@ class BudgetQuaterAllocationController extends Controller
             'fiscalYears',
             'budgetData',
             'firstProject',
-            'currentFiscalYear',
+            'selectedFiscalYear', // Renamed for consistency
             'selectedProjectId',
             'selectedFiscalYearId'
         ));
@@ -101,7 +109,11 @@ class BudgetQuaterAllocationController extends Controller
             ->where('fiscal_year_id', $fiscalYearId)
             ->get();
 
-        $budgetData = $this->prepareBudgetData($budgets);
+        // Fetch existing allocations for pre-population
+        $allocations = BudgetQuaterAllocation::whereIn('budget_id', $budgets->pluck('id'))->get();
+        $allocationMap = $allocations->groupBy('budget_id')->map(fn($group) => $group->keyBy('quarter'));
+
+        $budgetData = $this->prepareBudgetData($budgets, $allocationMap);
 
         return response()->json([
             'budgetData' => $budgetData,
@@ -110,7 +122,7 @@ class BudgetQuaterAllocationController extends Controller
         ]);
     }
 
-    private function prepareBudgetData($budgets)
+    private function prepareBudgetData($budgets, $allocationMap = [])
     {
         $budgetData = [];
         $counter = 1;
@@ -138,12 +150,33 @@ class BudgetQuaterAllocationController extends Controller
                 $amount = $budget->{$budgetField} ?? 0;
                 if ($amount > 0) {
                     $storageField = $storageFieldMap[$budgetField];
+
+                    // Pre-populate quarter allocations
+                    $q1 = 0;
+                    $q2 = 0;
+                    $q3 = 0;
+                    $q4 = 0;
+
+                    if (isset($allocationMap[$budget->id])) {
+                        foreach (['Q1', 'Q2', 'Q3', 'Q4'] as $quarter) {
+                            $qIndex = substr($quarter, 1); // 1,2,3,4
+                            if (isset($allocationMap[$budget->id][$quarter])) {
+                                $allocation = $allocationMap[$budget->id][$quarter];
+                                ${'q' . $qIndex} = $allocation->{$storageField} ?? 0;
+                            }
+                        }
+                    }
+
                     $budgetData[] = [
                         'sn' => $counter++,
                         'title' => $title,
                         'amount' => $amount,
                         'budget_id' => $budget->id,
                         'field' => $storageField,
+                        'q1' => $q1,
+                        'q2' => $q2,
+                        'q3' => $q3,
+                        'q4' => $q4,
                     ];
                 }
             }
@@ -201,6 +234,79 @@ class BudgetQuaterAllocationController extends Controller
                     } else {
                         $allocationData[$budgetId][$quarter][$field] = $alloc;
                     }
+                    try {
+                        $validated = $request->validated();
+
+                        DB::beginTransaction();
+
+                        $budgetIds = $validated['budget_ids'];
+                        $fields = $validated['fields'];
+                        $q1Allocations = $validated['q1_allocations'];
+                        $q2Allocations = $validated['q2_allocations'];
+                        $q3Allocations = $validated['q3_allocations'];
+                        $q4Allocations = $validated['q4_allocations'];
+
+                        $allocationData = [];
+                        $index = 0;
+                        foreach ($budgetIds as $budgetId) {
+                            $field = $fields[$index];
+                            $q1 = (float) ($q1Allocations[$index] ?? 0);
+                            $q2 = (float) ($q2Allocations[$index] ?? 0);
+                            $q3 = (float) ($q3Allocations[$index] ?? 0);
+                            $q4 = (float) ($q4Allocations[$index] ?? 0);
+
+                            $quartersData = [
+                                'Q1' => $q1,
+                                'Q2' => $q2,
+                                'Q3' => $q3,
+                                'Q4' => $q4,
+                            ];
+
+                            foreach ($quartersData as $quarter => $alloc) {
+                                if (!isset($allocationData[$budgetId][$quarter])) {
+                                    $allocationData[$budgetId][$quarter] = [
+                                        'budget_id' => $budgetId,
+                                        'quarter' => $quarter,
+                                        'internal_budget' => 0.00,
+                                        'government_share' => 0.00,
+                                        'government_loan' => 0.00,
+                                        'foreign_loan' => 0.00,
+                                        'foreign_subsidy' => 0.00,
+                                        'total_budget' => 0.00,
+                                    ];
+                                }
+
+                                if ($field === 'total_budget') {
+                                    $allocationData[$budgetId][$quarter]['total_budget'] = $alloc;
+                                } else {
+                                    $allocationData[$budgetId][$quarter][$field] = $alloc;
+                                }
+                            }
+
+                            $index++;
+                        }
+
+                        foreach ($allocationData as $budgetId => $quarters) {
+                            foreach ($quarters as $quarter => $data) {
+                                BudgetQuaterAllocation::updateOrCreate(
+                                    ['budget_id' => $budgetId, 'quarter' => $quarter],
+                                    $data
+                                );
+                            }
+                        }
+
+                        DB::commit();
+
+                        return redirect()->route('admin.budgetQuaterAllocation.index')
+                            ->with('success', 'Quarterly budget allocations created successfully.');
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        Log::error('Error storing budget quarter allocation: ' . $e->getMessage());
+
+                        return redirect()->back()
+                            ->with('error', 'Failed to create quarterly budget allocations. Please try again.')
+                            ->withInput();
+                    }
                 }
 
                 $index++;
@@ -208,7 +314,10 @@ class BudgetQuaterAllocationController extends Controller
 
             foreach ($allocationData as $budgetId => $quarters) {
                 foreach ($quarters as $quarter => $data) {
-                    BudgetQuaterAllocation::create($data);
+                    BudgetQuaterAllocation::updateOrCreate(
+                        ['budget_id' => $budgetId, 'quarter' => $quarter],
+                        $data
+                    );
                 }
             }
 
@@ -229,11 +338,7 @@ class BudgetQuaterAllocationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(BudgetQuaterAllocation $budgetQuaterAllocation)
-    {
-        //
-    }
-
+    public function show(BudgetQuaterAllocation $budgetQuaterAllocation) {}
     /**
      * Show the form for editing the specified resource.
      */

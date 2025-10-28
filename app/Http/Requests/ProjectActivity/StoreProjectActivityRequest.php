@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\ProjectActivity;
 
 use Closure;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -17,27 +15,27 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class StoreProjectActivityRequest extends FormRequest
 {
+    private const NUMERIC_FIELDS = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
+    private const QUARTER_FIELDS = ['q1', 'q2', 'q3', 'q4'];
+    private const FLOAT_PRECISION = 0.01;
+    private const MAX_HIERARCHY_DEPTH = 2;
+
     public function authorize(): bool
     {
-        abort_if(Gate::denies('projectActivity_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('projectActivity_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         return true;
     }
 
-    public function rules(Request $request): array
+    public function rules(): array
     {
+        $sectionRules = $this->getSectionRules();
+
         return [
             'project_id' => 'required|exists:projects,id',
             'fiscal_year_id' => 'required|exists:fiscal_years,id',
-
-            'capital' => [
-                'sometimes',
-                'array',
-                function (string $attribute, array $value, Closure $fail) {
-                    $this->validateSectionHierarchy($value, 'capital', $fail);
-                    $this->validatePlannedBudgetEqualsQuarters($value, 'capital', $fail);
-                    $this->validateParentEqualsChildrenSum($value, 'capital', $fail);
-                },
-            ],
+            'total_budget' => 'nullable|numeric|min:0',
+            'total_planned_budget' => 'nullable|numeric|min:0',
+            'capital' => $sectionRules,
             'capital.*.program' => 'required|string|max:255',
             'capital.*.total_budget' => 'nullable|numeric|min:0',
             'capital.*.total_expense' => 'nullable|numeric|min:0',
@@ -47,16 +45,7 @@ class StoreProjectActivityRequest extends FormRequest
             'capital.*.q3' => 'nullable|numeric|min:0',
             'capital.*.q4' => 'nullable|numeric|min:0',
             'capital.*.parent_id' => 'nullable|integer',
-
-            'recurrent' => [
-                'sometimes',
-                'array',
-                function (string $attribute, array $value, Closure $fail) {
-                    $this->validateSectionHierarchy($value, 'recurrent', $fail);
-                    $this->validatePlannedBudgetEqualsQuarters($value, 'recurrent', $fail);
-                    $this->validateParentEqualsChildrenSum($value, 'recurrent', $fail);
-                },
-            ],
+            'recurrent' => $sectionRules,
             'recurrent.*.program' => 'required|string|max:255',
             'recurrent.*.total_budget' => 'nullable|numeric|min:0',
             'recurrent.*.total_expense' => 'nullable|numeric|min:0',
@@ -69,133 +58,92 @@ class StoreProjectActivityRequest extends FormRequest
         ];
     }
 
-    /**
-     * Validate that planned_budget equals sum of quarters for each row
-     */
+    private function getSectionRules(): array
+    {
+        return [
+            'sometimes',
+            'array',
+            function (string $attribute, array $value, Closure $fail) {
+                $section = explode('.', $attribute)[0];
+
+                $this->validateSectionHierarchy($value, $section, $fail);
+                $this->validatePlannedBudgetEqualsQuarters($value, $section, $fail);
+                $this->validateParentEqualsChildrenSum($value, $section, $fail);
+            },
+        ];
+    }
+
     private function validatePlannedBudgetEqualsQuarters(array $data, string $section, Closure $fail): void
     {
         foreach ($data as $index => $row) {
-            $rowNum = $index + 1;
-
-            $q1 = (float) ($row['q1'] ?? 0);
-            $q2 = (float) ($row['q2'] ?? 0);
-            $q3 = (float) ($row['q3'] ?? 0);
-            $q4 = (float) ($row['q4'] ?? 0);
+            $quarterSum = $this->sumQuarters($row);
             $plannedBudget = (float) ($row['planned_budget'] ?? 0);
 
-            $quarterSum = $q1 + $q2 + $q3 + $q4;
-
-            // Allow small floating point differences (0.01)
-            if (abs($quarterSum - $plannedBudget) > 0.01) {
+            if (abs($quarterSum - $plannedBudget) > self::FLOAT_PRECISION) {
+                $rowNum = $index + 1;
                 $fail("Planned budget must equal sum of quarters for {$section} row {$rowNum}. " .
                     "Quarters sum: {$quarterSum}, Planned budget: {$plannedBudget}");
             }
         }
     }
 
-    /**
-     * Validate that parent values equal sum of direct children for all numeric columns
-     */
     private function validateParentEqualsChildrenSum(array $data, string $section, Closure $fail): void
     {
-        $numericFields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
+        $childrenMap = $this->buildChildrenMap($data);
 
-        // Build children mapping: parentIndex => [childIndex1, childIndex2, ...]
-        $childrenMap = [];
-        foreach ($data as $index => $row) {
-            if (isset($row['parent_id']) && $row['parent_id'] !== '' && $row['parent_id'] !== null) {
-                $parentIndex = (int) $row['parent_id'];
-                if (!isset($childrenMap[$parentIndex])) {
-                    $childrenMap[$parentIndex] = [];
-                }
-                $childrenMap[$parentIndex][] = $index;
-            }
-        }
-
-        // Validate each parent
         foreach ($childrenMap as $parentIndex => $childIndices) {
             if (!isset($data[$parentIndex])) {
-                continue; // Parent doesn't exist (will be caught by hierarchy validation)
+                continue;
             }
 
-            $parentRow = $data[$parentIndex];
-            $rowNum = $parentIndex + 1;
+            $this->validateParentRow($data, $parentIndex, $childIndices, $section, $fail);
+        }
+    }
 
-            foreach ($numericFields as $field) {
-                $parentValue = (float) ($parentRow[$field] ?? 0);
-                $childrenSum = 0;
+    private function validateParentRow(array $data, int $parentIndex, array $childIndices, string $section, Closure $fail): void
+    {
+        $parentRow = $data[$parentIndex];
+        $rowNum = $parentIndex + 1;
 
-                foreach ($childIndices as $childIndex) {
-                    $childrenSum += (float) ($data[$childIndex][$field] ?? 0);
-                }
+        foreach (self::NUMERIC_FIELDS as $field) {
+            $parentValue = (float) ($parentRow[$field] ?? 0);
+            $childrenSum = $this->sumChildrenField($data, $childIndices, $field);
 
-                // Allow small floating point differences (0.01)
-                if (abs($parentValue - $childrenSum) > 0.01) {
-                    $fail("Parent must equal sum of children for {$section} row {$rowNum}, field '{$field}'. " .
-                        "Parent: {$parentValue}, Children sum: {$childrenSum}");
-                }
+            if (abs($parentValue - $childrenSum) > self::FLOAT_PRECISION) {
+                $fail("Parent must equal sum of children for {$section} row {$rowNum}, field '{$field}'. " .
+                    "Parent: {$parentValue}, Children sum: {$childrenSum}");
             }
         }
     }
 
-    /**
-     * Validate hierarchy structure
-     */
     private function validateSectionHierarchy(array $data, string $section, Closure $fail): void
     {
-        $indices = array_keys($data);
-        Log::info('Section: ' . $section . ', Data keys: ' . json_encode($indices));
-
-        // Track depth to prevent more than 2 levels
         $depthMap = [];
 
         foreach ($data as $index => $row) {
-            $rowNum = $index + 1;
             $parentId = $row['parent_id'] ?? null;
 
-            Log::info("Row {$rowNum} (index {$index}), parent_id: " . json_encode($parentId) .
-                ", program: " . json_encode($row['program'] ?? ''));
+            if ($this->isNullParent($parentId)) {
+                $depthMap[$index] = 0;
+                continue;
+            }
 
-            // Calculate depth
-            if ($parentId === null || $parentId === '' || $parentId === 'null') {
-                $depthMap[$index] = 0; // Top level
-            } else {
-                $parentIndex = (int) $parentId;
+            $parentIndex = (int) $parentId;
 
-                // Validate parent exists
-                if ($parentIndex < 0 || !array_key_exists($parentIndex, $data)) {
-                    $fail("Invalid parent_id for {$section} row {$rowNum}: Parent activity not found");
-                    continue;
-                }
+            if (!$this->isValidParent($parentIndex, $index, $data)) {
+                $rowNum = $index + 1;
+                $fail("Invalid parent_id for {$section} row {$rowNum}: Parent activity not found or comes after child");
+                continue;
+            }
 
-                // Validate parent comes before child
-                if ($parentIndex >= $index) {
-                    $fail("Parent must precede child in {$section} row {$rowNum}");
-                    continue;
-                }
+            $parentDepth = $depthMap[$parentIndex] ?? 0;
+            $depthMap[$index] = $parentDepth + 1;
 
-                // Calculate depth
-                $parentDepth = $depthMap[$parentIndex] ?? 0;
-                $depthMap[$index] = $parentDepth + 1;
-
-                // Validate max depth of 2 (0, 1, 2)
-                if ($depthMap[$index] > 2) {
-                    $fail("Maximum hierarchy depth exceeded for {$section} row {$rowNum}. Maximum allowed depth is 2.");
-                    continue;
-                }
+            if ($depthMap[$index] > self::MAX_HIERARCHY_DEPTH) {
+                $rowNum = $index + 1;
+                $fail("Maximum hierarchy depth exceeded for {$section} row {$rowNum}. Maximum allowed depth is " . self::MAX_HIERARCHY_DEPTH . ".");
             }
         }
-    }
-
-    private function any_budget_positive(array $row): bool
-    {
-        return ($row['total_budget'] ?? 0) > 0 ||
-            ($row['total_expense'] ?? 0) > 0 ||
-            ($row['planned_budget'] ?? 0) > 0 ||
-            ($row['q1'] ?? 0) > 0 ||
-            ($row['q2'] ?? 0) > 0 ||
-            ($row['q3'] ?? 0) > 0 ||
-            ($row['q4'] ?? 0) > 0;
     }
 
     public function messages(): array
@@ -205,120 +153,160 @@ class StoreProjectActivityRequest extends FormRequest
             'project_id.exists' => 'Selected project does not exist.',
             'fiscal_year_id.required' => 'Fiscal year is required.',
             'fiscal_year_id.exists' => 'Selected fiscal year does not exist.',
-
-            'capital.*.program.required' => 'Program name is required for capital row.',
-            'capital.*.program.max' => 'Program name may not be greater than 255 characters.',
-            'capital.*.total_budget.numeric' => 'Total budget must be a number for capital row.',
-            'capital.*.total_budget.min' => 'Total budget must be at least 0 for capital row.',
-            'capital.*.total_expense.numeric' => 'Expenses till date must be a number for capital row.',
-            'capital.*.total_expense.min' => 'Expenses till date must be at least 0 for capital row.',
-            'capital.*.planned_budget.numeric' => 'Planned budget must be a number for capital row.',
-            'capital.*.planned_budget.min' => 'Planned budget must be at least 0 for capital row.',
-            'capital.*.q1.numeric' => 'Q1 budget must be a number for capital row.',
-            'capital.*.q1.min' => 'Q1 budget must be at least 0 for capital row.',
-            'capital.*.q2.numeric' => 'Q2 budget must be a number for capital row.',
-            'capital.*.q2.min' => 'Q2 budget must be at least 0 for capital row.',
-            'capital.*.q3.numeric' => 'Q3 budget must be a number for capital row.',
-            'capital.*.q3.min' => 'Q3 budget must be at least 0 for capital row.',
-            'capital.*.q4.numeric' => 'Q4 budget must be a number for capital row.',
-            'capital.*.q4.min' => 'Q4 budget must be at least 0 for capital row.',
-            'capital.*.parent_id.integer' => 'Parent ID must be a valid integer for capital row.',
-
-            'recurrent.*.program.required' => 'Program name is required for recurrent row.',
-            'recurrent.*.program.max' => 'Program name may not be greater than 255 characters.',
-            'recurrent.*.total_budget.numeric' => 'Total budget must be a number for recurrent row.',
-            'recurrent.*.total_budget.min' => 'Total budget must be at least 0 for recurrent row.',
-            'recurrent.*.total_expense.numeric' => 'Expenses till date must be a number for recurrent row.',
-            'recurrent.*.total_expense.min' => 'Expenses till date must be at least 0 for recurrent row.',
-            'recurrent.*.planned_budget.numeric' => 'Planned budget must be a number for recurrent row.',
-            'recurrent.*.planned_budget.min' => 'Planned budget must be at least 0 for recurrent row.',
-            'recurrent.*.q1.numeric' => 'Q1 budget must be a number for recurrent row.',
-            'recurrent.*.q1.min' => 'Q1 budget must be at least 0 for recurrent row.',
-            'recurrent.*.q2.numeric' => 'Q2 budget must be a number for recurrent row.',
-            'recurrent.*.q2.min' => 'Q2 budget must be at least 0 for recurrent row.',
-            'recurrent.*.q3.numeric' => 'Q3 budget must be a number for recurrent row.',
-            'recurrent.*.q3.min' => 'Q3 budget must be at least 0 for recurrent row.',
-            'recurrent.*.q4.numeric' => 'Q4 budget must be a number for recurrent row.',
-            'recurrent.*.q4.min' => 'Q4 budget must be at least 0 for recurrent row.',
-            'recurrent.*.parent_id.integer' => 'Parent ID must be a valid integer for recurrent row.',
+            ...array_merge(
+                $this->getFieldMessages('capital'),
+                $this->getFieldMessages('recurrent')
+            ),
         ];
     }
 
-    protected function prepareForValidation()
+    protected function prepareForValidation(): void
     {
         $input = $this->all();
 
-        if (array_key_exists('capital', $input)) {
-            $this->processSection($input['capital'], 'capital');
-        }
-
-        if (array_key_exists('recurrent', $input)) {
-            $this->processSection($input['recurrent'], 'recurrent');
+        foreach (['capital', 'recurrent'] as $section) {
+            if (array_key_exists($section, $input)) {
+                $this->processSection($input[$section], $section);
+            }
         }
     }
 
-    /**
-     * Cleans up the section data, removes empty rows, reindexes them,
-     * and remaps parent_id correctly.
-     */
     private function processSection(array $sectionData, string $sectionName): void
     {
-        $originalData = $sectionData;
-        Log::info("Original {$sectionName} keys: " . json_encode(array_keys($originalData)));
+        $filteredData = $this->filterEmptyRows($sectionData);
+        $mapping = $this->createIndexMapping($sectionData, $filteredData);
+        $reindexedData = array_values($filteredData);
+        $finalData = $this->remapParentIds($reindexedData, $mapping);
 
-        // Filter out empty rows
-        $filteredData = array_filter($originalData, function ($exp) {
-            $keep = !empty(trim($exp['program'] ?? '')) ||
-                ($exp['total_budget'] ?? 0) > 0 ||
-                ($exp['total_expense'] ?? 0) > 0 ||
-                ($exp['planned_budget'] ?? 0) > 0 ||
-                ($exp['q1'] ?? 0) > 0 ||
-                ($exp['q2'] ?? 0) > 0 ||
-                ($exp['q3'] ?? 0) > 0 ||
-                ($exp['q4'] ?? 0) > 0;
-            return $keep;
-        });
+        $this->merge([$sectionName => $finalData]);
+    }
 
-        Log::info("Filtered {$sectionName} keys (pre-values): " . json_encode(array_keys($filteredData)));
+    // Helper methods
 
-        // Create mapping oldIndex → newIndex
-        $mapping = [];
-        $newIndex = 0;
-        foreach ($originalData as $oldIndex => $exp) {
-            if (isset($filteredData[$oldIndex])) {
-                $mapping[$oldIndex] = $newIndex;
-                $newIndex++;
+    private function sumQuarters(array $row): float
+    {
+        return array_reduce(
+            self::QUARTER_FIELDS,
+            fn($sum, $field) => $sum + (float) ($row[$field] ?? 0),
+            0
+        );
+    }
+
+    private function buildChildrenMap(array $data): array
+    {
+        $childrenMap = [];
+
+        foreach ($data as $index => $row) {
+            if (isset($row['parent_id']) && $row['parent_id'] !== '' && $row['parent_id'] !== null) {
+                $parentIndex = (int) $row['parent_id'];
+                $childrenMap[$parentIndex][] = $index;
             }
         }
 
-        // Reindex
-        $filteredData = array_values($filteredData);
-        $parentIds = array_column($filteredData, 'parent_id');
-        Log::info("Final {$sectionName} after mapping: " . json_encode(array_keys($filteredData)) .
-            ", Sample parent_ids: " . json_encode($parentIds));
+        return $childrenMap;
+    }
 
-        // Clean and remap parent_ids properly
-        foreach ($filteredData as $newIndex => &$row) {
-            if (!isset($row['parent_id']) || $row['parent_id'] === '' || $row['parent_id'] === null || $row['parent_id'] === 'null') {
-                unset($row['parent_id']);
-                continue;
+    private function sumChildrenField(array $data, array $childIndices, string $field): float
+    {
+        return array_reduce(
+            $childIndices,
+            fn($sum, $childIndex) => $sum + (float) ($data[$childIndex][$field] ?? 0),
+            0
+        );
+    }
+
+    private function isNullParent($parentId): bool
+    {
+        return $parentId === null || $parentId === '' || $parentId === 'null';
+    }
+
+    private function isValidParent(int $parentIndex, int $currentIndex, array $data): bool
+    {
+        return $parentIndex >= 0 &&
+            $parentIndex < $currentIndex &&
+            array_key_exists($parentIndex, $data);
+    }
+
+    private function filterEmptyRows(array $sectionData): array
+    {
+        return array_filter($sectionData, fn($row) => $this->isRowNotEmpty($row));
+    }
+
+    private function isRowNotEmpty(array $row): bool
+    {
+        if (!empty(trim($row['program'] ?? ''))) {
+            return true;
+        }
+
+        foreach (self::NUMERIC_FIELDS as $field) {
+            if (($row[$field] ?? 0) > 0) {
+                return true;
             }
+        }
 
-            // Ignore invalid / non-numeric parent IDs
-            if (!is_numeric($row['parent_id'])) {
+        return false;
+    }
+
+    private function createIndexMapping(array $originalData, array $filteredData): array
+    {
+        $mapping = [];
+        $newIndex = 0;
+
+        foreach ($originalData as $oldIndex => $exp) {
+            if (isset($filteredData[$oldIndex])) {
+                $mapping[$oldIndex] = $newIndex++;
+            }
+        }
+
+        return $mapping;
+    }
+
+    private function remapParentIds(array $data, array $mapping): array
+    {
+        foreach ($data as &$row) {
+            if (
+                !isset($row['parent_id']) ||
+                $row['parent_id'] === '' ||
+                $row['parent_id'] === null ||
+                $row['parent_id'] === 'null' ||
+                !is_numeric($row['parent_id'])
+            ) {
                 unset($row['parent_id']);
                 continue;
             }
 
             $oldParentIndex = (int) $row['parent_id'];
+
             if (isset($mapping[$oldParentIndex])) {
                 $row['parent_id'] = $mapping[$oldParentIndex];
             } else {
-                unset($row['parent_id']); // parent filtered out
+                unset($row['parent_id']);
             }
         }
 
-        Log::info("Remapped {$sectionName} parent_ids: " . json_encode(array_column($filteredData, 'parent_id')));
-        $this->merge([$sectionName => $filteredData]);
+        return $data;
+    }
+
+    private function getFieldMessages(string $section): array
+    {
+        return [
+            "{$section}.*.program.required" => "Program name is required for {$section} row.",
+            "{$section}.*.program.max" => "Program name may not be greater than 255 characters.",
+            "{$section}.*.total_budget.numeric" => "Total budget must be a number for {$section} row.",
+            "{$section}.*.total_budget.min" => "Total budget must be at least 0 for {$section} row.",
+            "{$section}.*.total_expense.numeric" => "Expenses till date must be a number for {$section} row.",
+            "{$section}.*.total_expense.min" => "Expenses till date must be at least 0 for {$section} row.",
+            "{$section}.*.planned_budget.numeric" => "Planned budget must be a number for {$section} row.",
+            "{$section}.*.planned_budget.min" => "Planned budget must be at least 0 for {$section} row.",
+            "{$section}.*.q1.numeric" => "Q1 budget must be a number for {$section} row.",
+            "{$section}.*.q1.min" => "Q1 budget must be at least 0 for {$section} row.",
+            "{$section}.*.q2.numeric" => "Q2 budget must be a number for {$section} row.",
+            "{$section}.*.q2.min" => "Q2 budget must be at least 0 for {$section} row.",
+            "{$section}.*.q3.numeric" => "Q3 budget must be a number for {$section} row.",
+            "{$section}.*.q3.min" => "Q3 budget must be at least 0 for {$section} row.",
+            "{$section}.*.q4.numeric" => "Q4 budget must be a number for {$section} row.",
+            "{$section}.*.q4.min" => "Q4 budget must be at least 0 for {$section} row.",
+            "{$section}.*.parent_id.integer" => "Parent ID must be a valid integer for {$section} row.",
+        ];
     }
 }
