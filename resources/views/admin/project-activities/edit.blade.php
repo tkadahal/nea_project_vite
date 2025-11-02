@@ -143,6 +143,7 @@
                             <tbody id="capital-tbody">
                                 @php $capitalFormIndex = 1; @endphp
                                 @foreach ($capitalActivities->whereNull('parent_id') as $topActivity)
+                                    @php $topFormIndex = $capitalFormIndex; @endphp
                                     <tr class="projectActivity-row" data-depth="0" data-index="{{ $capitalFormIndex }}"
                                         data-id="{{ $topActivity->id }}" data-parent-id="">
                                         <td
@@ -206,6 +207,7 @@
 
                                     {{-- Level 1 Children --}}
                                     @foreach ($topActivity->children as $level1Activity)
+                                        @php $level1FormIndex = $capitalFormIndex; @endphp
                                         <tr class="projectActivity-row" data-depth="1"
                                             data-index="{{ $capitalFormIndex }}" data-id="{{ $level1Activity->id }}"
                                             data-parent-id="{{ $topActivity->id }}">
@@ -218,7 +220,7 @@
                                                     value="{{ $level1Activity->id }}" />
                                                 <input type="hidden"
                                                     name="capital[{{ $capitalFormIndex }}][parent_id]"
-                                                    value="{{ $topActivity->id }}" />
+                                                    value="{{ $topFormIndex }}" />
                                                 <input name="capital[{{ $capitalFormIndex }}][program]"
                                                     type="text"
                                                     value="{{ old('capital.' . $capitalFormIndex . '.program', $level1Activity->program) }}"
@@ -306,7 +308,7 @@
                                                         value="{{ $level2Activity->id }}" />
                                                     <input type="hidden"
                                                         name="capital[{{ $capitalFormIndex }}][parent_id]"
-                                                        value="{{ $level1Activity->id }}" />
+                                                        value="{{ $level1FormIndex }}" />
                                                     <input name="capital[{{ $capitalFormIndex }}][program]"
                                                         type="text"
                                                         value="{{ old('capital.' . $capitalFormIndex . '.program', $level2Activity->program) }}"
@@ -451,6 +453,7 @@
                             <tbody id="recurrent-tbody">
                                 @php $recurrentFormIndex = 1; @endphp
                                 @foreach ($recurrentActivities->whereNull('parent_id') as $topActivity)
+                                    @php $topFormIndex = $recurrentFormIndex; @endphp
                                     <tr class="projectActivity-row" data-depth="0"
                                         data-index="{{ $recurrentFormIndex }}" data-id="{{ $topActivity->id }}"
                                         data-parent-id="">
@@ -516,6 +519,7 @@
 
                                     {{-- Level 1 Children --}}
                                     @foreach ($topActivity->children as $level1Activity)
+                                        @php $level1FormIndex = $recurrentFormIndex; @endphp
                                         <tr class="projectActivity-row" data-depth="1"
                                             data-index="{{ $recurrentFormIndex }}"
                                             data-id="{{ $level1Activity->id }}"
@@ -530,7 +534,7 @@
                                                     value="{{ $level1Activity->id }}" />
                                                 <input type="hidden"
                                                     name="recurrent[{{ $recurrentFormIndex }}][parent_id]"
-                                                    value="{{ $topActivity->id }}" />
+                                                    value="{{ $topFormIndex }}" />
                                                 <input name="recurrent[{{ $recurrentFormIndex }}][program]"
                                                     type="text"
                                                     value="{{ old('recurrent.' . $recurrentFormIndex . '.program', $level1Activity->program) }}"
@@ -619,7 +623,7 @@
                                                         value="{{ $level2Activity->id }}" />
                                                     <input type="hidden"
                                                         name="recurrent[{{ $recurrentFormIndex }}][parent_id]"
-                                                        value="{{ $level1Activity->id }}" />
+                                                        value="{{ $level1FormIndex }}" />
                                                     <input name="recurrent[{{ $recurrentFormIndex }}][program]"
                                                         type="text"
                                                         value="{{ old('recurrent.' . $recurrentFormIndex . '.program', $level2Activity->program) }}"
@@ -815,7 +819,7 @@
                     return !hasErrors;
                 }
 
-                function addRow(section, parentId = null, depth = 0) {
+                function addRow(section, parentIndex = null, depth = 0) {
                     if (!isTableValid(section)) {
                         $("#error-message").removeClass("hidden");
                         $("#error-text").text(
@@ -840,13 +844,13 @@
                     }
 
                     let hiddenParentInput = '';
-                    if (parentId !== null && parentId !== '') {
+                    if (parentIndex !== null && parentIndex !== '') {
                         hiddenParentInput =
-                            `<input type="hidden" name="${type}[${index}][parent_id]" value="${parentId}">`;
+                            `<input type="hidden" name="${type}[${index}][parent_id]" value="${parentIndex}">`;
                     }
 
                     const html = `
-                    <tr class="projectActivity-row" data-depth="${depth}" data-index="${index}" ${parentId !== null && parentId !== '' ? `data-parent-id="${parentId}"` : 'data-parent-id=""'}>
+                    <tr class="projectActivity-row" data-depth="${depth}" data-index="${index}" data-id="${index}" ${parentIndex !== null && parentIndex !== '' ? `data-parent-id="${parentIndex}"` : 'data-parent-id=""'}>
                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center text-sm text-gray-700 dark:text-gray-200"></td>
                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1">
                             ${hiddenParentInput}
@@ -877,20 +881,20 @@
                             <div class="flex space-x-2 justify-center">
                                 ${depth < 2 ? `<span class="add-sub-row cursor-pointer text-2xl text-blue-500">+</span>` : ''}
                                 ${(depth > 0 || index > 1) ? `<span class="remove-row cursor-pointer text-2xl text-red-500">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </span>` : ''}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </span>` : ''}
                             </div>
                         </td>
                     </tr>
                 `;
 
                     let subTreeRows = [];
-                    if (parentId !== null && parentId !== '') {
-                        const $parentRow = $tbody.find(`tr[data-id="${parentId}"]`);
+                    if (parentIndex !== null && parentIndex !== '') {
+                        const $parentRow = $tbody.find(`tr[data-index="${parentIndex}"]`);
                         if (!$parentRow.length) {
-                            console.error(`Parent row ${parentId} not found for insertion in ${section}`);
+                            console.error(`Parent row ${parentIndex} not found for insertion in ${section}`);
                             return;
                         }
 
@@ -902,7 +906,7 @@
                                 collectSubTree(childId);
                             });
                         };
-                        collectSubTree(parentId);
+                        collectSubTree(parentIndex);
 
                         const $lastRow = subTreeRows.length ? subTreeRows[subTreeRows.length - 1] : $parentRow;
                         console.log(
@@ -920,8 +924,8 @@
                     updateRowNumbers(section);
                     updateTotals();
 
-                    if (parentId !== null && parentId !== '') {
-                        validateParentRow(section, parentId);
+                    if (parentIndex !== null && parentIndex !== '') {
+                        validateParentRow(section, parentIndex);
                     }
 
                     initializeTooltips($newRow.find('.tooltip-error'));
@@ -929,11 +933,11 @@
 
                 function addSubRow($row) {
                     const section = $row.closest('table').attr('id').replace('-activities', '');
-                    const parentId = $row.data('id');
+                    const parentIndex = $row.data('index'); // Use form index for mapping
                     const depth = $row.data('depth') + 1;
 
                     if (depth > 2) {
-                        console.warn(`Max depth reached for ${parentId}`);
+                        console.warn(`Max depth reached for ${parentIndex}`);
                         return;
                     }
 
@@ -946,8 +950,8 @@
                         return;
                     }
 
-                    console.log(`Adding sub-row under ${parentId} at depth ${depth}`);
-                    addRow(section, parentId, depth);
+                    console.log(`Adding sub-row under ${parentIndex} at depth ${depth}`);
+                    addRow(section, parentIndex, depth);
                 }
 
                 $(document).off('click', '.add-sub-row').on('click', '.add-sub-row', function(e) {
@@ -963,22 +967,30 @@
                     addRow('recurrent');
                 });
 
+                // Recursive remove for subtree
+                function removeRowAndSubtree($row, section) {
+                    const directChildren = $(`#${section}-tbody tr[data-parent-id="${$row.data('id')}"]`);
+                    directChildren.each(function() {
+                        removeRowAndSubtree($(this), section);
+                    });
+                    $row.remove();
+                }
+
                 $(document).on('click', '.remove-row', function() {
                     const $row = $(this).closest('tr');
                     const section = $row.closest('table').attr('id').replace('-activities', '');
-                    const parentId = $row.data('parent-id');
+                    const parentIndex = $row.data('parent-id');
                     const index = $row.data('index');
 
-                    $(`tr[data-parent-id="${$row.data('id')}"]`).remove();
-                    $row.remove();
+                    removeRowAndSubtree($row, section);
                     console.log(`Removed row ${index} in ${section}`);
 
                     updateRowNumbers(section);
                     updateTotals();
                     validateParentRows(section);
 
-                    if (parentId) {
-                        validateParentRow(section, parentId);
+                    if (parentIndex) {
+                        validateParentRow(section, parentIndex);
                     }
                 });
 
@@ -1094,16 +1106,16 @@
                     return null;
                 }
 
-                function validateParentRow(section, parentId) {
-                    if (!parentId) return;
+                function validateParentRow(section, parentIndex) {
+                    if (!parentIndex) return;
 
-                    const $parentRow = $(`#${section}-activities tr[data-id="${parentId}"]`);
+                    const $parentRow = $(`#${section}-activities tr[data-index="${parentIndex}"]`);
                     if (!$parentRow.length) {
-                        console.error(`Parent ${parentId} not found`);
+                        console.error(`Parent ${parentIndex} not found`);
                         return;
                     }
 
-                    const $childRows = $(`#${section}-activities tr[data-parent-id="${parentId}"]`);
+                    const $childRows = $(`#${section}-activities tr[data-parent-id="${$parentRow.data('id')}"]`);
                     if ($childRows.length === 0) return;
 
                     const childInputs = {
@@ -1158,16 +1170,17 @@
                         }
                     }
 
-                    validateParentRow(section, $parentRow.data('parent-id')); // Recurse
+                    // Recurse for grandparent if needed
+                    validateParentRow(section, $parentRow.data('parent-id'));
                 }
 
                 function validateParentRows(section) {
                     const $rows = $(`#${section}-activities tr[data-parent-id]`);
-                    const parentIds = new Set();
+                    const parentIndices = new Set();
                     $rows.each(function() {
-                        parentIds.add($(this).data('parent-id'));
+                        parentIndices.add($(this).data('parent-id'));
                     });
-                    parentIds.forEach(pId => validateParentRow(section, pId));
+                    parentIndices.forEach(pId => validateParentRow(section, pId));
                 }
 
                 function initializeTooltips($elements) {
@@ -1214,9 +1227,10 @@
                         if (depth > 0 && field && ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2',
                                 'q3', 'q4'
                             ].includes(field)) {
-                            const parentId = $row.data('parent-id');
-                            const $parentRow = $(`#${section}-activities tr[data-id="${parentId}"]`);
-                            const $siblingRows = $(`#${section}-activities tr[data-parent-id="${parentId}"]`).not(
+                            const parentIndex = $row.data('parent-id'); // Form index
+                            const $parentRow = $(`#${section}-activities tr[data-index="${parentIndex}"]`);
+                            const $siblingRows = $(
+                                `#${section}-activities tr[data-parent-id="${$parentRow.data('id')}"]`).not(
                                 $row);
 
                             const selector = field === 'total_budget' ? '.total-budget-input' :
@@ -1358,16 +1372,7 @@
                     $submitButton.prop('disabled', true).addClass('opacity-50 cursor-not-allowed').text(
                         '{{ trans('global.saving') }}...');
 
-                    $('tr[data-parent-id]').each(function() {
-                        const $row = $(this);
-                        if ($row.find('input[name$="[parent_id]"]').length === 0) {
-                            const parentId = $row.data('parent-id');
-                            const type = $row.closest('table').attr('id').replace('-activities', '');
-                            $row.find('td:nth-child(2)').append(
-                                `<input type="hidden" name="${type}[${$row.data('index')}][parent_id]" value="${parentId}">`
-                            );
-                        }
-                    });
+                    // Ensure parent_id hidden for dynamic rows (already set in addRow)
 
                     $.ajax({
                         url: '{{ route('admin.projectActivity.update', [$project->id, $fiscalYear->id]) }}',

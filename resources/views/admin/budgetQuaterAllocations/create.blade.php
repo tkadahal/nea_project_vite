@@ -542,7 +542,7 @@
                     if (!validateAllRows()) {
                         alert(
                             'Please correct all validation errors before submitting. Sum of quarters must equal the amount for each row.'
-                            );
+                        );
                         return;
                     }
 

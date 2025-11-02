@@ -1,24 +1,23 @@
-{{-- resources/views/admin/project-activities/index.blade.php --}}
 <x-layouts.app>
 
     <div class="mb-6 flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                Project Activities Overview
+                {{ trans('global.projectActivity.title') }}
             </h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
-                Summary of budgets by project and fiscal year.
+                {{ trans('global.projectActivity.info.summaryInfo') }}
             </p>
         </div>
 
-        {{-- @can('budget_create') --}}
-        <a href="{{ route('admin.projectActivity.create') }}"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700
+        @can('projectActivity_access')
+            <a href="{{ route('admin.projectActivity.create') }}"
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
                   dark:bg-blue-700 dark:hover:bg-blue-800 dark:focus:ring-offset-gray-900">
-            Add Project Activity
-        </a>
-        {{-- @endcan --}}
+                {{ trans('global.add') }} {{ trans('global.projectActivity.title_singular') }}
+            </a>
+        @endcan
     </div>
 
     @if (session('success'))
@@ -36,27 +35,27 @@
                     <tr>
                         <th
                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Fiscal Year
+                            {{ trans('global.projectActivity.fields.fiscal_year_id') }}
                         </th>
                         <th
                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Project
+                            {{ trans('global.projectActivity.fields.project_id') }}
                         </th>
                         <th
                             class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Total Budget
+                            {{ trans('global.projectActivity.fields.total_budget') }}
                         </th>
                         <th
                             class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Capital Budget
+                            {{ trans('global.projectActivity.fields.total_capital_budget') }}
                         </th>
                         <th
                             class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Recurrent Budget
+                            {{ trans('global.projectActivity.fields.total_recurrent_budget') }}
                         </th>
                         <th
                             class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Actions
+                            {{ trans('global.action') }}
                         </th>
                     </tr>
                 </thead>
@@ -79,20 +78,25 @@
                                 {{ number_format($activity->recurrent_budget ?? 0, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <a href="{{ route('admin.projectActivity.edit', [$activity->project_id, $activity->fiscal_year_id]) }}"
-                                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
-                                    Edit
-                                </a>
-                                <a href="{{ route('admin.projectActivity.show', [$activity->project_id, $activity->fiscal_year_id]) }}"
-                                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
-                                    View
-                                </a>
+                                @can('projectActivity_edit')
+                                    <a href="{{ route('admin.projectActivity.edit', [$activity->project_id, $activity->fiscal_year_id]) }}"
+                                        class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
+                                        Edit
+                                    </a>
+                                @endcan
+
+                                @can('projectActivity_show')
+                                    <a href="{{ route('admin.projectActivity.show', [$activity->project_id, $activity->fiscal_year_id]) }}"
+                                        class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                        View
+                                    </a>
+                                @endcan
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No project activities found.
+                                {{ trans('global.noRecords') }}
                             </td>
                         </tr>
                     @endforelse

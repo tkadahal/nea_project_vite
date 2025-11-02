@@ -147,197 +147,180 @@
             const $container = $('#{{ $uniqueId }}');
             const $dropdown = $container.find(".js-dropdown");
             const $optionsContainer = $container.find(".js-options-container");
-            const $searchInputs = $container.find(".js-search-input");
             const $noOptions = $container.find(".js-no-options");
             const name = $container.attr("data-name");
             const placeholder = $container.attr("data-placeholder");
 
             let options = [];
             let selected = [];
+            let lastSearchValue = ''; // 🧠 Remember last typed text
 
+            // Parse options and selected
             try {
                 const rawOptions = $container.attr("data-options");
-                if (rawOptions) {
-                    options = JSON.parse(rawOptions);
-                    console.log('Options parsed for #{{ $uniqueId }}:', options);
-                }
+                if (rawOptions) options = JSON.parse(rawOptions);
             } catch (e) {
                 console.error('Error parsing data-options for #{{ $uniqueId }}:', e.message);
-                options = [];
             }
 
             try {
                 const rawSelected = $container.attr("data-selected");
-                if (rawSelected) {
-                    selected = JSON.parse(rawSelected).map(String);
-                    console.log('Selected parsed for #{{ $uniqueId }}:', selected);
-                }
+                if (rawSelected) selected = JSON.parse(rawSelected).map(String);
             } catch (e) {
                 console.error('Error parsing data-selected for #{{ $uniqueId }}:', e.message);
-                selected = [];
             }
 
-            if (!Array.isArray(options) || !options.every(opt => opt.value !== undefined && opt.label !==
-                    undefined)) {
-                console.warn('Invalid options format for #{{ $uniqueId }}:', options);
-                options = [];
-            }
-
+            if (!Array.isArray(options)) options = [];
             $container.data("options", options);
             $container.data("selected", selected);
 
-            function renderOptions() {
-                console.log('Rendering options for #{{ $uniqueId }}:', options);
+            // RENDER OPTIONS
+            function renderOptions(searchValue = '') {
                 $optionsContainer.empty();
-
-                // Get search value from dropdown search input
-                const searchValue = $container.find('.js-dropdown .js-search-input').val() || '';
-                const filteredOptions = options.filter(opt =>
+                const filtered = options.filter(opt =>
                     opt.label.toLowerCase().includes(searchValue.toLowerCase())
                 );
 
-                if (filteredOptions.length === 0) {
+                if (!filtered.length) {
                     $noOptions.removeClass("hidden");
-                } else {
-                    $noOptions.addClass("hidden");
-                    filteredOptions.forEach(opt => {
-                        const isSelected = selected.includes(String(opt.value));
-                        const $option = $(`
-                            <div class="js-option flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 rounded-md cursor-pointer" data-value="${opt.value}">
-                                <span>${opt.label}</span>
-                            </div>
-                        `);
-                        $optionsContainer.append($option);
-                    });
+                    return;
                 }
+
+                $noOptions.addClass("hidden");
+                filtered.forEach(opt => {
+                    const isSelected = selected.includes(String(opt.value));
+                    const $option = $(`
+                    <div class="js-option flex items-center px-3 py-2 text-sm rounded-md cursor-pointer
+                        ${isSelected
+                            ? 'bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white'
+                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}"
+                        data-value="${opt.value}">
+                        ${opt.label}
+                    </div>
+                `);
+                    $optionsContainer.append($option);
+                });
             }
 
+            // UPDATE SELECTED TAGS + HIDDEN INPUTS
             function updateSelected() {
-                console.log('Updating selected for #{{ $uniqueId }}:', selected);
                 $container.find('input[type="hidden"]').remove();
                 selected.forEach(value => {
                     $container.append(
                         `<input type="hidden" name="${name}[]" value="${value}" class="js-hidden-input">`
-                    );
+                        );
                 });
+
                 const $selectedContainer = $container.find('.js-multi-select-container');
                 $selectedContainer.find('.js-selected-option').remove();
+
                 selected.forEach(value => {
-                    const option = options.find(opt => String(opt.value) === String(value));
-                    const label = option ? option.label : `Unknown (ID: ${value})`;
-                    const $optionSpan = $(`
-                        <span class="js-selected-option inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded-md dark:bg-gray-600 dark:text-gray-200 m-1" data-value="${value}">
-                            <span>${label}</span>
-                            <button type="button" class="js-remove-option ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </span>
-                    `);
-                    $selectedContainer.prepend($optionSpan);
+                    const option = options.find(opt => String(opt.value) === value);
+                    const label = option ? option.label : value;
+                    const $tag = $(`
+                    <span class="js-selected-option inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded-md dark:bg-gray-600 dark:text-gray-200 m-1" data-value="${value}">
+                        <span>${label}</span>
+                        <button type="button" class="js-remove-option ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </span>
+                `);
+                    $selectedContainer.prepend($tag);
                 });
 
-                // Update placeholder for main search input
                 const $mainSearchInput = $container.find('.js-multi-select-container .js-search-input');
                 $mainSearchInput.attr('placeholder', selected.length ? '' : placeholder);
-                $mainSearchInput.trigger('change');
-
-                if (window.Livewire) {
-                    window.Livewire.dispatch('input', {
-                        name: name,
-                        value: selected
-                    });
-                }
             }
 
             renderOptions();
             updateSelected();
 
-            // Open dropdown when clicking on main search input
+            // OPEN DROPDOWN + RESTORE SEARCH TEXT
             $container.find('.js-multi-select-container .js-search-input').on('focus', function() {
                 $dropdown.removeClass('hidden');
-                renderOptions();
+
+                // Restore last typed search
+                const $dropdownSearch = $container.find('.js-dropdown .js-search-input');
+                $dropdownSearch.val(lastSearchValue);
+                renderOptions(lastSearchValue);
+
+                // Focus dropdown search bar
+                setTimeout(() => {
+                    $dropdownSearch.focus();
+                }, 50);
             });
 
-            // Handle search in dropdown
+            // SEARCH HANDLER
             $container.find('.js-dropdown .js-search-input').on('input', function() {
-                renderOptions();
+                lastSearchValue = $(this).val(); // remember typed text
+                renderOptions(lastSearchValue);
             });
 
-            $searchInputs.on('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    $dropdown.addClass("hidden");
-                }
-            });
-
-            // FIXED: Clear search input after selection
+            // SELECT/DESELECT OPTION
             $optionsContainer.on('click', '.js-option', function(e) {
                 e.preventDefault();
                 const value = String($(this).data("value"));
+
+                // Toggle selection (Ctrl not required)
                 if (selected.includes(value)) {
                     selected = selected.filter(v => v !== value);
                 } else {
                     selected.push(value);
                 }
+
                 $container.data("selected", selected);
                 updateSelected();
+                renderOptions(lastSearchValue);
 
-                // Clear BOTH search inputs
-                $searchInputs.val('');
-
-                renderOptions();
-
-                // Optional: Keep dropdown open for multiple selections
-                // Comment out the next line if you want dropdown to close after each selection
-                // $dropdown.addClass("hidden");
+                // ✅ Close dropdown but keep search memory
+                $dropdown.addClass('hidden');
             });
 
+            // SELECT ALL
             $container.find('.js-select-all').on('click', function() {
                 selected = options.map(opt => String(opt.value));
-                $container.data("selected", selected);
                 updateSelected();
-                renderOptions();
+                renderOptions(lastSearchValue);
             });
 
+            // DESELECT ALL
             $container.find('.js-deselect-all').on('click', function() {
                 selected = [];
-                $container.data("selected", selected);
                 updateSelected();
-                renderOptions();
+                renderOptions(lastSearchValue);
             });
 
+            // REMOVE SELECTED TAG
             $container.on('click', '.js-remove-option', function() {
                 const value = String($(this).closest(".js-selected-option").data("value"));
                 selected = selected.filter(v => v !== value);
-                $container.data("selected", selected);
                 updateSelected();
-                renderOptions();
+                renderOptions(lastSearchValue);
             });
 
+            // CLOSE WHEN CLICKING OUTSIDE
+            $(document).on("click.select-{{ $uniqueId }}", function(e) {
+                const $target = $(e.target);
+                if (!$container.is($target) && $container.has($target).length === 0) {
+                    $dropdown.addClass("hidden");
+                }
+            });
+
+            // PROGRAMMATIC UPDATE
             $container.on("options-updated", function(event, data) {
                 try {
                     options = data.options || JSON.parse($container.attr("data-options") || "[]");
                     selected = (data.selected || []).filter(val =>
                         options.some(opt => String(opt.value) === String(val))
                     );
-                } catch (e) {
-                    console.error('Error updating options for #{{ $uniqueId }}:', e.message);
+                } catch {
                     options = [];
                     selected = [];
                 }
-                console.log('Options updated for #{{ $uniqueId }}:', options, 'Selected:', selected);
-                renderOptions();
+                renderOptions(lastSearchValue);
                 updateSelected();
-            });
-
-            $(document).on("click.select-{{ $uniqueId }}", function(e) {
-                const $target = $(e.target);
-                if (!$container.is($target) && $container.find($target).length === 0) {
-                    $dropdown.addClass("hidden");
-                    // Clear search input when closing dropdown
-                    $searchInputs.val('');
-                }
             });
         }
     })();

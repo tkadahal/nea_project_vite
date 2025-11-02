@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Budget;
+use App\Models\Expense;
+use App\Models\Project;
+use Illuminate\View\View;
+use App\Models\FiscalYear;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Models\ProjectActivity;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use App\Http\Requests\Expense\StoreExpenseRequest;
 use App\Http\Requests\Expense\UpdateExpenseRequest;
-use App\Models\FiscalYear;
-use App\Models\Project;
-use App\Models\Expense;
-use App\Models\Budget;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Gate;
-use Symfony\Component\HttpFoundation\Response;
 
 class ExpenseController extends Controller
 {
@@ -94,16 +95,47 @@ class ExpenseController extends Controller
             'actions' => ['view', 'edit', 'delete'],
             'deleteConfirmationMessage' => __('Are you sure you want to delete this expense?'),
         ]);
+
+        // return view('admin.expenses.newfile');
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         abort_if(Gate::denies('expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $user = Auth::user();
-        $projects = $user->projects()->get();
-        $fiscalYears = FiscalYear::all();
-        return view('admin.expenses.create', compact('projects', 'fiscalYears'));
+        $projects = $user->projects;
+        $fiscalYears = FiscalYear::getFiscalYearOptions();
+
+        // Get selected project ID from request or use first project
+        $selectedProjectId = $request->integer('project_id') ?: $projects->first()?->id;
+
+        // Get selected fiscal year ID from request or use the first selected fiscal year
+        $selectedFiscalYearId = $request->integer('fiscal_year_id')
+            ?: collect($fiscalYears)->firstWhere('selected', true)['value'] ?? null;
+
+        $projectOptions = $projects->map(function (Project $project) use ($selectedProjectId) {
+            return [
+                'value' => $project->id,
+                'label' => $project->title,
+                'selected' => $project->id == $selectedProjectId,
+            ];
+        })->toArray();
+
+        $selectedProject = $projects->find($selectedProjectId) ?? $projects->first();
+
+        // Preload activities if both project and fiscal year are selected
+        $preloadActivities = !empty($selectedProjectId) && !empty($selectedFiscalYearId);
+
+        return view('admin.expenses.newfile2', compact(
+            'projects',
+            'projectOptions',
+            'fiscalYears',
+            'selectedProject',
+            'selectedProjectId',
+            'selectedFiscalYearId',
+            'preloadActivities'
+        ));
     }
 
     public function store(StoreExpenseRequest $request): RedirectResponse
@@ -160,6 +192,11 @@ class ExpenseController extends Controller
 
         $expense->load(['project', 'fiscalYear', 'user']);
         return view('admin.expenses.show', compact('expense'));
+    }
+
+    public function testShow(): View
+    {
+        return view('admin.expenses.newfile');
     }
 
     public function edit(Expense $expense): View
@@ -271,5 +308,154 @@ class ExpenseController extends Controller
         $available = $budget->$remainingBudgetField;
 
         return response()->json(['available' => number_format($available, 2, '.', '')]);
+    }
+
+    /**
+     * Fetch project activities for capital and recurrent expenses.
+     *
+     * @param int $projectId
+     * @param int $fiscalYearId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getForProject($projectId, $fiscalYearId)
+    {
+        $project = Project::findOrFail($projectId);
+        $fiscalYear = FiscalYear::findOrFail($fiscalYearId);
+        try {
+            // Load capital activities with hierarchy using Eloquent (matches 'show' method exactly)
+            $capitalActivities = $project->projectActivities()
+                ->where('fiscal_year_id', $fiscalYear->id)
+                ->where('expenditure_id', 1) // 1 = capital
+                ->whereNull('deleted_at')
+                ->with('children.children.children') // Eager load up to depth 3; extend if deeper hierarchy exists
+                ->get()
+                ->whereNull('parent_id') // Filter to roots only (matches 'show' view's @foreach)
+                ->values(); // Reset keys for clean array
+
+            // Load recurrent activities similarly
+            $recurrentActivities = $project->projectActivities()
+                ->where('fiscal_year_id', $fiscalYear->id)
+                ->where('expenditure_id', 2) // 2 = recurrent
+                ->whereNull('deleted_at')
+                ->with('children.children.children')
+                ->get()
+                ->whereNull('parent_id')
+                ->values();
+
+            // Convert collections to arrays (Eloquent auto-nests children; add custom fields if needed)
+            $capitalTree = $this->formatActivityTree($capitalActivities);
+            $recurrentTree = $this->formatActivityTree($recurrentActivities);
+
+            // Calculate budget details (sum across all loaded activities, including descendants)
+            $totalCapitalBudget = $capitalActivities->sum(function ($activity) {
+                return $activity->getSubtreeSum('total_budget');
+            });
+            $totalRecurrentBudget = $recurrentActivities->sum(function ($activity) {
+                return $activity->getSubtreeSum('total_budget');
+            });
+            $totalBudget = $totalCapitalBudget + $totalRecurrentBudget;
+
+            $budgetDetails = sprintf(
+                "Total Budget: NPR %s (Capital: NPR %s, Recurrent: NPR %s) for FY %s",
+                number_format($totalBudget, 2),
+                number_format($totalCapitalBudget, 2),
+                number_format($totalRecurrentBudget, 2),
+                $fiscalYear->title ?? $fiscalYear->id
+            );
+
+            return response()->json([
+                'success' => true,
+                'capital' => $capitalTree,
+                'recurrent' => $recurrentTree,
+                'budgetDetails' => $budgetDetails,
+                'totalBudget' => $totalBudget,
+                'capitalBudget' => $totalCapitalBudget,
+                'recurrentBudget' => $totalRecurrentBudget,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading activities: ' . $e->getMessage(),
+                'capital' => [],
+                'recurrent' => [],
+                'budgetDetails' => 'Error loading budget details',
+            ], 500);
+        }
+    }
+
+    /**
+     * Format Eloquent collection of root activities to array with additional fields (e.g., depth).
+     * Recursively applies to children for consistency.
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $roots
+     * @return array
+     */
+    private function formatActivityTree($roots)
+    {
+        return $roots->map(function ($activity) {
+            return [
+                'id' => $activity->id,
+                'title' => $activity->program, // Matches your manual tree's 'title'
+                'parent_id' => $activity->parent_id,
+                'depth' => $activity->getDepthAttribute(), // Uses model's accessor
+                'children' => $this->formatChildren($activity->children), // Recurse on eager-loaded children
+
+                // Include budget information (use subtree sums for totals if desired; here using node's own for leaf-like)
+                'total_budget' => (float) $activity->total_budget,
+                'planned_budget' => (float) $activity->planned_budget,
+                'total_expense' => (float) $activity->total_expense,
+
+                // Include quarterly data (node's own; extend to subtree if needed)
+                'q1' => (float) $activity->q1,
+                'q2' => (float) $activity->q2,
+                'q3' => (float) $activity->q3,
+                'q4' => (float) $activity->q4,
+
+                // Optional: Add subtree sums
+                'subtree_total_budget' => $activity->getSubtreeSum('total_budget'),
+                'subtree_q1' => $activity->getSubtreeQuarterSum('q1'),
+                'subtree_q2' => $activity->getSubtreeQuarterSum('q2'),
+                'subtree_q3' => $activity->getSubtreeQuarterSum('q3'),
+                'subtree_q4' => $activity->getSubtreeQuarterSum('q4'),
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Recursively format children collection to array.
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $children
+     * @return array
+     */
+    private function formatChildren($children)
+    {
+        if ($children->isEmpty()) {
+            return [];
+        }
+
+        return $children->map(function ($child) {
+            return [
+                'id' => $child->id,
+                'title' => $child->program,
+                'parent_id' => $child->parent_id,
+                'depth' => $child->getDepthAttribute(),
+                'children' => $this->formatChildren($child->children),
+
+                'total_budget' => (float) $child->total_budget,
+                'planned_budget' => (float) $child->planned_budget,
+                'total_expense' => (float) $child->total_expense,
+
+                'q1' => (float) $child->q1,
+                'q2' => (float) $child->q2,
+                'q3' => (float) $child->q3,
+                'q4' => (float) $child->q4,
+
+                'subtree_total_budget' => $child->getSubtreeSum('total_budget'),
+                'subtree_q1' => $child->getSubtreeQuarterSum('q1'),
+                'subtree_q2' => $child->getSubtreeQuarterSum('q2'),
+                'subtree_q3' => $child->getSubtreeQuarterSum('q3'),
+                'subtree_q4' => $child->getSubtreeQuarterSum('q4'),
+            ];
+        })->toArray();
     }
 }

@@ -61,12 +61,12 @@ class BudgetController extends Controller
             trans('global.budget.fields.id'),
             trans('global.budget.fields.fiscal_year_id'),
             trans('global.budget.fields.project_id'),
-            trans('global.budget.fields.total_budget'),
-            trans('global.budget.fields.internal_budget'),
+            trans('global.budget.fields.government_share'),
+            trans('global.budget.fields.government_loan'),
             trans('global.budget.fields.foreign_loan_budget'),
             trans('global.budget.fields.foreign_subsidy_budget'),
-            trans('global.budget.fields.government_loan'),
-            trans('global.budget.fields.government_share'),
+            trans('global.budget.fields.internal_budget'),
+            trans('global.budget.fields.total_budget'),
             trans('global.budget.fields.budget_revision'),
         ];
 
@@ -76,12 +76,12 @@ class BudgetController extends Controller
                 'project_id' => $budget->project_id,
                 'fiscal_year' => $budget->fiscalYear->title,
                 'project' => $budget->project->title,
-                'total_budget' => $budget->total_budget,
-                'internal_budget' => $budget->internal_budget,
+                'government_share' => $budget->government_share,
+                'government_loan' => $budget->government_loan,
                 'foreign_loan' => $budget->foreign_loan_budget,
                 'foreign_subsidy' => $budget->foreign_subsidy_budget,
-                'government_loan' => $budget->government_loan,
-                'government_share' => $budget->government_share,
+                'internal_budget' => $budget->internal_budget,
+                'total_budget' => $budget->total_budget,
                 'budget_revision' => $budget->budget_revision,
             ];
         })->all();

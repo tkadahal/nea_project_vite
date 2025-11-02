@@ -22,6 +22,7 @@ use App\Exports\ProjectActivityTemplateExport;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Requests\ProjectActivity\StoreProjectActivityRequest;
+use App\Http\Requests\ProjectActivity\UpdateProjectActivityRequest;
 
 class ProjectActivityController extends Controller
 {
@@ -247,7 +248,14 @@ class ProjectActivityController extends Controller
     {
         abort_if(Gate::denies('projectActivity_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $user = Auth::user();
         $project = Project::findOrFail($projectId);
+
+        // Assuming user-project relation check
+        if (!$project->users->contains($user->id)) {
+            abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
+        }
+
         $fiscalYear = FiscalYear::findOrFail($fiscalYearId);
 
         // Load activities with hierarchy (up to depth 2)
@@ -262,14 +270,45 @@ class ProjectActivityController extends Controller
             ->with('children.children')
             ->get();
 
-        $totalCapitalRows = $capitalActivities->sum(fn($act) => 1 + $act->children->count() + $act->children->sum(fn($child) => $child->children->count()));
-        $totalRecurrentRows = $recurrentActivities->sum(fn($act) => 1 + $act->children->count() + $act->children->sum(fn($child) => $child->children->count()));
+        // Compute subtree quarter totals
+        $subtreeQuarterTotals = collect();
+        $computeSubtreeQuarters = function ($activity) use (&$subtreeQuarterTotals, &$computeSubtreeQuarters) {
+            $totals = [
+                'q1' => $activity->q1 ?? 0,
+                'q2' => $activity->q2 ?? 0,
+                'q3' => $activity->q3 ?? 0,
+                'q4' => $activity->q4 ?? 0,
+            ];
 
-        $totalActivities = $project->projectActivities()->where('fiscal_year_id', $fiscalYearId)->count();
-        $totalPlanned = $project->projectActivities()->where('fiscal_year_id', $fiscalYearId)->sum('planned_budget');
-        $totalExpense = $project->projectActivities()->where('fiscal_year_id', $fiscalYearId)->sum('total_expense');
+            if ($activity->children && $activity->children->isNotEmpty()) {
+                foreach ($activity->children as $child) {
+                    $childTotals = $computeSubtreeQuarters($child);
+                    $totals['q1'] += $childTotals['q1'];
+                    $totals['q2'] += $childTotals['q2'];
+                    $totals['q3'] += $childTotals['q3'];
+                    $totals['q4'] += $childTotals['q4'];
+                }
+            }
 
-        return view('admin.project-activities.show', compact('capitalActivities', 'recurrentActivities', 'totalCapitalRows', 'totalRecurrentRows', 'project', 'fiscalYear', 'totalActivities', 'totalPlanned', 'totalExpense'));
+            $subtreeQuarterTotals[$activity->id] = $totals;
+            return $totals;
+        };
+
+        // Compute for all roots and their descendants
+        $allActivities = $capitalActivities->concat($recurrentActivities);
+        foreach ($allActivities as $root) {
+            $computeSubtreeQuarters($root);
+        }
+
+        return view('admin.project-activities.show', compact(
+            'project',
+            'fiscalYear',
+            'capitalActivities',
+            'recurrentActivities',
+            'subtreeQuarterTotals',
+            'projectId',
+            'fiscalYearId'
+        ));
     }
 
     public function edit(int $projectId, int $fiscalYearId): View
@@ -324,13 +363,13 @@ class ProjectActivityController extends Controller
         ));
     }
 
-    public function update(StoreProjectActivityRequest $request, int $projectId, int $fiscalYearId)
+    public function update(UpdateProjectActivityRequest $request, int $projectId, int $fiscalYearId)
     {
         $validated = $request->validated();
 
         // Ensure project and fiscal year match
         $project = Project::findOrFail($projectId);
-        if ($validated['project_id'] != $projectId || $validated['fiscal_year_id'] != $fiscalYearId) {
+        if (($validated['project_id'] ?? null) != $projectId || ($validated['fiscal_year_id'] ?? null) != $fiscalYearId) {
             return back()->withErrors(['error' => 'Project or fiscal year mismatch.']);
         }
 
@@ -346,8 +385,8 @@ class ProjectActivityController extends Controller
 
                 $expenditureId = ($section === 'capital') ? 1 : 2;
                 $activities = $validated[$section];
-                $savedMap = []; // Map form index → saved/updated ID
-                $submittedIds = collect($activities)->pluck('id')->filter()->toArray(); // For cleanup
+                $savedMap = []; // Map form index → saved/updated DB ID
+                $submittedIds = collect($activities)->pluck('id')->filter()->toArray(); // Old IDs for cleanup
 
                 // Soft-delete all existing for this project/fy/section
                 ProjectActivity::where('project_id', $project->id)
@@ -355,16 +394,13 @@ class ProjectActivityController extends Controller
                     ->where('expenditure_id', $expenditureId)
                     ->delete(); // Soft delete
 
-                // 1️⃣ Process parent activities first (top-level: no parent_id)
-                foreach ($activities as $index => $activityData) {
-                    if (
-                        !array_key_exists('parent_id', $activityData) ||
-                        $activityData['parent_id'] === null ||
-                        $activityData['parent_id'] === ''
-                    ) {
+                // 1️⃣ Process top-level activities first (no parent_id or null/empty)
+                foreach ($activities as $formIndex => $activityData) {
+                    $parentId = $activityData['parent_id'] ?? null;
+                    if ($this->isNullParent($parentId)) { // Reuse helper from request if extracted, or inline
                         $activityId = $activityData['id'] ?? null;
 
-                        // Update if existing ID (restore from soft-deleted), else create new
+                        // Restore/update if existing ID, else create new
                         if ($activityId) {
                             $activity = ProjectActivity::withTrashed()->findOrFail($activityId);
                             $activity->restore(); // Restore if soft-deleted
@@ -372,7 +408,8 @@ class ProjectActivityController extends Controller
                             $activity = new ProjectActivity();
                         }
 
-                        $activity->update([
+                        // Fill and save (works for both new and existing)
+                        $activity->fill([
                             'project_id' => $project->id,
                             'fiscal_year_id' => $fiscalYearId,
                             'expenditure_id' => $expenditureId,
@@ -386,26 +423,28 @@ class ProjectActivityController extends Controller
                             'q4' => $activityData['q4'] ?? 0,
                             'parent_id' => null,
                         ]);
+                        $activity->save();
 
-                        $savedMap[$index] = $activity->id;
+                        $savedMap[$formIndex] = $activity->id;
                     }
                 }
 
                 // 2️⃣ Process child activities after all parents exist
-                foreach ($activities as $index => $activityData) {
-                    if (
-                        !array_key_exists('parent_id', $activityData) ||
-                        $activityData['parent_id'] === null ||
-                        $activityData['parent_id'] === ''
-                    ) {
+                foreach ($activities as $formIndex => $activityData) {
+                    $parentId = $activityData['parent_id'] ?? null;
+                    if ($this->isNullParent($parentId)) {
                         continue; // Already processed above
                     }
 
-                    // Since we process top-level first, parents are saved/updated.
-                    // For children: parent_id is direct DB ID of parent (from form).
-                    $parentDbId = $activityData['parent_id'];
+                    // Map form parent_id (index) to saved DB ID
+                    $parentIndex = (int) $parentId;
+                    $parentDbId = $savedMap[$parentIndex] ?? null;
+                    if (!$parentDbId) {
+                        // Invalid hierarchy? Skip
+                        continue;
+                    }
 
-                    // Verify parent exists (quick check)
+                    // Verify parent exists
                     $parentActivity = ProjectActivity::where('id', $parentDbId)
                         ->where('project_id', $project->id)
                         ->where('fiscal_year_id', $fiscalYearId)
@@ -418,15 +457,16 @@ class ProjectActivityController extends Controller
 
                     $activityId = $activityData['id'] ?? null;
 
-                    // Update if existing ID (restore from soft-deleted), else create new
+                    // Restore/update if existing ID, else create new
                     if ($activityId) {
                         $activity = ProjectActivity::withTrashed()->findOrFail($activityId);
-                        $activity->restore(); // Restore if soft-deleted
+                        $activity->restore();
                     } else {
                         $activity = new ProjectActivity();
                     }
 
-                    $activity->update([
+                    // Fill and save
+                    $activity->fill([
                         'project_id' => $project->id,
                         'fiscal_year_id' => $fiscalYearId,
                         'expenditure_id' => $expenditureId,
@@ -438,13 +478,14 @@ class ProjectActivityController extends Controller
                         'q2' => $activityData['q2'] ?? 0,
                         'q3' => $activityData['q3'] ?? 0,
                         'q4' => $activityData['q4'] ?? 0,
-                        'parent_id' => $parentDbId, // Direct DB ID
+                        'parent_id' => $parentDbId, // Use mapped DB ID
                     ]);
+                    $activity->save();
 
-                    $savedMap[$index] = $activity->id;
+                    $savedMap[$formIndex] = $activity->id; // For potential deeper levels
                 }
 
-                // 3️⃣ Permanent delete truly removed ones (not resubmitted)
+                // 3️⃣ Permanent delete truly removed ones (not resubmitted old IDs)
                 ProjectActivity::where('project_id', $project->id)
                     ->where('fiscal_year_id', $fiscalYearId)
                     ->where('expenditure_id', $expenditureId)
@@ -459,6 +500,12 @@ class ProjectActivityController extends Controller
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to update project activities: ' . $e->getMessage()]);
         }
+    }
+
+    // Helper (extracted from request for reuse; add to controller or trait)
+    private function isNullParent($parentId): bool
+    {
+        return $parentId === null || $parentId === '' || $parentId === 'null';
     }
 
     public function destroy(ProjectActivity $projectActivity): Response

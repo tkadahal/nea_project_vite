@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('project_expenses', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('project_activity_id')->constrained('project_activities')->onDelete('cascade');
+            $table->foreignId('parent_id')->nullable()->constrained('project_expenses')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('description')->nullable();
+            $table->date('effective_date')->nullable();
+            $table->decimal('grand_total', 10, 2)->default(0.00);
+            $table->timestamps();
+            $table->softDeletes();
+
+            // Indexes for performance
+            $table->index('project_activity_id');
+            $table->index('parent_id');
+            $table->unique('project_activity_id');
+        });
+    }
+};

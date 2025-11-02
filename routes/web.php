@@ -23,6 +23,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Admin\DirectorateController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Admin\ProjectExpenseController;
 use App\Http\Controllers\Admin\ProjectActivityController;
 use App\Http\Controllers\Admin\ContractExtensionController;
 use App\Http\Controllers\Admin\AnalyticalDashboardController;
@@ -157,9 +158,20 @@ Route::group(
         Route::post('/budget-quater-allocations/load-budgets', [BudgetQuaterAllocationController::class, 'loadBudgets'])->name('budgetQuaterAllocations.loadBudgets');
         Route::resource('budgetQuaterAllocation', BudgetQuaterAllocationController::class);
 
+        Route::get('/project-activities/{projectId}/{fiscalYearId}', [ExpenseController::class, 'getForProject'])
+            ->name('project-activities.get');
         Route::get('fiscal-years/by-date', [ExpenseController::class, 'byDate'])->name('fiscal-years.by-date');
         Route::get('budgets/available', [ExpenseController::class, 'availableBudget'])->name('budgets.available');
+
+
+        Route::get('/expenses/0', [ExpenseController::class, 'testShow'])
+            ->name('expense.testShow');
         Route::resource('expense', ExpenseController::class);
+
+
+        Route::get('/projectExpense/show/{projectId}/{fiscalyearId}', [ProjectExpenseController::class, 'show'])
+            ->name('projectExpense.show');
+        Route::resource('projectExpense', ProjectExpenseController::class)->except('show');
 
         Route::get('files', [FileController::class, 'index'])->name('file.index');
         Route::post('{model}/{id}/files', [FileController::class, 'store'])->name('files.store');
