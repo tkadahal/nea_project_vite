@@ -270,42 +270,11 @@ class ProjectActivityController extends Controller
             ->with('children.children')
             ->get();
 
-        // Compute subtree quarter totals
-        $subtreeQuarterTotals = collect();
-        $computeSubtreeQuarters = function ($activity) use (&$subtreeQuarterTotals, &$computeSubtreeQuarters) {
-            $totals = [
-                'q1' => $activity->q1 ?? 0,
-                'q2' => $activity->q2 ?? 0,
-                'q3' => $activity->q3 ?? 0,
-                'q4' => $activity->q4 ?? 0,
-            ];
-
-            if ($activity->children && $activity->children->isNotEmpty()) {
-                foreach ($activity->children as $child) {
-                    $childTotals = $computeSubtreeQuarters($child);
-                    $totals['q1'] += $childTotals['q1'];
-                    $totals['q2'] += $childTotals['q2'];
-                    $totals['q3'] += $childTotals['q3'];
-                    $totals['q4'] += $childTotals['q4'];
-                }
-            }
-
-            $subtreeQuarterTotals[$activity->id] = $totals;
-            return $totals;
-        };
-
-        // Compute for all roots and their descendants
-        $allActivities = $capitalActivities->concat($recurrentActivities);
-        foreach ($allActivities as $root) {
-            $computeSubtreeQuarters($root);
-        }
-
         return view('admin.project-activities.show', compact(
             'project',
             'fiscalYear',
             'capitalActivities',
             'recurrentActivities',
-            'subtreeQuarterTotals',
             'projectId',
             'fiscalYearId'
         ));
