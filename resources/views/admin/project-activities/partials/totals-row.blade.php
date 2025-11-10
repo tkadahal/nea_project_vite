@@ -7,6 +7,7 @@
     $q2 = 0;
     $q3 = 0;
     $q4 = 0;
+
     foreach ($parentActivity->children as $child) {
         $child_total_budget = $child->children->isNotEmpty()
             ? $child->children->sum('total_budget') ?? 0
@@ -21,6 +22,7 @@
         $child_q2 = $child->children->isNotEmpty() ? $child->children->sum('q2') ?? 0 : $child->q2 ?? 0;
         $child_q3 = $child->children->isNotEmpty() ? $child->children->sum('q3') ?? 0 : $child->q3 ?? 0;
         $child_q4 = $child->children->isNotEmpty() ? $child->children->sum('q4') ?? 0 : $child->q4 ?? 0;
+
         $total_budget += $child_total_budget;
         $total_expense += $child_total_expense;
         $planned += $child_planned;
@@ -41,30 +43,44 @@
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($total_budget, 2) }}
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($total_expense, 2) }}
+        {{ number_format($total_budget, 2) }}</td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($planned, 2) }}
+        {{ number_format($total_expense, 2) }}</td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($q1, 2) }}
+        {{ number_format($planned, 2) }}</td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($q2, 2) }}
+        {{ number_format($q1, 2) }}</td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($q3, 2) }}
+        {{ number_format($q2, 2) }}</td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
     </td>
     <td
         class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
-        {{ number_format($q4, 2) }}
+        {{ number_format($q3, 2) }}</td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
     </td>
+    <td
+        class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right font-bold text-blue-700 dark:text-blue-300">
+        {{ number_format($q4, 2) }}</td>
 </tr>

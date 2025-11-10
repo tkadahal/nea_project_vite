@@ -10,20 +10,36 @@
             </a>
         </div>
         <p class="text-gray-600 dark:text-gray-400">
-            Detailed breakdown of Expeneses for Fiscal Year {{ $fiscalYear->title }}.
+            Detailed breakdown of Expenses for Fiscal Year {{ $fiscalYear->title }}.
         </p>
-        <div class="mt-2 flex flex-wrap gap-4 text-sm">
-            <div
-                class="bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 px-4 py-2 rounded-lg border border-green-200 dark:border-green-700">
-                Total Expense: {{ number_format($totalExpense, 2) }}
+        <div class="mt-2 flex items-center justify-between">
+            <div class="flex flex-wrap gap-4 text-sm items-center">
+                <div
+                    class="bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 px-4 py-2 rounded-lg border border-green-200 dark:border-green-700">
+                    Total Expense: {{ number_format($totalExpense, 2) }}
+                </div>
+                <div
+                    class="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
+                    Capital Expense: {{ number_format($capitalTotal, 2) }}
+                </div>
+                <div
+                    class="bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                    Recurrent Expense: {{ number_format($recurrentTotal, 2) }}
+                </div>
             </div>
-            <div
-                class="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
-                Capital Expense: {{ number_format($capitalTotal, 2) }}
-            </div>
-            <div
-                class="bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-700">
-                Recurrent Expense: {{ number_format($recurrentTotal, 2) }}
+            <div class="flex gap-2 ml-4 items-center">
+                <select id="quarter-select"
+                    class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="1">Quarter 1</option>
+                    <option value="2">Quarter 2</option>
+                    <option value="3">Quarter 3</option>
+                    <option value="4">Quarter 4</option>
+                </select>
+                <a id="download-link"
+                    href="{{ route('admin.projectExpense.excel.download', [$project->id, $fiscalYear->id]) }}?quarter=1"
+                    class="px-3 py-1.5 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 whitespace-nowrap">
+                    Download Excel
+                </a>
             </div>
         </div>
     </div>
@@ -53,19 +69,35 @@
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q1
+                                    Q1 Qty
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q2
+                                    Q1 Amt
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q3
+                                    Q2 Qty
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q4
+                                    Q2 Amt
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q3 Qty
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q3 Amt
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q4 Qty
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q4 Amt
                                 </th>
                             </tr>
                         </thead>
@@ -74,10 +106,14 @@
                                 @php
                                     $rootNumber = $rootIndex + 1;
                                     $amounts = $activityAmounts[$activity->id] ?? [
-                                        'q1' => 0,
-                                        'q2' => 0,
-                                        'q3' => 0,
-                                        'q4' => 0,
+                                        'q1_qty' => 0,
+                                        'q1_amt' => 0,
+                                        'q2_qty' => 0,
+                                        'q2_amt' => 0,
+                                        'q3_qty' => 0,
+                                        'q3_amt' => 0,
+                                        'q4_qty' => 0,
+                                        'q4_amt' => 0,
                                     ];
                                     $bgClass = $groupedActivities->has($activity->id)
                                         ? 'bg-gray-50 dark:bg-gray-700/50'
@@ -97,7 +133,11 @@
                                     @foreach ([1, 2, 3, 4] as $q)
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right text-sm text-gray-700 dark:text-gray-200">
-                                            {{ number_format($amounts['q' . $q], 2) }}
+                                            {{ number_format($amounts['q' . $q . '_qty'], 0) }}
+                                        </td>
+                                        <td
+                                            class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right text-sm text-gray-700 dark:text-gray-200">
+                                            {{ number_format($amounts['q' . $q . '_amt'], 2) }}
                                         </td>
                                     @endforeach
                                 </tr>
@@ -108,14 +148,16 @@
                                         'depth' => 1,
                                         'numberPrefix' => $rootNumber,
                                         'activityAmounts' => $activityAmounts,
-                                        'subtreeQuarterTotals' => $subtreeQuarterTotals,
+                                        'subtreeAmountTotals' => $subtreeAmountTotals,
+                                        'subtreeQuantityTotals' => $subtreeQuantityTotals,
                                     ])
                                     @include('admin.projectExpenses.partials.totals-row', [
                                         'depth' => 0,
                                         'number' => $rootNumber,
                                         'activityId' => $activity->id,
                                         'activityAmounts' => $activityAmounts,
-                                        'subtreeQuarterTotals' => $subtreeQuarterTotals,
+                                        'subtreeAmountTotals' => $subtreeAmountTotals,
+                                        'subtreeQuantityTotals' => $subtreeQuantityTotals,
                                     ])
                                 @endif
                             @endforeach
@@ -154,19 +196,35 @@
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q1
+                                    Q1 Qty
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q2
+                                    Q1 Amt
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q3
+                                    Q2 Qty
                                 </th>
                                 <th
                                     class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
-                                    Q4
+                                    Q2 Amt
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q3 Qty
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q3 Amt
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q4 Qty
+                                </th>
+                                <th
+                                    class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm font-semibold text-center">
+                                    Q4 Amt
                                 </th>
                             </tr>
                         </thead>
@@ -175,10 +233,14 @@
                                 @php
                                     $rootNumber = $rootIndex + 1;
                                     $amounts = $activityAmounts[$activity->id] ?? [
-                                        'q1' => 0,
-                                        'q2' => 0,
-                                        'q3' => 0,
-                                        'q4' => 0,
+                                        'q1_qty' => 0,
+                                        'q1_amt' => 0,
+                                        'q2_qty' => 0,
+                                        'q2_amt' => 0,
+                                        'q3_qty' => 0,
+                                        'q3_amt' => 0,
+                                        'q4_qty' => 0,
+                                        'q4_amt' => 0,
                                     ];
                                     $bgClass = $groupedActivities->has($activity->id)
                                         ? 'bg-gray-50 dark:bg-gray-700/50'
@@ -198,7 +260,11 @@
                                     @foreach ([1, 2, 3, 4] as $q)
                                         <td
                                             class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right text-sm text-gray-700 dark:text-gray-200">
-                                            {{ number_format($amounts['q' . $q], 2) }}
+                                            {{ number_format($amounts['q' . $q . '_qty'], 0) }}
+                                        </td>
+                                        <td
+                                            class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-right text-sm text-gray-700 dark:text-gray-200">
+                                            {{ number_format($amounts['q' . $q . '_amt'], 2) }}
                                         </td>
                                     @endforeach
                                 </tr>
@@ -209,14 +275,16 @@
                                         'depth' => 1,
                                         'numberPrefix' => $rootNumber,
                                         'activityAmounts' => $activityAmounts,
-                                        'subtreeQuarterTotals' => $subtreeQuarterTotals,
+                                        'subtreeAmountTotals' => $subtreeAmountTotals,
+                                        'subtreeQuantityTotals' => $subtreeQuantityTotals,
                                     ])
                                     @include('admin.projectExpenses.partials.totals-row', [
                                         'depth' => 0,
                                         'number' => $rootNumber,
                                         'activityId' => $activity->id,
                                         'activityAmounts' => $activityAmounts,
-                                        'subtreeQuarterTotals' => $subtreeQuarterTotals,
+                                        'subtreeAmountTotals' => $subtreeAmountTotals,
+                                        'subtreeQuantityTotals' => $subtreeQuantityTotals,
                                     ])
                                 @endif
                             @endforeach
@@ -252,4 +320,17 @@
             </form>
         @endcan
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const quarterSelect = document.getElementById('quarter-select');
+            const downloadLink = document.getElementById('download-link');
+            const baseUrl = '{{ route('admin.projectExpense.excel.download', [$project->id, $fiscalYear->id]) }}';
+
+            quarterSelect.addEventListener('change', function() {
+                const quarter = this.value;
+                downloadLink.href = baseUrl + '?quarter=' + quarter;
+            });
+        });
+    </script>
 </x-layouts.app>

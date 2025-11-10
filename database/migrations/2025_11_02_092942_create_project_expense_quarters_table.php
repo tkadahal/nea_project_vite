@@ -14,6 +14,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_expense_id')->constrained()->onDelete('cascade');
             $table->tinyInteger('quarter')->unsigned()->comment('1-4');
+            $table->decimal('quantity', 10, 2)->default(0.00);
             $table->decimal('amount', 10, 2)->default(0.00);
             $table->timestamps();
             $table->softDeletes();

@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProgramExpenseTemplateExport;
 use Symfony\Component\HttpFoundation\Response;
+use App\Http\Requests\ProjectExpense\StoreProjectExpenseRequest;
 
 class ProjectExpenseController extends Controller
 {
@@ -138,47 +141,35 @@ class ProjectExpenseController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function store(StoreProjectExpenseRequest $request)
     {
-        $validated = $request->validate([
-            'project_id' => 'required|exists:projects,id',
-            'fiscal_year_id' => 'required|exists:fiscal_years,id',
-            'capital.*.activity_id' => 'required|exists:project_activities,id',
-            'capital.*.parent_id' => 'nullable|exists:project_activities,id', // FIXED: Validate against activities, not expenses
-            'capital.*.q1' => 'nullable|numeric|min:0',
-            'capital.*.q2' => 'nullable|numeric|min:0',
-            'capital.*.q3' => 'nullable|numeric|min:0',
-            'capital.*.q4' => 'nullable|numeric|min:0',
-            // Repeat for 'recurrent'
-            'recurrent.*.activity_id' => 'required|exists:project_activities,id',
-            'recurrent.*.parent_id' => 'nullable|exists:project_activities,id', // FIXED: Same here
-            'recurrent.*.q1' => 'nullable|numeric|min:0',
-            'recurrent.*.q2' => 'nullable|numeric|min:0',
-            'recurrent.*.q3' => 'nullable|numeric|min:0',
-            'recurrent.*.q4' => 'nullable|numeric|min:0',
-        ]);
-
         DB::beginTransaction();
         try {
             $user = Auth::user();
             $userId = $user->id;
-            $projectId = $request->project_id;
-            $fiscalYearId = $request->fiscal_year_id;
+            $validatedData = $request->validated();
+
+            $projectId = $validatedData['project_id'];
+            $fiscalYearId = $validatedData['fiscal_year_id'];
 
             // Collect all activity data across sections for mapping
             $allActivityData = [];
             foreach (['capital', 'recurrent'] as $section) {
-                if ($request->has($section)) {
-                    foreach ($request[$section] as $index => $activityData) {
+                if (isset($validatedData[$section])) {
+                    foreach ($validatedData[$section] as $index => $activityData) {
                         $allActivityData[] = [
                             'section' => $section,
                             'index' => $index,
                             'activity_id' => $activityData['activity_id'],
                             'parent_activity_id' => $activityData['parent_id'] ?? null, // Renamed for clarity
-                            'q1' => $activityData['q1'] ?? 0,
-                            'q2' => $activityData['q2'] ?? 0,
-                            'q3' => $activityData['q3'] ?? 0,
-                            'q4' => $activityData['q4'] ?? 0,
+                            'q1_qty' => $activityData['q1_qty'] ?? 0,
+                            'q1_amt' => $activityData['q1_amt'] ?? 0,
+                            'q2_qty' => $activityData['q2_qty'] ?? 0,
+                            'q2_amt' => $activityData['q2_amt'] ?? 0,
+                            'q3_qty' => $activityData['q3_qty'] ?? 0,
+                            'q3_amt' => $activityData['q3_amt'] ?? 0,
+                            'q4_qty' => $activityData['q4_qty'] ?? 0,
+                            'q4_amt' => $activityData['q4_amt'] ?? 0,
                             'description' => $activityData['description'] ?? null,
                         ];
                     }
@@ -198,31 +189,33 @@ class ProjectExpenseController extends Controller
                     [
                         'user_id' => $userId,
                         'description' => $data['description'],
+                        'effective_date' => now(), // Or null if not needed; adjust as per requirements
+                        'grand_total' => 0.00, // Default value, no calculation for now
                         // parent_id omitted here
                     ]
                 );
 
-                // Handle quarters (only non-zero)
+                // Handle quarters (only non-zero qty or amt)
                 $quartersData = [
-                    ['quarter' => 1, 'amount' => $data['q1']],
-                    ['quarter' => 2, 'amount' => $data['q2']],
-                    ['quarter' => 3, 'amount' => $data['q3']],
-                    ['quarter' => 4, 'amount' => $data['q4']],
+                    ['quarter' => 1, 'quantity' => $data['q1_qty'], 'amount' => $data['q1_amt']],
+                    ['quarter' => 2, 'quantity' => $data['q2_qty'], 'amount' => $data['q2_amt']],
+                    ['quarter' => 3, 'quantity' => $data['q3_qty'], 'amount' => $data['q3_amt']],
+                    ['quarter' => 4, 'quantity' => $data['q4_qty'], 'amount' => $data['q4_amt']],
                 ];
 
                 foreach ($quartersData as $qData) {
-                    if ($qData['amount'] > 0) {
+                    if ($qData['quantity'] > 0 || $qData['amount'] > 0) {
                         $expense->quarters()->updateOrCreate(
                             ['quarter' => $qData['quarter']],
-                            ['amount' => $qData['amount']]
+                            [
+                                'quantity' => $qData['quantity'],
+                                'amount' => $qData['amount']
+                            ]
                         );
                     } else {
                         $expense->quarters()->where('quarter', $qData['quarter'])->delete();
                     }
                 }
-
-                // Update grand_total
-                $expense->update(['grand_total' => $expense->getGrandTotalAttribute()]);
 
                 // Map activity to expense
                 $activityToExpenseMap[$data['activity_id']] = $expense->id;
@@ -273,22 +266,39 @@ class ProjectExpenseController extends Controller
             ->get()
             ->keyBy('project_activity_id'); // Map: activity_id => expense
 
-        // Build quarter amount map: activity_id => [q1 => amount, q2 => ..., total => grand_total]
+        // Build quarter quantity and amount map: activity_id => [q1_qty => qty, q1_amt => amt, ..., total => grand_total]
         $activityAmounts = [];
         foreach ($expenses as $expense) {
-            $amounts = ['total' => $expense->grand_total ?? 0];
+            $activityAmounts[$expense->project_activity_id] = ['total' => $expense->grand_total ?? 0];
             foreach ($expense->quarters as $q) {
-                $amounts['q' . $q->quarter] = $q->amount;
+                $activityAmounts[$expense->project_activity_id]['q' . $q->quarter . '_qty'] = $q->quantity;
+                $activityAmounts[$expense->project_activity_id]['q' . $q->quarter . '_amt'] = $q->amount;
             }
             for ($i = 1; $i <= 4; $i++) {
-                if (!isset($amounts['q' . $i])) $amounts['q' . $i] = 0;
+                $qtyKey = 'q' . $i . '_qty';
+                $amtKey = 'q' . $i . '_amt';
+                if (!isset($activityAmounts[$expense->project_activity_id][$qtyKey])) {
+                    $activityAmounts[$expense->project_activity_id][$qtyKey] = 0;
+                }
+                if (!isset($activityAmounts[$expense->project_activity_id][$amtKey])) {
+                    $activityAmounts[$expense->project_activity_id][$amtKey] = 0;
+                }
             }
-            $activityAmounts[$expense->project_activity_id] = $amounts;
         }
         // Default to 0 for activities without expenses
         foreach ($activities as $activity) {
             if (!isset($activityAmounts[$activity->id])) {
-                $activityAmounts[$activity->id] = ['total' => 0, 'q1' => 0, 'q2' => 0, 'q3' => 0, 'q4' => 0];
+                $activityAmounts[$activity->id] = [
+                    'total' => 0,
+                    'q1_qty' => 0,
+                    'q1_amt' => 0,
+                    'q2_qty' => 0,
+                    'q2_amt' => 0,
+                    'q3_qty' => 0,
+                    'q3_amt' => 0,
+                    'q4_qty' => 0,
+                    'q4_amt' => 0,
+                ];
             }
         }
 
@@ -299,39 +309,66 @@ class ProjectExpenseController extends Controller
         // Group all activities by parent_id for hierarchical rendering
         $groupedActivities = $activities->groupBy(fn($a) => $a->parent_id ?? 'null');
 
-        // Compute subtree quarter totals for each activity (sums own + all descendants)
-        $subtreeQuarterTotals = [];
-        $computeSubtreeQuarters = function ($activityId, $activityAmounts, $groupedActivities) use (&$subtreeQuarterTotals, &$computeSubtreeQuarters) {
-            if (isset($subtreeQuarterTotals[$activityId])) {
-                return $subtreeQuarterTotals[$activityId];
+        // Compute subtree quarter totals for each activity (sums own + all descendants) - amounts only
+        $subtreeAmountTotals = [];
+        $computeSubtreeAmounts = function ($activityId, $activityAmounts, $groupedActivities) use (&$subtreeAmountTotals, &$computeSubtreeAmounts) {
+            if (isset($subtreeAmountTotals[$activityId])) {
+                return $subtreeAmountTotals[$activityId];
             }
 
             $totals = ['q1' => 0, 'q2' => 0, 'q3' => 0, 'q4' => 0];
             $own = $activityAmounts[$activityId] ?? $totals;
             foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
-                $totals[$q] = $own[$q];
+                $totals[$q] = $own[$q . '_amt'] ?? 0;
             }
 
             if (isset($groupedActivities[$activityId])) {
                 foreach ($groupedActivities[$activityId] as $child) {
-                    $childTotals = $computeSubtreeQuarters($child->id, $activityAmounts, $groupedActivities);
+                    $childTotals = $computeSubtreeAmounts($child->id, $activityAmounts, $groupedActivities);
                     foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
                         $totals[$q] += $childTotals[$q];
                     }
                 }
             }
 
-            $subtreeQuarterTotals[$activityId] = $totals;
+            $subtreeAmountTotals[$activityId] = $totals;
+            return $totals;
+        };
+
+        // Compute subtree quarter quantities for each activity (sums own + all descendants)
+        $subtreeQuantityTotals = [];
+        $computeSubtreeQuantities = function ($activityId, $activityAmounts, $groupedActivities) use (&$subtreeQuantityTotals, &$computeSubtreeQuantities) {
+            if (isset($subtreeQuantityTotals[$activityId])) {
+                return $subtreeQuantityTotals[$activityId];
+            }
+
+            $totals = ['q1' => 0, 'q2' => 0, 'q3' => 0, 'q4' => 0];
+            $own = $activityAmounts[$activityId] ?? $totals;
+            foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
+                $totals[$q] = $own[$q . '_qty'] ?? 0;
+            }
+
+            if (isset($groupedActivities[$activityId])) {
+                foreach ($groupedActivities[$activityId] as $child) {
+                    $childTotals = $computeSubtreeQuantities($child->id, $activityAmounts, $groupedActivities);
+                    foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
+                        $totals[$q] += $childTotals[$q];
+                    }
+                }
+            }
+
+            $subtreeQuantityTotals[$activityId] = $totals;
             return $totals;
         };
 
         // Compute for all root activities (this will recursively compute for all descendants)
         $allRoots = $capitalActivities->concat($recurrentActivities);
         foreach ($allRoots as $root) {
-            $computeSubtreeQuarters($root->id, $activityAmounts, $groupedActivities);
+            $computeSubtreeAmounts($root->id, $activityAmounts, $groupedActivities);
+            $computeSubtreeQuantities($root->id, $activityAmounts, $groupedActivities);
         }
 
-        // Compute totals (sum all activities by expenditure_id, regardless of depth)
+        // Compute totals (sum all activities by expenditure_id, regardless of depth) - amounts only
         $totalExpense = collect($activityAmounts)->sum('total');
         $capitalTotal = $activities->where('expenditure_id', 1)->sum(fn($activity) => $activityAmounts[$activity->id]['total'] ?? 0);
         $recurrentTotal = $activities->where('expenditure_id', 2)->sum(fn($activity) => $activityAmounts[$activity->id]['total'] ?? 0);
@@ -343,7 +380,8 @@ class ProjectExpenseController extends Controller
             'recurrentActivities',
             'activityAmounts',
             'groupedActivities',
-            'subtreeQuarterTotals',
+            'subtreeAmountTotals',
+            'subtreeQuantityTotals',
             'totalExpense',
             'capitalTotal',
             'recurrentTotal'
@@ -372,5 +410,24 @@ class ProjectExpenseController extends Controller
     public function destroy(ProjectExpense $projectExpense)
     {
         //
+    }
+
+    public function downloadExcel(Request $request, int $projectId, int $fiscalYearId)
+    {
+        $project = Project::findOrFail($projectId);
+        $fiscalYear = FiscalYear::findOrFail($fiscalYearId);
+
+        $quarter = $request->query('quarter', 1);
+        if (!in_array($quarter, [1, 2, 3, 4])) {
+            $quarter = 1;
+        }
+
+        $safeProjectTitle = str_replace(['/', '\\'], '_', Str::slug($project->title));
+        $safeFiscalTitle = str_replace(['/', '\\'], '_', $fiscalYear->title);
+
+        return Excel::download(
+            new ProgramExpenseTemplateExport($project->title, $fiscalYear->title, $projectId, $fiscalYearId, $quarter),
+            'ExpenseReport_' . $project->title . '_' . $safeFiscalTitle . '.xlsx'
+        );
     }
 }

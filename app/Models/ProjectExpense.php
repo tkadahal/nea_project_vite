@@ -22,6 +22,8 @@ class ProjectExpense extends Model
         'user_id',
         'description',
         'effective_date',
+        'sub_weight',
+        'weighted_progress',
     ];
 
     protected $casts = [
@@ -30,6 +32,8 @@ class ProjectExpense extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
         'grand_total' => 'decimal:2',
+        'sub_weight' => 'decimal:4',
+        'weighted_progress' => 'decimal:4',
     ];
 
     // Accessor for grand_total (sums quarters)
@@ -86,19 +90,5 @@ class ProjectExpense extends Model
     public function scopeInCategory(Builder $query, int $expenditureId): void // 1=capital, 2=recurrent
     {
         $query->whereHas('projectActivity', fn($q) => $q->where('expenditure_id', $expenditureId));
-    }
-
-    // Boot: Auto-set fiscal if effective_date provided (adapted; uses activity's fiscal if unset)
-    protected static function booted(): void
-    {
-        static::creating(function (ProjectExpense $expense) {
-            if ($expense->effective_date && !$expense->project_activity_id) { // Minimal check
-                // If no activity, could auto-assign, but assume set via controller
-            }
-        });
-
-        static::deleting(function (ProjectExpense $expense) {
-            $expense->quarters()->delete();
-        });
     }
 }

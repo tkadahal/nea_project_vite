@@ -15,10 +15,12 @@ class ProjectExpenseQuarter extends Model
     protected $fillable = [
         'project_expense_id',
         'quarter',
+        'quantity',
         'amount',
     ];
 
     protected $casts = [
+        'quantity' => 'decimal:2',
         'amount' => 'decimal:2',
         'quarter' => 'integer',
         'created_at' => 'datetime',

@@ -99,6 +99,10 @@ Route::group(
         Route::get('/projectActivity/edit/{projectId}/{fiscalYearId}', [ProjectActivityController::class, 'edit'])
             ->name('projectActivity.edit');
 
+        // Excel Download Route
+        Route::get('/project-activity/{projectId}/{fiscalYearId}/download-activities', [ProjectActivityController::class, 'downloadActivities'])
+            ->name('projectActivity.download-activities');
+
         Route::get('/projectActivity/budgetData', [ProjectActivityController::class, 'getBudgetData'])
             ->name('projectActivity.budgetData');
 
@@ -169,6 +173,8 @@ Route::group(
         Route::resource('expense', ExpenseController::class);
 
 
+        Route::get('/projectExpense/download/excel/{projectId}/{fiscalYearId}', [ProjectExpenseController::class, 'downloadExcel'])
+            ->name('projectExpense.excel.download');
         Route::get('/projectExpense/show/{projectId}/{fiscalyearId}', [ProjectExpenseController::class, 'show'])
             ->name('projectExpense.show');
         Route::resource('projectExpense', ProjectExpenseController::class)->except('show');

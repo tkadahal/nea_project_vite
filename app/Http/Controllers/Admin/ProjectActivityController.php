@@ -10,6 +10,7 @@ use App\Models\Budget;
 use App\Models\Project;
 use Illuminate\View\View;
 use App\Models\FiscalYear;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\ProjectActivity;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +18,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProjectActivityExport;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Exports\ProjectActivityTemplateExport;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
+use App\Exports\ProjectActivitiesMultiSheetExport;
 use App\Http\Requests\ProjectActivity\StoreProjectActivityRequest;
 use App\Http\Requests\ProjectActivity\UpdateProjectActivityRequest;
 
@@ -188,12 +191,19 @@ class ProjectActivityController extends Controller
                             'expenditure_id' => $expenditureId,
                             'program' => $activityData['program'],
                             'total_budget' => $activityData['total_budget'] ?? 0,
+                            'total_quantity' => $activityData['total_budget_qty'] ?? 0,
                             'total_expense' => $activityData['total_expense'] ?? 0,
+                            'completed_quantity' => $activityData['total_expense_qty'] ?? 0,
                             'planned_budget' => $activityData['planned_budget'] ?? 0,
+                            'planned_quantity' => $activityData['planned_budget_qty'] ?? 0,
                             'q1' => $activityData['q1'] ?? 0,
+                            'q1_quantity' => $activityData['q1_qty'] ?? 0,
                             'q2' => $activityData['q2'] ?? 0,
+                            'q2_quantity' => $activityData['q2_qty'] ?? 0,
                             'q3' => $activityData['q3'] ?? 0,
+                            'q3_quantity' => $activityData['q3_qty'] ?? 0,
                             'q4' => $activityData['q4'] ?? 0,
+                            'q4_quantity' => $activityData['q4_qty'] ?? 0,
                             'parent_id' => null,
                         ]);
 
@@ -222,12 +232,19 @@ class ProjectActivityController extends Controller
                         'expenditure_id' => $expenditureId,
                         'program' => $activityData['program'],
                         'total_budget' => $activityData['total_budget'] ?? 0,
+                        'total_quantity' => $activityData['total_budget_qty'] ?? 0,
                         'total_expense' => $activityData['total_expense'] ?? 0,
+                        'completed_quantity' => $activityData['total_expense_qty'] ?? 0,
                         'planned_budget' => $activityData['planned_budget'] ?? 0,
+                        'planned_quantity' => $activityData['planned_budget_qty'] ?? 0,
                         'q1' => $activityData['q1'] ?? 0,
+                        'q1_quantity' => $activityData['q1_qty'] ?? 0,
                         'q2' => $activityData['q2'] ?? 0,
+                        'q2_quantity' => $activityData['q2_qty'] ?? 0,
                         'q3' => $activityData['q3'] ?? 0,
+                        'q3_quantity' => $activityData['q3_qty'] ?? 0,
                         'q4' => $activityData['q4'] ?? 0,
+                        'q4_quantity' => $activityData['q4_qty'] ?? 0,
                         'parent_id' => $savedMap[$parentFormIndex],
                     ]);
 
@@ -258,17 +275,52 @@ class ProjectActivityController extends Controller
 
         $fiscalYear = FiscalYear::findOrFail($fiscalYearId);
 
-        // Load activities with hierarchy (up to depth 2)
+        // Load activities with deeper hierarchy and relations for weighted calcs (if needed)
         $capitalActivities = $project->projectActivities()
             ->where('fiscal_year_id', $fiscalYearId)
             ->where('expenditure_id', 1)
-            ->with('children.children')
+            ->with('children.children') // Eager-load for any expense-based recalc
             ->get();
+
         $recurrentActivities = $project->projectActivities()
             ->where('fiscal_year_id', $fiscalYearId)
             ->where('expenditure_id', 2)
             ->with('children.children')
             ->get();
+
+        // Update sums queries to include weighted progress aggregate (simple average for now)
+        $capitalSums = $project->projectActivities()
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->where('expenditure_id', 1)
+            ->whereNull('parent_id')
+            ->selectRaw('
+            SUM(total_budget) as total_budget,
+            SUM(total_expense) as total_expense,
+            SUM(planned_budget) as planned_budget,
+            SUM(q1) as q1,
+            SUM(q2) as q2,
+            SUM(q3) as q3,
+            SUM(q4) as q4
+        ')
+            ->first()
+            ->toArray();
+
+        // Fetch sums for Recurrent (expenditure_id = 2)
+        $recurrentSums = $project->projectActivities()
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->where('expenditure_id', 2)
+            ->whereNull('parent_id')
+            ->selectRaw('
+            SUM(total_budget) as total_budget,
+            SUM(total_expense) as total_expense,
+            SUM(planned_budget) as planned_budget,
+            SUM(q1) as q1,
+            SUM(q2) as q2,
+            SUM(q3) as q3,
+            SUM(q4) as q4
+        ')
+            ->first()
+            ->toArray();
 
         return view('admin.project-activities.show', compact(
             'project',
@@ -276,7 +328,9 @@ class ProjectActivityController extends Controller
             'capitalActivities',
             'recurrentActivities',
             'projectId',
-            'fiscalYearId'
+            'fiscalYearId',
+            'capitalSums',
+            'recurrentSums'
         ));
     }
 
@@ -384,12 +438,19 @@ class ProjectActivityController extends Controller
                             'expenditure_id' => $expenditureId,
                             'program' => $activityData['program'],
                             'total_budget' => $activityData['total_budget'] ?? 0,
+                            'total_quantity' => $activityData['total_budget_qty'] ?? 0,
                             'total_expense' => $activityData['total_expense'] ?? 0,
+                            'completed_quantity' => $activityData['total_expense_qty'] ?? 0,
                             'planned_budget' => $activityData['planned_budget'] ?? 0,
+                            'planned_quantity' => $activityData['planned_budget_qty'] ?? 0,
                             'q1' => $activityData['q1'] ?? 0,
+                            'q1_quantity' => $activityData['q1_qty'] ?? 0,
                             'q2' => $activityData['q2'] ?? 0,
+                            'q2_quantity' => $activityData['q2_qty'] ?? 0,
                             'q3' => $activityData['q3'] ?? 0,
+                            'q3_quantity' => $activityData['q3_qty'] ?? 0,
                             'q4' => $activityData['q4'] ?? 0,
+                            'q4_quantity' => $activityData['q4_qty'] ?? 0,
                             'parent_id' => null,
                         ]);
                         $activity->save();
@@ -441,12 +502,19 @@ class ProjectActivityController extends Controller
                         'expenditure_id' => $expenditureId,
                         'program' => $activityData['program'],
                         'total_budget' => $activityData['total_budget'] ?? 0,
+                        'total_quantity' => $activityData['total_budget_qty'] ?? 0,
                         'total_expense' => $activityData['total_expense'] ?? 0,
+                        'completed_quantity' => $activityData['total_expense_qty'] ?? 0,
                         'planned_budget' => $activityData['planned_budget'] ?? 0,
+                        'planned_quantity' => $activityData['planned_budget_qty'] ?? 0,
                         'q1' => $activityData['q1'] ?? 0,
+                        'q1_quantity' => $activityData['q1_qty'] ?? 0,
                         'q2' => $activityData['q2'] ?? 0,
+                        'q2_quantity' => $activityData['q2_qty'] ?? 0,
                         'q3' => $activityData['q3'] ?? 0,
+                        'q3_quantity' => $activityData['q3_qty'] ?? 0,
                         'q4' => $activityData['q4'] ?? 0,
+                        'q4_quantity' => $activityData['q4_qty'] ?? 0,
                         'parent_id' => $parentDbId, // Use mapped DB ID
                     ]);
                     $activity->save();
@@ -595,20 +663,20 @@ class ProjectActivityController extends Controller
         try {
             $spreadsheet = IOFactory::load($request->file('excel_file')->getRealPath());
 
-            // Read project and FY from Capital sheet (A1 and G1)
+            // Read project and FY from Capital sheet (A1 and H1)
             $capitalSheet = $spreadsheet->getSheetByName('पूँजीगत खर्च');
             if (!$capitalSheet) {
                 throw new Exception('Capital sheet not found. Expected "पूँजीगत खर्च".');
             }
 
             $projectName = trim((string) $capitalSheet->getCell('A1')->getValue()); // Changed to getValue()
-            $fiscalYearName = trim((string) $capitalSheet->getCell('G1')->getValue()); // Changed to G1 and getValue()
+            $fiscalYearName = trim((string) $capitalSheet->getCell('H1')->getValue()); // Changed to H1 and getValue()
 
             if (empty($projectName)) {
                 throw new Exception('Project title missing in Excel cell A1 on Capital sheet. Please select a project before downloading the template.');
             }
             if (empty($fiscalYearName)) {
-                throw new Exception('Fiscal Year title missing in Excel cell G1 on Capital sheet. Please select a fiscal year before downloading the template.');
+                throw new Exception('Fiscal Year title missing in Excel cell H1 on Capital sheet. Please select a fiscal year before downloading the template.');
             }
 
             $project = Project::where('title', $projectName)->first();
@@ -633,20 +701,20 @@ class ProjectActivityController extends Controller
             $recurrentSheet = $spreadsheet->getSheetByName('चालू खर्च');
             if ($recurrentSheet) {
                 $recProjectName = trim((string) $recurrentSheet->getCell('A1')->getValue());
-                $recFiscalYearName = trim((string) $recurrentSheet->getCell('G1')->getValue());
+                $recFiscalYearName = trim((string) $recurrentSheet->getCell('H1')->getValue());
                 if ($recProjectName !== $projectName || $recFiscalYearName !== $fiscalYearName) {
                     throw new Exception('Project or Fiscal Year selections must match across both sheets.');
                 }
             }
 
-            // Parse and process Capital (data starts at row 4)
-            $capitalData = $this->parseSheet($capitalSheet, 1, 4);
+            // Parse and process Capital (data starts at row 5, after two-row headers)
+            $capitalData = $this->parseSheet($capitalSheet, 1, 5);
             $this->validateExcelData($capitalData);
             $this->insertHierarchicalData($capitalData, $projectId, $fiscalYearId);
 
             // Parse and process Recurrent
             if ($recurrentSheet) {
-                $recurrentData = $this->parseSheet($recurrentSheet, 2, 4);
+                $recurrentData = $this->parseSheet($recurrentSheet, 2, 5);
                 $this->validateExcelData($recurrentData);
                 $this->insertHierarchicalData($recurrentData, $projectId, $fiscalYearId);
             }
@@ -662,7 +730,7 @@ class ProjectActivityController extends Controller
         }
     }
 
-    private function parseSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $expenditureId, int $startRow = 4): array
+    private function parseSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $expenditureId, int $startRow = 5): array
     {
         $data = [];
         $index = 0;
@@ -688,13 +756,21 @@ class ProjectActivityController extends Controller
 
             $program = trim((string) ($sheet->getCell('B' . $rowNum)->getCalculatedValue() ?? '')); // Cast for safety
 
-            $total_budget = (float) ($sheet->getCell('C' . $rowNum)->getCalculatedValue() ?? 0);
-            $total_expense = (float) ($sheet->getCell('D' . $rowNum)->getCalculatedValue() ?? 0);
-            $planned_budget = (float) ($sheet->getCell('E' . $rowNum)->getCalculatedValue() ?? 0);
-            $q1 = (float) ($sheet->getCell('F' . $rowNum)->getCalculatedValue() ?? 0);
-            $q2 = (float) ($sheet->getCell('G' . $rowNum)->getCalculatedValue() ?? 0);
-            $q3 = (float) ($sheet->getCell('H' . $rowNum)->getCalculatedValue() ?? 0);
-            $q4 = (float) ($sheet->getCell('I' . $rowNum)->getCalculatedValue() ?? 0);
+            // Read quantities (odd columns: C,E,G,I,K,M,O) and amounts (even: D,F,H,J,L,N,P)
+            $total_budget_qty = (float) ($sheet->getCell('C' . $rowNum)->getCalculatedValue() ?? 0);
+            $total_budget = (float) ($sheet->getCell('D' . $rowNum)->getCalculatedValue() ?? 0);
+            $total_expense_qty = (float) ($sheet->getCell('E' . $rowNum)->getCalculatedValue() ?? 0);
+            $total_expense = (float) ($sheet->getCell('F' . $rowNum)->getCalculatedValue() ?? 0);
+            $planned_budget_qty = (float) ($sheet->getCell('G' . $rowNum)->getCalculatedValue() ?? 0);
+            $planned_budget = (float) ($sheet->getCell('H' . $rowNum)->getCalculatedValue() ?? 0);
+            $q1_qty = (float) ($sheet->getCell('I' . $rowNum)->getCalculatedValue() ?? 0);
+            $q1 = (float) ($sheet->getCell('J' . $rowNum)->getCalculatedValue() ?? 0);
+            $q2_qty = (float) ($sheet->getCell('K' . $rowNum)->getCalculatedValue() ?? 0);
+            $q2 = (float) ($sheet->getCell('L' . $rowNum)->getCalculatedValue() ?? 0);
+            $q3_qty = (float) ($sheet->getCell('M' . $rowNum)->getCalculatedValue() ?? 0);
+            $q3 = (float) ($sheet->getCell('N' . $rowNum)->getCalculatedValue() ?? 0);
+            $q4_qty = (float) ($sheet->getCell('O' . $rowNum)->getCalculatedValue() ?? 0);
+            $q4 = (float) ($sheet->getCell('P' . $rowNum)->getCalculatedValue() ?? 0);
 
             $data[] = [
                 'index' => $index++,
@@ -703,12 +779,19 @@ class ProjectActivityController extends Controller
                 'parent_hash' => $parentHash,
                 'program' => $program,
                 'total_budget' => $total_budget,
+                'total_quantity' => $total_budget_qty,
                 'total_expense' => $total_expense,
+                'completed_quantity' => $total_expense_qty,
                 'planned_budget' => $planned_budget,
+                'planned_quantity' => $planned_budget_qty,
                 'q1' => $q1,
+                'q1_quantity' => $q1_qty,
                 'q2' => $q2,
+                'q2_quantity' => $q2_qty,
                 'q3' => $q3,
+                'q3_quantity' => $q3_qty,
                 'q4' => $q4,
+                'q4_quantity' => $q4_qty,
                 'expenditure_id' => $expenditureId,
             ];
         }
@@ -737,15 +820,29 @@ class ProjectActivityController extends Controller
         }
 
         foreach ($data as $row) {
-            // Quarter sum
-            $quarterSum = $row['q1'] + $row['q2'] + $row['q3'] + $row['q4'];
-            if (abs($row['planned_budget'] - $quarterSum) > 0.01) {
-                $errors[] = "Row #{$row['hash']}: Planned Budget ({$row['planned_budget']}) must equal Q1+Q2+Q3+Q4 ({$quarterSum}).";
+            // Quarter sum for amounts
+            $quarterAmountSum = $row['q1'] + $row['q2'] + $row['q3'] + $row['q4'];
+            if (abs($row['planned_budget'] - $quarterAmountSum) > 0.01) {
+                $errors[] = "Row #{$row['hash']}: Planned Budget ({$row['planned_budget']}) must equal Q1+Q2+Q3+Q4 ({$quarterAmountSum}).";
             }
 
-            // Non-negative
-            $fields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
-            foreach ($fields as $field) {
+            // Quarter sum for quantities
+            $quarterQtySum = $row['q1_quantity'] + $row['q2_quantity'] + $row['q3_quantity'] + $row['q4_quantity'];
+            if (abs($row['planned_quantity'] - $quarterQtySum) > 0.01) {
+                $errors[] = "Row #{$row['hash']}: Planned Quantity ({$row['planned_quantity']}) must equal Q1+Q2+Q3+Q4 quantities ({$quarterQtySum}).";
+            }
+
+            // Non-negative for amounts
+            $amountFields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
+            foreach ($amountFields as $field) {
+                if ($row[$field] < 0) {
+                    $errors[] = "Row #{$row['hash']}: {$field} cannot be negative ({$row[$field]}).";
+                }
+            }
+
+            // Non-negative for quantities
+            $qtyFields = ['total_quantity', 'completed_quantity', 'planned_quantity', 'q1_quantity', 'q2_quantity', 'q3_quantity', 'q4_quantity'];
+            foreach ($qtyFields as $field) {
                 if ($row[$field] < 0) {
                     $errors[] = "Row #{$row['hash']}: {$field} cannot be negative ({$row[$field]}).";
                 }
@@ -762,14 +859,15 @@ class ProjectActivityController extends Controller
             }
         }
 
-        // Parent-child sums (only for rows WITH children)
+
+        // Parent-child sums for amounts (only for rows WITH children)
         foreach ($hashToChildren as $parentHash => $children) {
             $parentRow = current(array_filter($data, fn(array $r) => $r['hash'] === $parentHash));
             if (!$parentRow) {
                 continue;
             }
 
-            $childrenSum = array_reduce($children, fn(array $carry, array $child) => [
+            $childrenAmountSum = array_reduce($children, fn(array $carry, array $child) => [
                 'total_budget' => $carry['total_budget'] + $child['total_budget'],
                 'total_expense' => $carry['total_expense'] + $child['total_expense'],
                 'planned_budget' => $carry['planned_budget'] + $child['planned_budget'],
@@ -779,10 +877,28 @@ class ProjectActivityController extends Controller
                 'q4' => $carry['q4'] + $child['q4'],
             ], ['total_budget' => 0, 'total_expense' => 0, 'planned_budget' => 0, 'q1' => 0, 'q2' => 0, 'q3' => 0, 'q4' => 0]);
 
-            $fields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
-            foreach ($fields as $field) {
-                if (abs($parentRow[$field] - $childrenSum[$field]) > 0.01) {
-                    $errors[] = "Row #{$parentRow['hash']}: {$field} ({$parentRow[$field]}) must equal sum of children ({$childrenSum[$field]}).";
+            $amountFields = ['total_budget', 'total_expense', 'planned_budget', 'q1', 'q2', 'q3', 'q4'];
+            foreach ($amountFields as $field) {
+                if (abs($parentRow[$field] - $childrenAmountSum[$field]) > 0.01) {
+                    $errors[] = "Row #{$parentRow['hash']}: {$field} ({$parentRow[$field]}) must equal sum of children ({$childrenAmountSum[$field]}).";
+                }
+            }
+
+            // Parent-child sums for quantities
+            $childrenQtySum = array_reduce($children, fn(array $carry, array $child) => [
+                'total_quantity' => $carry['total_quantity'] + $child['total_quantity'],
+                'completed_quantity' => $carry['completed_quantity'] + $child['completed_quantity'],
+                'planned_quantity' => $carry['planned_quantity'] + $child['planned_quantity'],
+                'q1_quantity' => $carry['q1_quantity'] + $child['q1_quantity'],
+                'q2_quantity' => $carry['q2_quantity'] + $child['q2_quantity'],
+                'q3_quantity' => $carry['q3_quantity'] + $child['q3_quantity'],
+                'q4_quantity' => $carry['q4_quantity'] + $child['q4_quantity'],
+            ], ['total_quantity' => 0, 'completed_quantity' => 0, 'planned_quantity' => 0, 'q1_quantity' => 0, 'q2_quantity' => 0, 'q3_quantity' => 0, 'q4_quantity' => 0]);
+
+            $qtyFields = ['total_quantity', 'completed_quantity', 'planned_quantity', 'q1_quantity', 'q2_quantity', 'q3_quantity', 'q4_quantity'];
+            foreach ($qtyFields as $field) {
+                if (abs($parentRow[$field] - $childrenQtySum[$field]) > 0.01) {
+                    $errors[] = "Row #{$parentRow['hash']}: {$field} ({$parentRow[$field]}) must equal sum of children ({$childrenQtySum[$field]}).";
                 }
             }
         }
@@ -807,7 +923,7 @@ class ProjectActivityController extends Controller
         $hashToId = [];
         $expenditureId = $data[0]['expenditure_id'];
 
-        // Create all records and track IDs by hash
+        // Create all records and track IDs by hash (triggers auto-calc on create)
         foreach ($data as $row) {
             $activity = ProjectActivity::create([
                 'project_id' => $projectId,
@@ -816,23 +932,82 @@ class ProjectActivityController extends Controller
                 'parent_id' => null, // Update later
                 'program' => $row['program'],
                 'total_budget' => $row['total_budget'],
+                'total_quantity' => $row['total_quantity'],
                 'total_expense' => $row['total_expense'],
+                'completed_quantity' => $row['completed_quantity'],
                 'planned_budget' => $row['planned_budget'],
+                'planned_quantity' => $row['planned_quantity'],
                 'q1' => $row['q1'],
+                'q1_quantity' => $row['q1_quantity'],
                 'q2' => $row['q2'],
+                'q2_quantity' => $row['q2_quantity'],
                 'q3' => $row['q3'],
+                'q3_quantity' => $row['q3_quantity'],
                 'q4' => $row['q4'],
+                'q4_quantity' => $row['q4_quantity'],
             ]);
 
             $hashToId[$row['hash']] = $activity->id;
         }
 
-        // Update parent_ids
+        // Update parent_ids (mass update skips events, so refresh models after)
+        $updatedIds = []; // Track IDs that get parent_id set
         foreach ($data as $row) {
             if ($row['parent_hash'] && isset($hashToId[$row['parent_hash']])) {
-                ProjectActivity::where('id', $hashToId[$row['hash']])
+                $childId = $hashToId[$row['hash']];
+                ProjectActivity::where('id', $childId)
                     ->update(['parent_id' => $hashToId[$row['parent_hash']]]);
+                $updatedIds[] = $childId; // For recalc
             }
         }
+
+        if (!empty($updatedIds)) {
+            ProjectActivity::whereIn('id', $updatedIds)
+                ->orWhereIn('parent_id', $updatedIds)
+                ->with('children')
+                ->chunk(50, function ($activities) {
+                    foreach ($activities as $activity) {
+                        $activity->saveQuietly();
+                    }
+                });
+        }
+
+        // Optional: One final top-level recalc for full tree
+        ProjectActivity::where('project_id', $projectId)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->where('expenditure_id', $expenditureId)
+            ->whereNull('parent_id') // Just roots
+            ->each(function ($root) {
+                $root->saveQuietly();
+            });
+    }
+
+    public function downloadActivities(int $projectId, int $fiscalYearId): Response
+    {
+        abort_if(Gate::denies('projectActivity_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $project = Project::findOrFail($projectId);
+        $fiscalYear = FiscalYear::findOrFail($fiscalYearId);
+
+        // Check access (reuse your logic)
+        if (!$project->users->contains(Auth::user()->id)) {
+            abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
+        }
+
+        // Sanitize titles for safe filename (remove/replace invalid chars like / \ : * ? " < > |)
+        $safeProjectTitle = preg_replace('/[\/\\\\:*?"<>|]/', '_', $project->title);
+        $safeFiscalYearTitle = preg_replace('/[\/\\\\:*?"<>|]/', '_', $fiscalYear->title);
+
+        // Optional: Further slugify for readability (replaces spaces with -, limits length)
+        $slugProjectTitle = $project->title;
+        $slugFiscalYearTitle = Str::slug($safeFiscalYearTitle);
+
+        $filename = 'AnnualProgram_' . $slugProjectTitle . '_' . $slugFiscalYearTitle . '.xlsx';
+
+        // Export as single combined sheet
+        return Excel::download(
+            new ProjectActivityExport($projectId, $fiscalYearId, $project, $fiscalYear),
+            $filename
+        );
     }
 }

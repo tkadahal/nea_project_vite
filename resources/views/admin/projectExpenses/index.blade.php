@@ -11,7 +11,7 @@
 
         @can('expense_create')
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('admin.expense.create') }}"
+                <a href="{{ route('admin.projectExpense.create') }}"
                     class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm"
                     aria-label="{{ trans('global.create') }} {{ trans('global.expense.title_singular') }}">
                     {{ trans('global.add') }} {{ trans('global.new') }}
