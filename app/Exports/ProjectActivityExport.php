@@ -24,7 +24,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
     protected $footerStart;
     protected $globalXCapital;
     protected $globalXRecurrent;
-    protected $tableHeaderRow; // Track where table headers start
+    protected $tableHeaderRow;
 
     public function __construct($projectId, $fiscalYearId, $project, $fiscalYear)
     {
@@ -58,7 +58,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
 
         $data = [];
 
-        // ========== HEADER SECTION (Exact match to image) ==========
+        // ========== HEADER SECTION (Exactly as per image) ==========
         $data[] = ['अनुसूची–१'];
         $data[] = [''];
         $data[] = ['(नियम १६ को उपनियम (१) र (३) सँग सम्बन्धित)'];
@@ -73,382 +73,124 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
         $data[] = [''];
         $data[] = [''];
 
-        // Form section - 3 columns layout (A-G, H-O, P-Y)
-        $formStart = count($data) + 1;
+        // Form section rows 14-26: Recreate exact structure from image
+        // Row 14
+        $row14 = array_fill(0, 25, '');
+        $row14[0] = '१. आ.व.:–';
+        $row14[1] = $this->fiscalYear->title ?? '';
+        $row14[7] = '१०. वार्षिक बजेट रु.:';
+        $row14[15] = '११. कार्यक्रम/आयोजनाको कुल लागत:';
+        $data[] = $row14;
 
-        // Column 1: A-G (indices 0-6)
-        // Column 2: H-O (indices 7-14)
-        // Column 3: P-Y (indices 15-24)
+        // Row 15
+        $row15 = array_fill(0, 25, '');
+        $row15[0] = '२. बजेट उपशीर्षक नं.:';
+        $row15[7] = '(क) आन्तरिक';
+        $row15[15] = '(क) आन्तरिक';
+        $data[] = $row15;
 
-        // Row 1
-        $data[] = [
-            '१. आ.व.:–',
-            $this->fiscalYear->title ?? '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '१०. वार्षिक बजेट रु.:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '११. कार्यक्रम/आयोजनाको कुल लागत: सुरुको',
-            '',
-            'संशोधित',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 16
+        $row16 = array_fill(0, 25, '');
+        $row16[0] = '३. मन्त्रालय/निकाय:';
+        $row16[7] = '(१) नेपाल सरकार:';
+        $row16[15] = '(१) नेपाल सरकार:';
+        $data[] = $row16;
 
-        // Row 2
-        $data[] = [
-            '२. बजेट उपशीर्षक नं.:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(क) आन्तरिक',
-            '(१) नेपाल सरकार:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(क) आन्तरिक',
-            '(१) नेपाल सरकार:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 17
+        $row17 = array_fill(0, 25, '');
+        $row17[0] = '४. विभाग/कार्यालय:';
+        $row17[7] = '(२) संस्था/निकाय:';
+        $row17[15] = '(२) संस्था/निकाय:';
+        $data[] = $row17;
 
-        // Row 3
-        $data[] = [
-            '३. मन्त्रालय/निकाय:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(२) संस्था/निकाय:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(२) संस्था/निकाय:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 18
+        $row18 = array_fill(0, 25, '');
+        $row18[0] = '५. कार्यक्रम/आयोजनाको नाम:';
+        $row18[1] = $this->project->title ?? '';
+        $row18[7] = '(३) जनसहभागिता:';
+        $row18[15] = '(३) जनसहभागिता:';
+        $data[] = $row18;
 
-        // Row 4
-        $data[] = [
-            '४. विभाग/कार्यालय:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(३) जनसहभागिता:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(३) जनसहभागिता:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 19
+        $row19 = array_fill(0, 25, '');
+        $row19[0] = '६. स्थान:';
+        $row19[1] = '(क) जिल्ला:';
+        $row19[7] = '(ख) वैदेशिक';
+        $row19[15] = '(ख) वैदेशिक';
+        $data[] = $row19;
 
-        // Row 5
-        $data[] = [
-            '५. कार्यक्रम/आयोजनाको नाम:',
-            $this->project->title ?? '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(ख) वैदेशिक',
-            '(१) ऋण:',
-            '',
-            '',
-            'सट्टा दर:',
-            '',
-            '',
-            '(ख) वैदेशिक',
-            '(१) ऋण:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 20
+        $row20 = array_fill(0, 25, '');
+        $row20[1] = '(ख) गाउँपालिका/नगरपालिका:';
+        $row20[7] = '(१) ऋण:';
+        $row20[15] = '(१) ऋण:';
+        $data[] = $row20;
 
-        // Row 6
-        $data[] = [
-            '६. स्थान:',
-            '(क) जिल्ला:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(ग) मुद्रा:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(२) अनुदान:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 21
+        $row21 = array_fill(0, 25, '');
+        $row21[1] = '(ग) वडा नं.:';
+        $row21[7] = 'सट्टा दर:';
+        $data[] = $row21;
 
-        // Row 7
-        $data[] = [
-            '',
-            '(ख) गाउँपालिका/नगरपालिका:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(घ) दातृपक्ष/संस्था:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 22
+        $row22 = array_fill(0, 25, '');
+        $row22[0] = '७. कार्यक्रम/आयोजना सुरु भएको मिति:';
+        $row22[7] = '(ग) मुद्रा:';
+        $row22[15] = '(२) अनुदान:';
+        $data[] = $row22;
 
-        // Row 8
-        $data[] = [
-            '',
-            '(ग) वडा नं.:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '१२. गत आ.व. सम्मको खर्च रु. (सोझै भुक्तानी र वस्तुगत अनुदान समेत)',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 23
+        $row23 = array_fill(0, 25, '');
+        $row23[0] = '८. कार्यक्रम/आयोजना पूरा हुने मिति:';
+        $row23[7] = '(घ) दातृपक्ष/संस्था:';
+        $data[] = $row23;
 
-        // Row 9
-        $data[] = [
-            '७. कार्यक्रम/आयोजना सुरु भएको मिति:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(क) आन्तरिक',
-            '(१) नेपाल सरकार:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 24
+        $row24 = array_fill(0, 25, '');
+        $row24[0] = '९. आयोजना/कार्यालय प्रमुखको नाम:';
+        $row24[15] = '१२. गत आ.व. सम्मको खर्च रु. (सोझै भुक्तानी र वस्तुगत अनुदान समेत)';
+        $data[] = $row24;
 
-        // Row 10
-        $data[] = [
-            '८. कार्यक्रम/आयोजना पूरा हुने मिति:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(२) संस्था/निकाय:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 25
+        $row25 = array_fill(0, 25, '');
+        $row25[15] = '(क) आन्तरिक';
+        $data[] = $row25;
 
-        // Row 11
-        $data[] = [
-            '९. आयोजना/कार्यालय प्रमुखको नाम:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(३) जनसहभागिता:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 26
+        $row26 = array_fill(0, 25, '');
+        $row26[15] = '(१) नेपाल सरकार:';
+        $data[] = $row26;
 
-        // Row 12
-        $data[] = [
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(ख) वैदेशिक',
-            '(१) ऋण:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 27
+        $row27 = array_fill(0, 25, '');
+        $row27[15] = '(२) संस्था/निकाय:';
+        $data[] = $row27;
 
-        // Row 13
-        $data[] = [
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '(२) अनुदान:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-        ];
+        // Row 28
+        $row28 = array_fill(0, 25, '');
+        $row28[15] = '(३) जनसहभागिता:';
+        $data[] = $row28;
+
+        // Row 29
+        $row29 = array_fill(0, 25, '');
+        $row29[15] = '(ख) वैदेशिक';
+        $data[] = $row29;
+
+        // Row 30
+        $row30 = array_fill(0, 25, '');
+        $row30[15] = '(१) ऋण:';
+        $data[] = $row30;
+
+        // Row 31
+        $row31 = array_fill(0, 25, '');
+        $row31[15] = '(२) अनुदान:';
+        $data[] = $row31;
 
         $data[] = ['']; // spacing
 
         // Note about amount format
-        $noteRow = array_fill(0, 21, '');
-        $noteRow[20] = '(रकम रु. हजारमा)';
+        $noteRow = array_fill(0, 25, '');
+        $noteRow[24] = '(रकम रु. हजारमा)';
         $data[] = $noteRow;
 
         // ========== TABLE SECTION ==========
@@ -625,7 +367,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
             'weighted_q4_contrib' => ($capitalTotals['weighted_q4_contrib'] ?? 0) + ($recurrentTotals['weighted_q4_contrib'] ?? 0),
         ];
         $row = count($data) + 1;
-        $data[] = $this->buildTotalRow('(ग)', 'कुल जम्मा (पूँजीगत + चालू)', $grandTotals, $globalXGrand, true);
+        $data[] = $this->buildTotalRow('(ग)', 'कुल जम्मा (पूँजीगत + चालू)', $grandTotals, $globalXGrand, false);
         $this->totalRows[] = $row;
         $data[] = [''];
         $data[] = [''];
@@ -835,7 +577,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
             $totals['q3'] += $activity->q3 ?? 0;
             $totals['q4'] += $activity->q4 ?? 0;
 
-            if ($totalQuantity > 0) {
+            if ($totalQuantity > 0 && $activity->expenditure_id == 1) {
                 $budget = $activity->total_budget ?? 0;
                 $progress = ($activity->completed_quantity ?? 0) / $totalQuantity;
                 $totals['weighted_expense_contrib'] += $progress * $budget;
@@ -843,17 +585,20 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                 $plannedProgress = ($activity->planned_quantity ?? 0) / $totalQuantity;
                 $totals['weighted_planned_contrib'] += $plannedProgress * $budget;
 
-                $q1Progress = ($activity->q1_quantity ?? 0) / $totalQuantity;
-                $totals['weighted_q1_contrib'] += $q1Progress * $budget;
+                $plannedQuantity = $activity->planned_quantity ?? 0;
+                if ($plannedQuantity > 0) {
+                    $q1Progress = ($activity->q1_quantity ?? 0) / $totalQuantity;
+                    $totals['weighted_q1_contrib'] += $q1Progress * $budget;
 
-                $q2Progress = ($activity->q2_quantity ?? 0) / $totalQuantity;
-                $totals['weighted_q2_contrib'] += $q2Progress * $budget;
+                    $q2Progress = ($activity->q2_quantity ?? 0) / $totalQuantity;
+                    $totals['weighted_q2_contrib'] += $q2Progress * $budget;
 
-                $q3Progress = ($activity->q3_quantity ?? 0) / $totalQuantity;
-                $totals['weighted_q3_contrib'] += $q3Progress * $budget;
+                    $q3Progress = ($activity->q3_quantity ?? 0) / $totalQuantity;
+                    $totals['weighted_q3_contrib'] += $q3Progress * $budget;
 
-                $q4Progress = ($activity->q4_quantity ?? 0) / $totalQuantity;
-                $totals['weighted_q4_contrib'] += $q4Progress * $budget;
+                    $q4Progress = ($activity->q4_quantity ?? 0) / $totalQuantity;
+                    $totals['weighted_q4_contrib'] += $q4Progress * $budget;
+                }
             }
         } else {
             foreach ($children as $child) {
@@ -904,12 +649,12 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 14], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            3 => ['font' => ['size' => 10], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            5 => ['font' => ['bold' => true, 'size' => 12, 'underline' => true], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            7 => ['font' => ['bold' => false, 'size' => 11], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            9 => ['font' => ['bold' => false, 'size' => 11], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            11 => ['font' => ['bold' => true, 'size' => 11, 'underline' => true], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            1 => ['font' => ['bold' => true, 'size' => 12], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            3 => ['font' => ['size' => 9], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            5 => ['font' => ['bold' => true, 'size' => 11, 'underline' => true], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            7 => ['font' => ['bold' => false, 'size' => 10], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            9 => ['font' => ['bold' => false, 'size' => 10], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            11 => ['font' => ['bold' => true, 'size' => 10, 'underline' => true], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
         ];
     }
 
@@ -920,139 +665,74 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                 $sheet = $event->sheet->getDelegate();
 
                 // ========== COLUMN WIDTHS (Optimized for A4 Landscape) ==========
-                $sheet->getColumnDimension('A')->setWidth(6);
-                $sheet->getColumnDimension('B')->setWidth(20);
-                $sheet->getColumnDimension('C')->setWidth(6);
-                $sheet->getColumnDimension('D')->setWidth(7);
-                $sheet->getColumnDimension('E')->setWidth(7);
-                $sheet->getColumnDimension('F')->setWidth(6);
-                $sheet->getColumnDimension('G')->setWidth(7);
-                $sheet->getColumnDimension('H')->setWidth(7);
-                $sheet->getColumnDimension('I')->setWidth(6);
-                $sheet->getColumnDimension('J')->setWidth(7);
-                $sheet->getColumnDimension('K')->setWidth(6);
-                $sheet->getColumnDimension('L')->setWidth(7);
-                $sheet->getColumnDimension('M')->setWidth(7);
-                $sheet->getColumnDimension('N')->setWidth(6);
-                $sheet->getColumnDimension('O')->setWidth(7);
-                $sheet->getColumnDimension('P')->setWidth(7);
-                $sheet->getColumnDimension('Q')->setWidth(6);
-                $sheet->getColumnDimension('R')->setWidth(7);
-                $sheet->getColumnDimension('S')->setWidth(7);
-                $sheet->getColumnDimension('T')->setWidth(6);
-                $sheet->getColumnDimension('U')->setWidth(7);
-                $sheet->getColumnDimension('V')->setWidth(7);
-                $sheet->getColumnDimension('W')->setWidth(6);
-                $sheet->getColumnDimension('X')->setWidth(7);
-                $sheet->getColumnDimension('Y')->setWidth(12);
+                $sheet->getColumnDimension('A')->setWidth(4.5);
+                $sheet->getColumnDimension('B')->setWidth(18);
+                $sheet->getColumnDimension('C')->setWidth(5);
+                $sheet->getColumnDimension('D')->setWidth(6);
+                $sheet->getColumnDimension('E')->setWidth(6);
+                $sheet->getColumnDimension('F')->setWidth(5);
+                $sheet->getColumnDimension('G')->setWidth(6);
+                $sheet->getColumnDimension('H')->setWidth(6);
+                $sheet->getColumnDimension('I')->setWidth(5);
+                $sheet->getColumnDimension('J')->setWidth(6);
+                $sheet->getColumnDimension('K')->setWidth(5);
+                $sheet->getColumnDimension('L')->setWidth(6);
+                $sheet->getColumnDimension('M')->setWidth(6);
+                $sheet->getColumnDimension('N')->setWidth(5);
+                $sheet->getColumnDimension('O')->setWidth(6);
+                $sheet->getColumnDimension('P')->setWidth(6);
+                $sheet->getColumnDimension('Q')->setWidth(5);
+                $sheet->getColumnDimension('R')->setWidth(6);
+                $sheet->getColumnDimension('S')->setWidth(6);
+                $sheet->getColumnDimension('T')->setWidth(5);
+                $sheet->getColumnDimension('U')->setWidth(6);
+                $sheet->getColumnDimension('V')->setWidth(6);
+                $sheet->getColumnDimension('W')->setWidth(5);
+                $sheet->getColumnDimension('X')->setWidth(6);
+                $sheet->getColumnDimension('Y')->setWidth(10);
 
                 // ========== HEADER SECTION STYLING (Rows 1-13) ==========
-                // Merge title rows to full width
-                $sheet->mergeCells('A1:Y1');   // अनुसूची–१
-                $sheet->mergeCells('A3:Y3');   // (नियम...)
-                $sheet->mergeCells('A5:Y5');   // वार्षिक बजेट तथा कार्यक्रमको ढाँचा
-                $sheet->mergeCells('A7:Y7');   // नेपाल सरकार
-                $sheet->mergeCells('A9:Y9');   // मन्त्रालय/निकाय
-                $sheet->mergeCells('A11:Y11'); // वार्षिक कार्यक्रम
+                $sheet->mergeCells('A1:Y1');
+                $sheet->mergeCells('A3:Y3');
+                $sheet->mergeCells('A5:Y5');
+                $sheet->mergeCells('A7:Y7');
+                $sheet->mergeCells('A9:Y9');
+                $sheet->mergeCells('A11:Y11');
 
-                // ========== FORM SECTION STYLING ==========
-                // Form section styling (rows 14-26 now, reduced from 32)
+                // ========== FORM SECTION STYLING (Rows 14-31) ==========
                 $formStart = 14;
-                $formEnd = 26;
+                $formEnd = 31;
 
-                // NO BORDERS for form section - keep it clean like the header
-                // Just apply text wrapping and alignment
+                // Apply wrapping and top alignment to all form cells
                 $sheet->getStyle("A{$formStart}:Y{$formEnd}")->getAlignment()->setWrapText(true);
                 $sheet->getStyle("A{$formStart}:Y{$formEnd}")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getStyle("A{$formStart}:Y{$formEnd}")->getFont()->setSize(9);
 
-                // Merge cells for 3-column layout
-                // Row 1: Column 1 has label+value, Column 2 has label, Column 3 has label+values inline
-                $sheet->mergeCells("B{$formStart}:G{$formStart}"); // Value for आ.व.
-                $sheet->mergeCells("H{$formStart}:O{$formStart}"); // १०. वार्षिक बजेट रु.:
-                $sheet->mergeCells("P{$formStart}:Y{$formStart}"); // Full text with सुरुको and संशोधित
-
-                // Row 2
-                $sheet->mergeCells("A" . ($formStart + 1) . ":G" . ($formStart + 1)); // २. बजेट उपशीर्षक नं.:
-                $sheet->mergeCells("H" . ($formStart + 1) . ":O" . ($formStart + 1)); // (क) आन्तरिक (१) नेपाल सरकार:
-                $sheet->mergeCells("P" . ($formStart + 1) . ":Y" . ($formStart + 1)); // (क) आन्तरिक (१) नेपाल सरकार:
-
-                // Row 3
-                $sheet->mergeCells("A" . ($formStart + 2) . ":G" . ($formStart + 2)); // ३. मन्त्रालय/निकाय:
-                $sheet->mergeCells("H" . ($formStart + 2) . ":O" . ($formStart + 2)); // (२) संस्था/निकाय:
-                $sheet->mergeCells("P" . ($formStart + 2) . ":Y" . ($formStart + 2)); // (२) संस्था/निकाय:
-
-                // Row 4
-                $sheet->mergeCells("A" . ($formStart + 3) . ":G" . ($formStart + 3)); // ४. विभाग/कार्यालय:
-                $sheet->mergeCells("H" . ($formStart + 3) . ":O" . ($formStart + 3)); // (३) जनसहभागिता:
-                $sheet->mergeCells("P" . ($formStart + 3) . ":Y" . ($formStart + 3)); // (३) जनसहभागिता:
-
-                // Row 5
-                $sheet->mergeCells("B" . ($formStart + 4) . ":G" . ($formStart + 4)); // Project title value
-                $sheet->mergeCells("H" . ($formStart + 4) . ":O" . ($formStart + 4)); // (ख) वैदेशिक (१) ऋण: सट्टा दर:
-                $sheet->mergeCells("P" . ($formStart + 4) . ":Y" . ($formStart + 4)); // (ख) वैदेशिक (१) ऋण:
-
-                // Row 6
-                $sheet->mergeCells("A" . ($formStart + 5) . ":G" . ($formStart + 5)); // ६. स्थान: (क) जिल्ला:
-                $sheet->mergeCells("H" . ($formStart + 5) . ":O" . ($formStart + 5)); // (ग) मुद्रा:
-                $sheet->mergeCells("P" . ($formStart + 5) . ":Y" . ($formStart + 5)); // (२) अनुदान:
-
-                // Row 7
-                $sheet->mergeCells("A" . ($formStart + 6) . ":G" . ($formStart + 6)); // (ख) गाउँपालिका/नगरपालिका:
-                $sheet->mergeCells("H" . ($formStart + 6) . ":O" . ($formStart + 6)); // (घ) दातृपक्ष/संस्था:
-                $sheet->mergeCells("P" . ($formStart + 6) . ":Y" . ($formStart + 6)); // Empty
-
-                // Row 8
-                $sheet->mergeCells("A" . ($formStart + 7) . ":G" . ($formStart + 7)); // (ग) वडा नं.:
-                $sheet->mergeCells("H" . ($formStart + 7) . ":O" . ($formStart + 7)); // Empty
-                $sheet->mergeCells("P" . ($formStart + 7) . ":Y" . ($formStart + 7)); // १२. गत आ.व. सम्मको खर्च रु...
-
-                // Row 9
-                $sheet->mergeCells("A" . ($formStart + 8) . ":G" . ($formStart + 8)); // ७. कार्यक्रम/आयोजना सुरु भएको मिति:
-                $sheet->mergeCells("H" . ($formStart + 8) . ":O" . ($formStart + 8)); // Empty
-                $sheet->mergeCells("P" . ($formStart + 8) . ":Y" . ($formStart + 8)); // (क) आन्तरिक (१) नेपाल सरकार:
-
-                // Row 10
-                $sheet->mergeCells("A" . ($formStart + 9) . ":G" . ($formStart + 9)); // ८. कार्यक्रम/आयोजना पूरा हुने मिति:
-                $sheet->mergeCells("H" . ($formStart + 9) . ":O" . ($formStart + 9)); // Empty
-                $sheet->mergeCells("P" . ($formStart + 9) . ":Y" . ($formStart + 9)); // (२) संस्था/निकाय:
-
-                // Row 11
-                $sheet->mergeCells("A" . ($formStart + 10) . ":G" . ($formStart + 10)); // ९. आयोजना/कार्यालय प्रमुखको नाम:
-                $sheet->mergeCells("H" . ($formStart + 10) . ":O" . ($formStart + 10)); // Empty
-                $sheet->mergeCells("P" . ($formStart + 10) . ":Y" . ($formStart + 10)); // (३) जनसहभागिता:
-
-                // Row 12
-                $sheet->mergeCells("A" . ($formStart + 11) . ":G" . ($formStart + 11)); // Empty
-                $sheet->mergeCells("H" . ($formStart + 11) . ":O" . ($formStart + 11)); // Empty
-                $sheet->mergeCells("P" . ($formStart + 11) . ":Y" . ($formStart + 11)); // (ख) वैदेशिक (१) ऋण:
-
-                // Row 13
-                $sheet->mergeCells("A" . ($formStart + 12) . ":G" . ($formStart + 12)); // Empty
-                $sheet->mergeCells("H" . ($formStart + 12) . ":O" . ($formStart + 12)); // Empty
-                $sheet->mergeCells("P" . ($formStart + 12) . ":Y" . ($formStart + 12)); // (२) अनुदान:
-
-                // Bold form labels only for primary labels (not sub-items)
-                $sheet->getStyle("A{$formStart}")->applyFromArray(['font' => ['bold' => true]]); // १.
-                $sheet->getStyle("H{$formStart}")->applyFromArray(['font' => ['bold' => true]]); // १०.
-                $sheet->getStyle("P{$formStart}")->applyFromArray(['font' => ['bold' => true]]); // ११.
-                $sheet->getStyle("A" . ($formStart + 1))->applyFromArray(['font' => ['bold' => true]]); // २.
-                $sheet->getStyle("A" . ($formStart + 2))->applyFromArray(['font' => ['bold' => true]]); // ३.
-                $sheet->getStyle("A" . ($formStart + 3))->applyFromArray(['font' => ['bold' => true]]); // ४.
-                $sheet->getStyle("A" . ($formStart + 4))->applyFromArray(['font' => ['bold' => true]]); // ५.
-                $sheet->getStyle("A" . ($formStart + 5))->applyFromArray(['font' => ['bold' => true]]); // ६.
-                $sheet->getStyle("A" . ($formStart + 8))->applyFromArray(['font' => ['bold' => true]]); // ७.
-                $sheet->getStyle("A" . ($formStart + 9))->applyFromArray(['font' => ['bold' => true]]); // ८.
-                $sheet->getStyle("A" . ($formStart + 10))->applyFromArray(['font' => ['bold' => true]]); // ९.
-                $sheet->getStyle("P" . ($formStart + 7))->applyFromArray(['font' => ['bold' => true]]); // १२.
-
-                // Set row heights for form section - taller for wrapped content
+                // Merge columns for form section
                 for ($r = $formStart; $r <= $formEnd; $r++) {
-                    $sheet->getRowDimension($r)->setRowHeight(20);
+                    $sheet->mergeCells("A{$r}:G{$r}");
+                    $sheet->mergeCells("H{$r}:O{$r}");
+                    $sheet->mergeCells("P{$r}:Y{$r}");
                 }
 
-                // Note row styling (now row 28 instead of 34)
-                $sheet->getStyle('Y28')->applyFromArray([
-                    'font' => ['italic' => true, 'size' => 9],
+                // Bold primary labels
+                $boldRows = [14, 15, 16, 17, 18, 22, 23, 24];
+                foreach ($boldRows as $row) {
+                    $sheet->getStyle("A{$row}")->applyFromArray(['font' => ['bold' => true, 'size' => 9]]);
+                }
+                $sheet->getStyle("H14")->applyFromArray(['font' => ['bold' => true, 'size' => 9]]);
+                $sheet->getStyle("P14")->applyFromArray(['font' => ['bold' => true, 'size' => 9]]);
+                $sheet->getStyle("P24")->applyFromArray(['font' => ['bold' => true, 'size' => 9]]);
+
+                // Set consistent row heights for form section
+                for ($r = $formStart; $r <= $formEnd; $r++) {
+                    $sheet->getRowDimension($r)->setRowHeight(24);
+                }
+
+                // Note row
+                $noteRowNum = 33;
+                $sheet->getStyle("Y{$noteRowNum}")->applyFromArray([
+                    'font' => ['italic' => true, 'size' => 8],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT]
                 ]);
 
@@ -1074,7 +754,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
 
                 // Table header styling
                 $sheet->getStyle("A{$tableStart}:Y" . ($tableStart + 2))->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 10],
+                    'font' => ['bold' => true, 'size' => 8],
                     'alignment' => [
                         'horizontal' => Alignment::HORIZONTAL_CENTER,
                         'vertical' => Alignment::VERTICAL_CENTER,
@@ -1093,15 +773,15 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                 ]);
 
                 // Set header row heights
-                $sheet->getRowDimension($tableStart)->setRowHeight(30);
-                $sheet->getRowDimension($tableStart + 1)->setRowHeight(30);
-                $sheet->getRowDimension($tableStart + 2)->setRowHeight(20);
+                $sheet->getRowDimension($tableStart)->setRowHeight(28);
+                $sheet->getRowDimension($tableStart + 1)->setRowHeight(28);
+                $sheet->getRowDimension($tableStart + 2)->setRowHeight(18);
 
                 // ========== SECTION HEADERS STYLING ==========
                 foreach ($this->headerRows as $row) {
                     $sheet->mergeCells("A{$row}:Y{$row}");
                     $sheet->getStyle("A{$row}")->applyFromArray([
-                        'font' => ['bold' => true, 'size' => 11],
+                        'font' => ['bold' => true, 'size' => 9],
                         'alignment' => [
                             'horizontal' => Alignment::HORIZONTAL_LEFT,
                             'vertical' => Alignment::VERTICAL_CENTER
@@ -1117,7 +797,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                             ]
                         ]
                     ]);
-                    $sheet->getRowDimension($row)->setRowHeight(25);
+                    $sheet->getRowDimension($row)->setRowHeight(22);
                 }
 
                 // ========== TOTAL ROWS STYLING ==========
@@ -1127,7 +807,7 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                             'fillType' => Fill::FILL_SOLID,
                             'startColor' => ['rgb' => 'E2EFDA']
                         ],
-                        'font' => ['bold' => true]
+                        'font' => ['bold' => true, 'size' => 8]
                     ]);
                 }
 
@@ -1136,7 +816,10 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                 $borderEndRow = $this->footerStart ? ($this->footerStart - 1) : $sheet->getHighestRow();
 
                 if ($borderEndRow >= $tableDataStart) {
-                    // Apply borders to all table data
+                    // Apply smaller font to all table data
+                    $sheet->getStyle("A{$tableDataStart}:Y{$borderEndRow}")->getFont()->setSize(8);
+
+                    // Apply borders
                     $sheet->getStyle("A{$tableDataStart}:Y{$borderEndRow}")->applyFromArray([
                         'borders' => [
                             'allBorders' => [
@@ -1158,19 +841,24 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                         $sheet->getStyle("{$col}{$tableDataStart}:{$col}{$borderEndRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                     }
 
-                    // Auto-adjust row heights for wrapped content
+                    // Set consistent row heights for data rows
                     for ($r = $tableDataStart; $r <= $borderEndRow; $r++) {
-                        $sheet->getRowDimension($r)->setRowHeight(-1);
+                        $sheet->getRowDimension($r)->setRowHeight(20);
                     }
                 }
 
-                // ========== FOOTER SECTION (No borders) ==========
+                // ========== FOOTER SECTION ==========
                 if ($this->footerStart) {
                     $lastRow = $sheet->getHighestRow();
                     $sheet->getStyle("A{$this->footerStart}:Y{$lastRow}")->applyFromArray([
                         'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_NONE]],
-                        'font' => ['bold' => true]
+                        'font' => ['bold' => true, 'size' => 9]
                     ]);
+
+                    // Set footer row heights
+                    for ($r = $this->footerStart; $r <= $lastRow; $r++) {
+                        $sheet->getRowDimension($r)->setRowHeight(22);
+                    }
                 }
 
                 // ========== PAGE SETUP FOR A4 LANDSCAPE ==========
@@ -1179,18 +867,18 @@ class ProjectActivityExport implements FromArray, WithTitle, WithStyles, WithEve
                 $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
                 $sheet->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
 
-                // Fit to one page
+                // Fit to one page width
                 $sheet->getPageSetup()->setFitToPage(true);
                 $sheet->getPageSetup()->setFitToWidth(1);
-                $sheet->getPageSetup()->setFitToHeight(0); // Allow multiple pages vertically if needed
+                $sheet->getPageSetup()->setFitToHeight(0);
 
-                // Set margins (in inches)
-                $sheet->getPageMargins()->setTop(0.4);
-                $sheet->getPageMargins()->setRight(0.3);
-                $sheet->getPageMargins()->setLeft(0.3);
-                $sheet->getPageMargins()->setBottom(0.4);
-                $sheet->getPageMargins()->setHeader(0.2);
-                $sheet->getPageMargins()->setFooter(0.2);
+                // Set margins (in inches) - narrower for better fit
+                $sheet->getPageMargins()->setTop(0.3);
+                $sheet->getPageMargins()->setRight(0.25);
+                $sheet->getPageMargins()->setLeft(0.25);
+                $sheet->getPageMargins()->setBottom(0.3);
+                $sheet->getPageMargins()->setHeader(0.15);
+                $sheet->getPageMargins()->setFooter(0.15);
 
                 // Print settings
                 $sheet->getPageSetup()->setHorizontalCentered(true);

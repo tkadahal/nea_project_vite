@@ -100,7 +100,7 @@ class ProjectActivity extends Model
      */
     public function getVarQ1Attribute(): float
     {
-        return $this->total_quantity > 0 ? ($this->q1_quantity / $this->total_quantity) * $this->var_total_budget : 0.0;
+        return $this->planned_quantity > 0 ? ($this->q1_quantity / $this->planned_quantity) * $this->var_planned_budget : 0.0;
     }
 
     /**
@@ -108,7 +108,7 @@ class ProjectActivity extends Model
      */
     public function getVarQ2Attribute(): float
     {
-        return $this->total_quantity > 0 ? ($this->q2_quantity / $this->total_quantity) * $this->var_total_budget : 0.0;
+        return $this->planned_quantity > 0 ? ($this->q2_quantity / $this->planned_quantity) * $this->var_planned_budget : 0.0;
     }
 
     /**
@@ -116,7 +116,7 @@ class ProjectActivity extends Model
      */
     public function getVarQ3Attribute(): float
     {
-        return $this->total_quantity > 0 ? ($this->q3_quantity / $this->total_quantity) * $this->var_total_budget : 0.0;
+        return $this->planned_quantity > 0 ? ($this->q3_quantity / $this->planned_quantity) * $this->var_planned_budget : 0.0;
     }
 
     /**
@@ -124,7 +124,7 @@ class ProjectActivity extends Model
      */
     public function getVarQ4Attribute(): float
     {
-        return $this->total_quantity > 0 ? ($this->q4_quantity / $this->total_quantity) * $this->var_total_budget : 0.0;
+        return $this->planned_quantity > 0 ? ($this->q4_quantity / $this->planned_quantity) * $this->var_planned_budget : 0.0;
     }
 
     /**
